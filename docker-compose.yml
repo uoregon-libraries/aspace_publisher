@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  server:
+    image: golang:1.16
+    ports: 
+      - '3000:3000'
+    volumes:
+      - .:/aspace_publisher
+    environment:
+      - NAME=aspace
+      - PASS=abcde
+      - SECRET=bangtherockstogether
+    command: >
+      bash -c "/aspace_publisher/aspace_publisher"
