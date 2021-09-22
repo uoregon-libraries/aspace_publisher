@@ -71,9 +71,9 @@ func main() {
 	e := echo.New()
 
 	// Middleware
-	e.Use(middleware.Logger())
+	//e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-
+    logger = GetLogger()
 	// Login route
 	e.POST("/login", login)
 
@@ -82,6 +82,6 @@ func main() {
 	r.Use(middleware.JWT([]byte(os.Getenv("SECRET"))))
 	r.POST("", upload_marc)
 
-	e.Logger.Fatal(e.Start(":3000"))
+	logger.Fatal(e.Start(":3000"))
 }
 
