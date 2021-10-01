@@ -16,7 +16,8 @@ type AspaceExport struct{
   RecordXml *Record
 }
 
-func (ae AspaceExport) Initialize() (string, error){
+func (ae *AspaceExport) Initialize() (string, error){
+  ae.RecordXml = &Record{}
   err := ae.set_xml(); if err != nil { return ae.FileName, err }
   err = ae.set_AspaceId(); if err != nil { return ae.FileName, err }
   ae.set_oclc_fields()
@@ -26,17 +27,18 @@ func (ae AspaceExport) Initialize() (string, error){
 
 func (ae AspaceExport) set_xml() error{
   xmlfile, err1 := os.Open(ae.FileName); if err1 != nil { return err1 }
-  defer xmlfile.Close()
   byteValue, err2 := ioutil.ReadAll(xmlfile); if err2 != nil { return err2 }
   err3 := xml.Unmarshal(byteValue, ae.RecordXml); if err3 != nil { return err3 }
+  xmlfile.Close()
   return nil
 }
 
-func (ae AspaceExport) set_AspaceId() error{
+func (ae *AspaceExport) set_AspaceId() error{
   datafield := ae.get_datafield("856")
-  if datafield == nil { return errors.New("Cannot set ApaceId") }
+  if datafield == nil { return errors.New("Cannot set ApaceId, datafield not found") }
   subfield := get_subfield("u", datafield)
-  if subfield == nil { return errors.New("Cannot set ApaceId") }
+  if subfield == nil { return errors.New("Cannot set AspaceId, subfield not found") }
+  if subfield.Value == "" { return errors.New("Cannot set AspaceId, value empty") }
   ae.AspaceId = subfield.Value
   return nil
 }
@@ -57,27 +59,35 @@ func get_subfield(code string, datafield *DataField) *SubField{
   return nil
 }
 
-func (ae AspaceExport) set_oclc_fields(){
-  cfs := ae.RecordXml.ControlFields
-  for i := 0; i < len(cfs); i++ {
-    if cfs[i].Tag == "001"{ 
-      ae.OclcId = cfs[i].Value
-    } else if cfs[i].Tag == "005"{
-      ae.OclcDate = cfs[i].Value
-    }
-  }
+func (ae *AspaceExport) set_oclc_fields(){
+  results := Extract_fields(ae.RecordXml)
+  ae.OclcId = results[0]
+  ae.OclcDate = results[1]
 }
 
-func (ae AspaceExport) set_protocol() {
-  ae.Protocol = "POST"
+func Extract_fields(record *Record) [2]string{
+  cfs := record.ControlFields
+  var result [2]string
+  for i := 0; i < len(cfs); i++ {
+    if cfs[i].Tag == "001"{ 
+      result[0] = cfs[i].Value
+    } else if cfs[i].Tag == "005"{
+      result[1] = cfs[i].Value
+    }
+  }
+  return result
+}
+
+func (ae *AspaceExport) set_protocol() {
+  ae.Protocol = "PUT"
   if ae.OclcId == "" {
-    ae.Protocol = "PUT"
+    ae.Protocol = "POST"
   }
 }
 
 type SubField struct {
   XMLName xml.Name `xml:"subfield"`
-  Code string `xml:"tag,attr"`
+  Code string `xml:"code,attr"`
   Value string `xml:",chardata"`
 }
 type DataField struct {
