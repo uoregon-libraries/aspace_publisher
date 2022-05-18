@@ -1,29 +1,35 @@
 package oclc
 
 import(
-  "golang.org/x/oauth2/clientcredentials"
-  "golang.org/x/net/context"
   "net/http"
+  "encoding/json"
   "os"
+  "fmt"
+  "time"
+  "io/ioutil"
 )
 
-func oclc_conf() clientcredentials.Config {
-  secret := os.Getenv("OCLC_SECRET")
+type OclcToken struct {
+	AccessToken string `json:"access_token"`
+	TokenType string `json:"token_type"`
+	ExpiresIn int `json:"expires_in"`
+}
+
+func (ot *OclcToken) GetToken() error{
+  base := os.Getenv("OCLC_TOKEN_URL")
   key := os.Getenv("OCLC_KEY")
-  oclc_token_url := os.Getenv("OCLC_TOKEN_URL")
+  secret := os.Getenv("OCLC_SECRET")
 
-  config := clientcredentials.Config{
-    ClientID: key,
-    ClientSecret: secret,
-    TokenURL: oclc_token_url,
-    Scopes: []string{"WorldCatMetadataAPI"},
+  url := base + "?grant_type=client_credentials&scope=WorldCatMetadataAPI"
+  req, err := http.NewRequest("POST", url, nil); if err != nil { return err }
+  req.SetBasicAuth(key, secret)
+  client := &http.Client{
+    Timeout: time.Second * 10,
   }
-  return config
+  response, err := client.Do(req); if err != nil { return err }
+  byteVal, _ := ioutil.ReadAll(response.Body)
+  err = json.Unmarshal(byteVal, &ot); if err != nil { return err }
+  return nil
 }
 
-func authenticated_client() *http.Client {
-  config := oclc_conf()
-  client := config.Client(context.Background())
-  return client
-}
 
