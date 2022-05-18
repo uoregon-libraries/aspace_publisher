@@ -8,6 +8,8 @@ import(
   "encoding/xml"
   as "aspace_publisher/aspace_export"
   "strings"
+  "errors"
+  "time"
 )
 
 type OclcRequest struct{
@@ -23,9 +25,8 @@ type OclcResponse struct{
   OclcDate string
 }
 
-func (or *OclcRequest) initialize(marc string) (string, error) {
+func (or *OclcRequest) Initialize(marc string) (string, error) {
   or.ServiceUrl = os.Getenv("OCLC_METADATA_SERVICE_URL")
-  or.Inst = os.Getenv("INST")
   or.Schema = os.Getenv("SCHEMA")
   or.HoldingCode = os.Getenv("HOLDING_LIB_CODE")
   
@@ -35,48 +36,61 @@ func (or *OclcRequest) initialize(marc string) (string, error) {
   return "", nil
 }
 
-func (or OclcRequest) build_uri(get bool) string{
+func (or OclcRequest) build_get_uri() (string){
   uri := or.ServiceUrl
-  uri += "?inst=" + or.Inst
-  uri += "&classificationScheme=" + or.Schema
+  uri += "/" + or.AspaceExport.OclcId
+  uri += "?classificationScheme=" + or.Schema
   uri += "&holdingLibraryCode=" + or.HoldingCode
-  if get { uri += "&oclcNumber=" + or.AspaceExport.OclcId }
+
   return uri
 }
 
-func manage_oclc_push(marc string) (*OclcResponse, error){
-  var oreq OclcRequest
-  _, err1 := oreq.initialize(marc); if err1 != nil { return nil, err1 }
-  client := authenticated_client()
-  response2, err2 := oreq.push(client);  if err2 != nil { return nil, err2 }
-  entry, err3 := response_oclc_xml(response2); if err3 != nil { return nil, err3 }
+func (or OclcRequest) build_uri() (string){
+  uri := or.ServiceUrl
+  if or.AspaceExport.Protocol == "PUT" {
+    uri += "/" + or.AspaceExport.OclcId
+  }
+  uri += "?classificationScheme=" + or.Schema
+  uri += "&holdingLibraryCode=" + or.HoldingCode
+
+  return uri
+}
+
+func (or OclcRequest) RequestPush() (*http.Request, error){
+  payload, err := ioutil.ReadFile(or.AspaceExport.FileName); if err != nil { return nil, err }
+  uri := or.build_uri()
+  req, err := http.NewRequest(or.AspaceExport.Protocol, uri, bytes.NewBuffer(payload))
+  if err != nil { return nil, err }
+  req.Header.Set("content_type", "application/vnd.oclc.marc21+xml")
+  return req, nil
+}
+
+func (or OclcRequest) RequestPull() (*http.Request, error){
+  if or.AspaceExport.OclcId == "" { return nil, errors.New("no oclc to pull") }
+  uri := or.build_get_uri()
+  req, err := http.NewRequest("GET", uri, nil)
+  return req, err
+}
+
+func DoRequest(req *http.Request)(*OclcResponse, error){
+  client := &http.Client{
+    Timeout: time.Second * 10,
+  }
+  response, err := client.Do(req); if err != nil { return nil, err }
+  body, err := ioutil.ReadAll(response.Body); if err != nil { return nil, err }
+  response.Body.Close()
+  entry, err := response_oclc_xml(string(body)); if err != nil { return nil, err }
   var oresp OclcResponse
   oresp.set_fields(entry)
   return &oresp, nil
 }
 
-//post and put requests to oclc
-func (or OclcRequest) push(client *http.Client) (string, error){
-  payload, err := ioutil.ReadFile(or.AspaceExport.FileName)
-  if err != nil { return or.AspaceExport.AspaceId, err }
-  uri := or.build_uri(false) /*******************set the bool properly **************/
-  req, err := http.NewRequest(or.AspaceExport.Protocol, uri, bytes.NewBuffer(payload))
-  req.Header.Set("content_type", "application/vnd.oclc.marc21+xml")
-  if err != nil { return or.AspaceExport.AspaceId, err }
-  resp, err := client.Do(req)
-  if err != nil{ return or.AspaceExport.AspaceId, err }
-  body, err := ioutil.ReadAll(resp.Body) 
-  if err != nil { return or.AspaceExport.AspaceId, err }
-  resp.Body.Close()
-  return string(body), nil
+func AddToken(req *http.Request) (*http.Request, error){
+  var ot OclcToken
+  err := ot.GetToken(); if err != nil { return nil, err }
+  req.Header.Set("Authorization", "Bearer " + ot.AccessToken)
+  return req, nil
 }
-
-//get requests to oclc
-//mainly to acquire date
-/*func (or OclcRequest) pull(client *http.Client) (string, error){
-*
-*}
-*/
 
 // requires path to file and xml type
 func response_oclc_xml(marc string) (*Entry, error){
