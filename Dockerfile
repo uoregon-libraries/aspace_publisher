@@ -9,5 +9,5 @@ RUN go mod download && go mod verify
 COPY . .
 RUN go build -o /aspace_publisher/aspace_publisher
 
-RUN apt update
-RUN apt install php
+RUN apt-get update
+RUN apt-get install --no-install-recommends -y php
