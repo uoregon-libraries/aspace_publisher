@@ -94,7 +94,7 @@ return s, eadid.Text(), err
 }
 
 func CallConversion(xml string)(string, error){
-  cmd := exec.Command("php", "/home/lsato/aw_debugger/converter.php", xml)
+  cmd := exec.Command("php", "/usr/local/src/aspace_publisher/aw/converter.php", xml)
   var out strings.Builder
   cmd.Stdin = strings.NewReader("some input")
   cmd.Stdout = &out
