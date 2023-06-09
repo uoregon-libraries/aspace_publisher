@@ -35,8 +35,6 @@ func ConvertEadHandler(c echo.Context) error {
     if err != nil { fmt.Println(err); return err }
     
     return c.Attachment(f.Name(), filename)
-
-  return c.String(200, "OK")
   }
 
 
