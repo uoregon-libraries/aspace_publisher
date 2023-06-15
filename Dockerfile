@@ -10,4 +10,4 @@ COPY . .
 RUN go build -o /aspace_publisher/aspace_publisher
 
 RUN apt-get update
-RUN apt-get install --no-install-recommends -y php
+RUN apt-get install --no-install-recommends -y php php-dom
