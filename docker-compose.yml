@@ -8,5 +8,7 @@ services:
     environment:
       - SECRET=$SECRET
       - ASPACE_URL=$ASPACE_URL
-    command: >
-      bash -c "/aspace_publisher/aspace_publisher"
+    #command: >
+    #  bash -c "/aspace_publisher/aspace_publisher"
+    # when debugging, enter container and run the go command manually
+    tty: true
