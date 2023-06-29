@@ -2,14 +2,11 @@ version: '2'
 
 services:
   server:
-    image: golang:1.16
+    image: uoregon-libraries/aspace_publisher:latest
     ports: 
       - '3000:3000'
-    volumes:
-      - .:/aspace_publisher
     environment:
-      - NAME=aspace
-      - PASS=abcde
-      - SECRET=bangtherockstogether
+      - SECRET=$SECRET
+      - ASPACE_URL=$ASPACE_URL
     command: >
       bash -c "/aspace_publisher/aspace_publisher"
