@@ -5,7 +5,6 @@ import(
   "net/http"
   "net/url"
   "io"
-  "time"
   "encoding/json"
   "errors"
   "aspace_publisher/utils"
@@ -21,7 +20,6 @@ func As_basic(username, password string, c echo.Context) (bool, error){
     session_id, err := AuthenticateAS(username, password)
     if err != nil { return false, err }
     utils.WriteCookie(c, "as_session", session_id)
-    time.Sleep(3 * time.Second)
   }
   return true, nil
 }

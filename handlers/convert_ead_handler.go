@@ -15,7 +15,7 @@ func ConvertEadHandler(c echo.Context) error {
     repo_id := "2"
 
     session_id, err := utils.FetchCookieVal(c, "as_session")
-    if err!= nil { fmt.Println(err); return err }
+    if err != nil { return echo.NewHTTPError(520, "Authorization is in progress, please wait a moment and try request again.") }
 
     ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id)
     if err != nil { fmt.Println(err); return err }
@@ -33,8 +33,8 @@ func ConvertEadHandler(c echo.Context) error {
     defer os.Remove(f.Name())
     _, err = f.Write([]byte(ead_converted))
     if err != nil { fmt.Println(err); return err }
-    
-    return c.Attachment(f.Name(), filename)
+    //Use Inline or Attachment
+    return c.Inline(f.Name(), filename)
   }
 
 
