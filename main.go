@@ -12,6 +12,7 @@ import (
 func main() {
   e := echo.New()
   // Middleware
+  e.Use(echosession.New())
   e.Use(middleware.Logger())
   e.Use(middleware.Recover())
   e.Use(middleware.BasicAuth(as.As_basic))
@@ -19,6 +20,8 @@ func main() {
   e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
   e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
+  e.POST("/asToOclc/:id", handlers.AsToOclcCreate)
   e.Logger.Fatal(e.Start(os.Getenv("PORT")))
+
 }
 
