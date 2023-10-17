@@ -93,7 +93,7 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
 
   d := etree.NewDocumentWithRoot(aw_xml)
   s, err := d.WriteToString() 
-return s, eadid.Text(), err
+return s, eadid.Text(), ark_id, err
 }
 
 func CallConversion(xml string)(string, error){
