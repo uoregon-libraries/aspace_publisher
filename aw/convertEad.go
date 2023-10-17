@@ -97,11 +97,14 @@ return s, eadid.Text(), ark_id, err
 }
 
 func CallConversion(xml string)(string, error){
-  cmd := exec.Command("php", "/usr/local/src/aspace_publisher/aw/converter.php", xml)
+  home_dir := os.Getenv("HOME_DIR")
+  converter_location := filepath.Join(home_dir, "aw/converter.php")
+  cmd := exec.Command("php", converter_location, xml)
   var out strings.Builder
-  cmd.Stdin = strings.NewReader("some input")
   cmd.Stdout = &out
-  err := cmd.Run()
-  if err != nil { return "", err }
+  cmd.Run()
+  if strings.Contains(out.String(), "error"){
+    return "", errors.New(out.String())
+  }
   return out.String(), nil
 }
