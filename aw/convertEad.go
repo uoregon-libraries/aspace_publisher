@@ -3,16 +3,19 @@ package aw
 import (
   "fmt"
   "strings"
+  "errors"
   "os/exec"
+  "os"
+  "path/filepath"
   "github.com/beevik/etree"
 )
 
 // needs refactoring, but for now...
-func PrepareEad(repo_id string, resource_id string, xml string)(string, string, error){
+func PrepareEad(repo_id string, resource_id string, xml string)(string, string, string, error){
   aw_xml := etree.NewElement("ead")
   as_xml := etree.NewDocument()
   err := as_xml.ReadFromString(xml)
-  if err != nil { return "","", err }
+  if err != nil { return "","", "", err }
 
   eadheader_copy := as_xml.FindElement("//eadheader").Copy()
   eadheader_copy.RemoveAttr("findaidstatus")
