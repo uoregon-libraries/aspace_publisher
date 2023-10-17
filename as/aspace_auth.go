@@ -3,8 +3,11 @@ package as
 import(
   "fmt"
   "net/http"
+  "net/http/httputil"
   "net/url"
   "io"
+  "os"
+  "log"
   "encoding/json"
   "errors"
   "aspace_publisher/utils"
@@ -17,20 +20,24 @@ type AuthResp struct {
 func As_basic(username, password string, c echo.Context) (bool, error){
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if session_id == "" || err != nil {
-    session_id, err := AuthenticateAS(username, password)
+    session_id, err = AuthenticateAS(username, password)
     if err != nil { return false, err }
-    utils.WriteCookie(c, "as_session", session_id)
+    utils.WriteCookie(c, 5, "as_session", session_id)
   }
   return true, nil
 }
 
 //Note: this will work on the server. Or from a local machine using VPN
 func AuthenticateAS(uname string, pass string) (string, error){
-  var authresp AuthResp 
-  authurl := fmt.Sprintf("https://archives.uoregon.edu/api/users/%s/login", uname)
+  var authresp AuthResp
+  authurl := os.Getenv("ASPACE_URL") + fmt.Sprintf("users/%s/login", uname)
   response, err := http.PostForm(authurl, url.Values{"password": {pass}})
-  if err != nil { return "", errors.New("Unable to complete login") }
-
+  if err != nil {
+    respdump, err := httputil.DumpResponse(response, true)
+    if err != nil { log.Println(err); return "", errors.New("unable to complete login") }
+    log.Printf("RESPONSE:\n%s", string(respdump))
+    return "", errors.New("Unable to complete login")
+  }
   defer response.Body.Close()
   byteVal, _ := io.ReadAll(response.Body)
   err = json.Unmarshal(byteVal, &authresp)
