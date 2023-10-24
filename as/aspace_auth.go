@@ -30,13 +30,14 @@ func As_basic(username, password string, c echo.Context) (bool, error){
 //Note: this will work on the server. Or from a local machine using VPN
 func AuthenticateAS(uname string, pass string) (string, error){
   var authresp AuthResp
+  verbose := os.Getenv("VERBOSE")
   authurl := os.Getenv("ASPACE_URL") + fmt.Sprintf("users/%s/login", uname)
   response, err := http.PostForm(authurl, url.Values{"password": {pass}})
-  if err != nil {
+  if err != nil { return "", errors.New("unable to complete login") }
+  if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err); return "", errors.New("unable to complete login") }
-    log.Printf("RESPONSE:\n%s", string(respdump))
-    return "", errors.New("Unable to complete login")
+    if err != nil { log.Println(err)
+    } else { log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
   defer response.Body.Close()
   byteVal, _ := io.ReadAll(response.Body)

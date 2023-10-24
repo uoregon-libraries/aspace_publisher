@@ -8,6 +8,7 @@ import(
   "net/http"
   "net/http/httputil"
   "log"
+  "os"
   "strings"
   "time"
   "github.com/PuerkitoBio/goquery"
@@ -33,7 +34,7 @@ func MakeUploadMap(ark, filekey, filepath string)(map[string]string, error){
 // first post the upload
 // second get confirmation upload was successful
 // return confirmation page
-func Upload(sessionid string, boundary string, form *bytes.Buffer)(string, error){
+func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffer)(string, error){
   url := os.Getenv("AWEST_URL") + "upload-process.php"
   req, err := http.NewRequest("POST", url, form)
   if err != nil { return "", errors.New("unable to create http request") }
@@ -44,17 +45,18 @@ func Upload(sessionid string, boundary string, form *bytes.Buffer)(string, error
   client := &http.Client{
     Timeout: time.Second * 30,
   }
-  reqdump, err := httputil.DumpRequest(req, true)
-  if err != nil { log.Fatal(err) }
-  log.Printf("REQUEST:\n%s", string(reqdump))
-
+  if verbose == "true" {
+    reqdump, err := httputil.DumpRequest(req, true)
+    if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
+  }
   response, err := client.Do(req); if err != nil { return "", err }
-  respdump, err := httputil.DumpResponse(response, true)
-  if err != nil { log.Fatal(err) }
-  log.Printf("RESPONSE:\n%s", string(respdump))
-
+  defer response.Body.Close()
+  if verbose == "true" {
+    respdump, err := httputil.DumpResponse(response, true)
+    if err != nil { log.Println(err) } else {  log.Printf("RESPONSE:\n%s", string(respdump)) }
+  }
   body, err := io.ReadAll(response.Body); if err != nil { return "", err }
-  response.Body.Close()
+
   return string(body), nil
 }
 
@@ -72,7 +74,7 @@ func TestArk(ark string)(bool, error){
   }
   response, err := client.Do(req); if err != nil { return false, err }
   body, err := io.ReadAll(response.Body); if err != nil { return false, err }
-  response.Body.Close()
+  defer response.Body.Close()
   doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
   if err != nil { return false, errors.New("unable to read response") }
   tag := doc.Find("#toc")
@@ -82,7 +84,7 @@ func TestArk(ark string)(bool, error){
   return true, nil
 }
 
-func Validate(sessionid string, boundary string, form *bytes.Buffer)(string, error){
+func Validate(sessionid string, boundary string, verbose string, form *bytes.Buffer)(string, error){
   url := os.Getenv("AWEST_URL") + "validation-process.php"
   req, err := http.NewRequest("POST", url, form)
   if err != nil { return "", errors.New("unable to create http request") }
@@ -92,16 +94,16 @@ func Validate(sessionid string, boundary string, form *bytes.Buffer)(string, err
   client := &http.Client{
     Timeout: time.Second * 30,
   }
-  reqdump, err := httputil.DumpRequest(req, true)
-  if err != nil { log.Fatal(err) }
-  log.Printf("REQUEST:\n%s", string(reqdump))
-
+  if verbose == "true" {
+    reqdump, err := httputil.DumpRequest(req, true)
+    if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
+  }
   response, err := client.Do(req); if err != nil { return "", err }
-  respdump, err := httputil.DumpResponse(response, true)
-  if err != nil { log.Fatal(err) }
-  log.Printf("RESPONSE:\n%s", string(respdump))
-
+  defer response.Body.Close()
+  if verbose == "true" {
+    respdump, err := httputil.DumpResponse(response, true)
+    if err != nil { log.Println(err) } else { log.Printf("RESPONSE:\n%s", string(respdump)) }
+  }
   body, err := io.ReadAll(response.Body); if err != nil { return "", err }
-  response.Body.Close()
   return string(body), nil
 }

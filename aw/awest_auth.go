@@ -14,7 +14,7 @@ import(
   "github.com/labstack/echo/v4"
 )
 
-func GetSession(c echo.Context, verbose bool) (string, error){  
+func GetSession(c echo.Context, verbose string) (string, error){
   session_id, err := utils.FetchExpirableCookie(c, "aw_session")
   if session_id == "" || err != nil {
     session_id, err = authenticate(verbose)
@@ -24,7 +24,7 @@ func GetSession(c echo.Context, verbose bool) (string, error){
   return session_id, nil
 }
 
-func authenticate(verbose bool)(string, error){
+func authenticate(verbose string)(string, error){
   authurl, _ := url.Parse(os.Getenv("AWEST_URL") + "login.php")
   data := url.Values{}
   data.Set("username", os.Getenv("AWEST_NAME"))
@@ -39,7 +39,7 @@ func authenticate(verbose bool)(string, error){
   request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
   request.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 
-  if verbose {
+  if verbose == "true" {
     reqdump, err := httputil.DumpRequest(request, true)
     if err != nil { log.Println(err); return "", err }
     log.Printf("REQUEST:\n%s", string(reqdump))
@@ -48,7 +48,7 @@ func authenticate(verbose bool)(string, error){
   response, err := client.Do(request)
   if err != nil { log.Println(err); return "", errors.New("Unable to complete login to awest") }
 
-  if verbose {
+  if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err); return "", err }
     log.Printf("RESPONSE:\n%s", string(respdump))

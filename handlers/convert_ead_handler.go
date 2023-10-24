@@ -14,11 +14,12 @@ func ConvertEadHandler(c echo.Context) error {
     ead_id := c.Param("id")
     repo_id := "2"
 
+    verbose := os.Getenv("VERBOSE")
     session_id, err := utils.FetchCookieVal(c, "as_session")
     if err != nil { return echo.NewHTTPError(520, "Authorization is in progress, please wait a moment and try request again.") }
 
-    ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id)
-    if err != nil { log.Println(err); return err }
+    ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id, verbose)
+    if err != nil { log.Println(err); return echo.NewHTTPError(400, ead_orig) }
 
     ead_prepped, filename, _, err := aw.PrepareEad(repo_id, ead_id, ead_orig)
     if err != nil { log.Println(err); return err }

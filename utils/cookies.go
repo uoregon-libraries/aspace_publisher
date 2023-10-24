@@ -10,6 +10,7 @@ func WriteCookie(c echo.Context, expires int, name string, value string) {
   cookie := new(http.Cookie)
   cookie.Name = name
   cookie.Value = value
+  cookie.Path = "/"
   cookie.Expires = time.Now().Add(time.Duration(expires) * time.Hour)
   c.SetCookie(cookie)
 }
