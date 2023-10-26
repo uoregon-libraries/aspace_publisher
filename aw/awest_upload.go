@@ -61,7 +61,7 @@ func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffe
 }
 
 func ark_url(ark string)(string){
-  url := fmt.Sprintf("https://archiveswest.orbiscascade.org/ark:/%s", ark)
+  url := fmt.Sprintf("https://archiveswest.orbiscascade.org/ark:%s", ark)
   return url
 }
 
