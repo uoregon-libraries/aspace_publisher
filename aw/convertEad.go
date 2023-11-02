@@ -22,7 +22,8 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   eadid := eadheader_copy.FindElement("//eadid")
   eadid.CreateAttr("encodinganalog", "identifier")
   ark := eadid.SelectAttrValue("url","")
-  ark_id := strings.Split(ark,"ark:")[1]
+  split_ark := strings.Split(ark,"ark:")[1]
+  ark_id := strings.TrimPrefix(split_ark, "/")
   eadid.CreateAttr("identifier", ark_id)
   extptr := eadheader_copy.FindElement("//extptr")
   addressline := extptr.Parent()
