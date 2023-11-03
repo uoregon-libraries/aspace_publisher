@@ -21,14 +21,14 @@ func UploadEadHandler(c echo.Context) error {
   ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id, verbose)
   if err != nil { log.Println(err); return echo.NewHTTPError(400, ead_orig) }
 
-  ead_prepped, _, ark, err := aw.PrepareEad(repo_id, ead_id, ead_orig)
+  ead_prepped, filename, ark, err := aw.PrepareEad(repo_id, ead_id, ead_orig)
   if err != nil { log.Println(err); return echo.NewHTTPError(400, "unable to prep ead") }
 
   ead_converted, err := aw.CallConversion(ead_prepped)
   if err != nil { log.Println(err); return echo.NewHTTPError(400, "unable to convert ead") }
 
-  f, err := os.CreateTemp("", "ead-")
-  if err != nil { log.Println(err); return echo.NewHTTPError(400, "unable to create temp dir") }
+  f, err := os.Create(filename)
+  if err != nil { log.Println(err); return echo.NewHTTPError(400, "unable to create temp file") }
   defer f.Close()
   defer os.Remove(f.Name())
   _, err = f.Write([]byte(ead_converted))
