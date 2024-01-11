@@ -65,6 +65,8 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   did := aw_xml.FindElement("//archdesc/did")
   did.RemoveChildAt(i)
   did.InsertChildAt(i, unittitle)
+  i = aw_xml.FindElement("//archdesc/did/unitid[@type=\"aspace_uri\"]").Index()
+  did.RemoveChildAt(i)
 
   filedesc_title := aw_xml.FindElement("//eadheader/filedesc/titlestmt/titleproper").Text()
   dsc := aw_archdesc.CreateElement("dsc")
