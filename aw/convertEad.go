@@ -19,7 +19,8 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   eadid := eadheader_copy.FindElement("//eadid")
   eadid.CreateAttr("encodinganalog", "identifier")
   ark := eadid.SelectAttrValue("url","")
-  ark_id := strings.Split(ark,"ark:")[1]
+  split_ark := strings.Split(ark,"ark:")[1]
+  ark_id := strings.TrimPrefix(split_ark, "/")
   eadid.CreateAttr("identifier", ark_id)
   extptr := eadheader_copy.FindElement("//extptr")
   addressline := extptr.Parent()
@@ -61,6 +62,11 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   did := aw_xml.FindElement("//archdesc/did")
   did.RemoveChildAt(i)
   did.InsertChildAt(i, unittitle)
+  unitid := aw_xml.FindElement("//archdesc/did/unitid[@type=\"aspace_uri\"]")
+  if unitid != nil {
+    i := unitid.Index()
+    did.RemoveChildAt(i)
+  }
 
   filedesc_title := aw_xml.FindElement("//eadheader/filedesc/titlestmt/titleproper").Text()
   dsc := aw_archdesc.CreateElement("dsc")
