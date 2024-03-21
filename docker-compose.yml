@@ -2,11 +2,12 @@ version: '2'
 
 services:
   server:
-    image: uoregon-libraries/aspace_publisher:latest
+    image: uoregon-libraries/aspace_publisher:20240321
     ports: 
       - '3000:3000'
     environment:
       - SECRET=$SECRET
       - ASPACE_URL=$ASPACE_URL
-    command: >
-      bash -c "/aspace_publisher/aspace_publisher"
+    tty: true
+    volumes:
+      - .:/usr/local/src/aspace_publisher

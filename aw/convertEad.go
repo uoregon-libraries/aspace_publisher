@@ -65,7 +65,7 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   did := aw_xml.FindElement("//archdesc/did")
   did.RemoveChildAt(i)
   did.InsertChildAt(i, unittitle)
-  unitid := aw_xml.FindElement("//archdesc/did/unitid[@type=\"aspace_uri\"]")
+  unitid := aw_xml.FindElement("//archdesc/did/unitid[@type='aspace_uri']")
   if unitid != nil {
     i := unitid.Index()
     did.RemoveChildAt(i)

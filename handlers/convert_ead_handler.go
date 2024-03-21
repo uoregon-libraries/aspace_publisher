@@ -33,6 +33,13 @@ func ConvertEadHandler(c echo.Context) error {
     defer os.Remove(f.Name())
     _, err = f.Write([]byte(ead_converted))
     if err != nil { log.Println(err); return err }
+    //add temporary files for debugging
+    if verbose == "true" {
+      err = utils.WriteFile("ead_orig", ead_orig)
+      if err != nil { log.Println(err) }
+      err = utils.WriteFile("ead_prepped", ead_prepped)
+      if err != nil { log.Println(err) }
+    }
     //Use Inline or Attachment
     return c.Inline(f.Name(), filename)
   }
