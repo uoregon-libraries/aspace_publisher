@@ -3,23 +3,27 @@ package aw
 import (
   "fmt"
   "strings"
+  "errors"
   "os/exec"
+  "os"
+  "path/filepath"
   "github.com/beevik/etree"
 )
 
 // needs refactoring, but for now...
-func PrepareEad(repo_id string, resource_id string, xml string)(string, string, error){
+func PrepareEad(repo_id string, resource_id string, xml string)(string, string, string, error){
   aw_xml := etree.NewElement("ead")
   as_xml := etree.NewDocument()
   err := as_xml.ReadFromString(xml)
-  if err != nil { return "","", err }
+  if err != nil { return "","", "", err }
 
   eadheader_copy := as_xml.FindElement("//eadheader").Copy()
   eadheader_copy.RemoveAttr("findaidstatus")
   eadid := eadheader_copy.FindElement("//eadid")
   eadid.CreateAttr("encodinganalog", "identifier")
   ark := eadid.SelectAttrValue("url","")
-  ark_id := strings.Split(ark,"ark:")[1]
+  split_ark := strings.Split(ark,"ark:")[1]
+  ark_id := strings.TrimPrefix(split_ark, "/")
   eadid.CreateAttr("identifier", ark_id)
   extptr := eadheader_copy.FindElement("//extptr")
   addressline := extptr.Parent()
@@ -61,6 +65,11 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   did := aw_xml.FindElement("//archdesc/did")
   did.RemoveChildAt(i)
   did.InsertChildAt(i, unittitle)
+  unitid := aw_xml.FindElement("//archdesc/did/unitid[@type='aspace_uri']")
+  if unitid != nil {
+    i := unitid.Index()
+    did.RemoveChildAt(i)
+  }
 
   filedesc_title := aw_xml.FindElement("//eadheader/filedesc/titlestmt/titleproper").Text()
   dsc := aw_archdesc.CreateElement("dsc")
@@ -90,15 +99,18 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
 
   d := etree.NewDocumentWithRoot(aw_xml)
   s, err := d.WriteToString() 
-return s, eadid.Text(), err
+return s, eadid.Text(), ark_id, err
 }
 
 func CallConversion(xml string)(string, error){
-  cmd := exec.Command("php", "/usr/local/src/aspace_publisher/aw/converter.php", xml)
+  home_dir := os.Getenv("HOME_DIR")
+  converter_location := filepath.Join(home_dir, "aw/converter.php")
+  cmd := exec.Command("php", converter_location, xml)
   var out strings.Builder
-  cmd.Stdin = strings.NewReader("some input")
   cmd.Stdout = &out
-  err := cmd.Run()
-  if err != nil { return "", err }
+  cmd.Run()
+  if strings.Contains(out.String(), "error"){
+    return "", errors.New(out.String())
+  }
   return out.String(), nil
 }

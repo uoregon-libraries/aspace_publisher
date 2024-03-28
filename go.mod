@@ -3,9 +3,9 @@ module aspace_publisher
 go 1.16
 
 require (
-	github.com/beevik/etree v1.1.4 // indirect
+	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/beevik/etree v1.3.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/go-session/session/v3 v3.2.1
 	github.com/labstack/echo/v4 v4.4.0
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

@@ -497,6 +497,7 @@ function convert_file($file_contents, $mainagencycode) {
   return array('ead'=>$converted_ead, 'errors'=>$errors);
 }
 
+// from tools-functions
 function extract_ark($string) {
   $ark = '';
   preg_match('|80444\/xv\d{5,6}|', $string, $matches);

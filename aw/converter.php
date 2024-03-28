@@ -7,5 +7,8 @@ function call_convert($str){
 }
 
 $arr = call_convert($argv[1]);
-echo $arr['ead'];
+if (sizeof($arr['errors']) > 0)
+  echo "errors: " . implode($arr['errors'], "|");
+else
+  echo html_entity_decode($arr['ead']);
 ?>
