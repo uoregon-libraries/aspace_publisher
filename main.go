@@ -5,6 +5,7 @@ import (
   "aspace_publisher/handlers"
   "github.com/labstack/echo/v4"
   "github.com/labstack/echo/v4/middleware"
+  "os"
 )
 
 
@@ -18,6 +19,6 @@ func main() {
   e.GET("/ead/validate/:id", handlers.TestValidateHandler)
   e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
-  e.Logger.Fatal(e.Start(":3000"))
+  e.Logger.Fatal(e.Start(os.Getenv("PORT")))
 }
 
