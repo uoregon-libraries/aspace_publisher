@@ -60,14 +60,10 @@ func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffe
   return string(body), nil
 }
 
-func ark_url(ark string)(string){
-  url := fmt.Sprintf("https://archiveswest.orbiscascade.org/ark:%s", ark)
-  return url
-}
-
 // returns true if there a record published at the ark url
 func TestArk(ark string)(bool, error){
-  req, err := http.NewRequest("GET", ark_url(ark), nil)
+  ark_url := os.Getenv("ARK_URL_BASE") + ark
+  req, err := http.NewRequest("GET", ark_url, nil)
   if err != nil { return false, errors.New("unable to create http request") }
   client := &http.Client{
     Timeout: time.Second * 30,
