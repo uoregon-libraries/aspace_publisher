@@ -17,9 +17,12 @@ func AcquireEad(sessionid string, repo_id string, resource_id string, verbose st
   req, err := http.NewRequest("GET", url, nil)
   if err != nil { log.Println(err); return "", errors.New("unable to create http request") }
 
-  req.Header.Set("X-ArchivesSpace-Session", sessionid) 
+  req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Accept", "*/*")
+  req.Header.Set("User-Agent", "curl/7.61.1")
+
   client := &http.Client{
-    Timeout: time.Second * 30,
+    Timeout: time.Second * 90,
   }
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(req, true)

@@ -1,4 +1,4 @@
-From golang:1.20.5-bullseye
+From golang:1.22.4-bullseye
 
 RUN apt-get update
 RUN apt-get install -y nano
