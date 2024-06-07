@@ -7,6 +7,7 @@ import(
   "errors"
   "net/http"
   "net/http/httputil"
+  "golang.org/x/net/html"
   "log"
   "os"
   "strings"
@@ -30,10 +31,6 @@ func MakeUploadMap(ark, filekey, filepath string)(map[string]string, error){
   return vals, nil
 }
 
-// tries to upload an ead in two steps
-// first post the upload
-// second get confirmation upload was successful
-// return confirmation page
 func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffer)(string, error){
   url := os.Getenv("AWEST_URL") + "upload-process.php"
   req, err := http.NewRequest("POST", url, form)
@@ -106,4 +103,25 @@ func Validate(sessionid string, boundary string, verbose string, form *bytes.Buf
   }
   body, err := io.ReadAll(response.Body); if err != nil { return "", err }
   return string(body), nil
+}
+
+func ParseResult(r io.Reader)(string, error){
+  var b bytes.Buffer
+  //r := strings.NewReader(string(html_resp))
+  doc, err := goquery.NewDocumentFromReader(r)
+  if err != nil { log.Println(err); return "", err }
+  success := doc.Find(".success")
+  if success.Length() > 0 {
+    err := html.Render(&b, success.Nodes[0])
+    if err != nil { log.Println(err); return "", err }
+    return b.String(), nil
+  } else {
+    err_nodes := doc.Find(".errors")
+    if err_nodes.Length() > 0 {
+      err := html.Render(&b, err_nodes.Nodes[0])
+      if err != nil { log.Println(err); return "", err }
+      return b.String(), nil
+    }
+  }
+  return "", nil
 }
