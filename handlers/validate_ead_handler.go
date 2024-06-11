@@ -11,7 +11,7 @@ import(
 )
 
 
-func TestValidateHandler(c echo.Context) error {
+func ValidateEadHandler(c echo.Context) error {
   ead_id := c.Param("id")
   repo_id := "2"
   verbose := os.Getenv("VERBOSE")
@@ -44,10 +44,12 @@ func TestValidateHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(400, "Unable to create form.") }
   //validate
   response, err := aw.Validate(aw_session, boundary, verbose, form)
-
   if err != nil { return echo.NewHTTPError(400, "Unable to complete request.") }
 
-  return c.String(http.StatusOK, response)
+  parsed, err := aw.ParseResult(response)
+  if err != nil { return echo.NewHTTPError(400, "Unable to parse response.") }
+  return c.HTML(http.StatusOK, parsed)
+
   //Use Inline or Attachment
   //return c.Inline(f.Name(), filename)
 }

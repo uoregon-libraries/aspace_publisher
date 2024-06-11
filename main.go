@@ -16,7 +16,7 @@ func main() {
   e.Use(middleware.Recover())
   e.Use(middleware.BasicAuth(as.As_basic))
 
-  e.GET("/ead/validate/:id", handlers.TestValidateHandler)
+  e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
   e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
   e.Logger.Fatal(e.Start(os.Getenv("PORT")))
