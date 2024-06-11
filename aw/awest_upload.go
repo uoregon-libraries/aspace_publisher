@@ -52,8 +52,6 @@ func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffe
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else {  log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-  //body, err := io.ReadAll(response.Body); if err != nil { return nil, err }
-
   return response.Body, nil
 }
 
@@ -101,13 +99,11 @@ func Validate(sessionid string, boundary string, verbose string, form *bytes.Buf
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else { log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-  //body, err := io.ReadAll(response.Body); if err != nil { return nil, err }
   return response.Body, nil
 }
 
 func ParseResult(r io.Reader)(string, error){
   var b bytes.Buffer
-  //r := strings.NewReader(string(html_resp))
   doc, err := goquery.NewDocumentFromReader(r)
   if err != nil { log.Println(err); return "", err }
   success := doc.Find(".success")
