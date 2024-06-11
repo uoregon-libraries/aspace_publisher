@@ -8,4 +8,5 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-session/session/v3 v3.2.1
 	github.com/labstack/echo/v4 v4.4.0
+	golang.org/x/net v0.26.0 // indirect
 )
