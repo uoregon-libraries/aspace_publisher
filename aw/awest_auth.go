@@ -15,11 +15,11 @@ import(
 )
 
 func GetSession(c echo.Context, verbose string) (string, error){
-  session_id, err := utils.FetchExpirableCookie(c, "aw_session")
+  session_id, err := utils.FetchCookieVal(c, "aw_session")
   if session_id == "" || err != nil {
     session_id, err = authenticate(verbose)
     if err != nil { return "", err }
-    utils.WriteCookie(c, 1, "aw_session", session_id)
+    utils.WriteCookie(c, 480, "aw_session", session_id)
   }
   return session_id, nil
 }
@@ -30,7 +30,7 @@ func authenticate(verbose string)(string, error){
   data.Set("username", os.Getenv("AWEST_NAME"))
   data.Set("password", os.Getenv("AWEST_PASS"))
   jar, err := cookiejar.New(nil)
-  if err != nil { log.Println(err); return "", err }
+  if err != nil { log.Println(err); return "", errors.New("could not create cookie jar") }
   client := &http.Client{
     Jar: jar,
   }
@@ -41,8 +41,8 @@ func authenticate(verbose string)(string, error){
 
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(request, true)
-    if err != nil { log.Println(err); return "", err }
-    log.Printf("REQUEST:\n%s", string(reqdump))
+    if err != nil { log.Println(err) } else {
+    log.Printf("REQUEST:\n%s", string(reqdump)) }
   }
   if err != nil { log.Println(err); return "", errors.New("Unable to create login request") }
   response, err := client.Do(request)
@@ -50,8 +50,8 @@ func authenticate(verbose string)(string, error){
 
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err); return "", err }
-    log.Printf("RESPONSE:\n%s", string(respdump))
+    if err != nil { log.Println(err) } else {
+    log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
   defer response.Body.Close()
 
@@ -67,5 +67,6 @@ func parse_session(jar *cookiejar.Jar, url *url.URL) (string, error){
       return cookie.Value, nil
     }
   }
+  log.Println("awest_auth error: could not find session")
   return "", errors.New("could not find session in cookies")
 }

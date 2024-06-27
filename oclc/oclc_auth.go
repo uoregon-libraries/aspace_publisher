@@ -4,11 +4,13 @@ import(
   "net/http"
   "encoding/json"
   "os"
-  "fmt"
+  "log"
   "time"
   "io/ioutil"
   "github.com/labstack/echo/v4"
-  "aspace_publisher/echosession"
+  "aspace_publisher/utils"
+  "net/http/httputil"
+  "errors"
 )
 
 type OclcToken struct {
@@ -17,34 +19,48 @@ type OclcToken struct {
 	ExpiresIn int `json:"expires_in"`
 }
 
-func oclcAuth() string, error {
+func OclcAuth() (string, error) {
+  url := os.Getenv("OCLC_AUTH_URL")
+  name := os.Getenv("OCLC_NAME")
+  pass := os.Getenv("OCLC_PASS")
+  verbose := os.Getenv("VERBOSE")
 
-  base := os.Getenv("OCLC_TOKEN_URL")
-  key := os.Getenv("OCLC_KEY")
-  secret := os.Getenv("OCLC_SECRET")
+  req, err := http.NewRequest("POST", url, nil)
+  if err != nil { log.Println(err); return "", errors.New("unable to create request") }
+  req.SetBasicAuth(name, pass)
+  if verbose == "true" {
+    reqdump, err := httputil.DumpRequestOut(req, true)
+    if err != nil { log.Println(err) } else {
+      log.Printf("REQUEST:\n%s", string(reqdump)) }
+  }
 
-  url := base + "?grant_type=client_credentials&scope=WorldCatMetadataAPI"
-  req, err := http.NewRequest("POST", url, nil); if err != nil { return "", err }
-  req.SetBasicAuth(key, secret)
   client := &http.Client{
     Timeout: time.Second * 10,
   }
-  var ot OclcToken
-  response, err := client.Do(req); if err != nil { return "", err }
+  response, err := client.Do(req)
+  defer response.Body.Close()
+  if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
+  if verbose == "true" {
+    respdump, err := httputil.DumpResponse(response, true)
+    if err != nil { log.Println(err) } else {
+      log.Printf("RESPONSE:\n%s", string(respdump)) }
+  }
+
   byteVal, _ := ioutil.ReadAll(response.Body)
-  err = json.Unmarshal(byteVal, &ot); if err != nil { return "", err }
+  var ot OclcToken
+  err = json.Unmarshal(byteVal, &ot)
+  if err != nil { log.Println(err); return "", errors.New("unable to extract token") }
   return ot.AccessToken, nil
 }
 
 
-func GetToken(c echo.Context) string, error{
-  store := echosession.FromContext(c)
-  t, err := store.Get("oclc_token")
-  if t == "" || err != nil {
-    t, err = oclcAuth()
-    if err != nil { return "", err }
-    store.Set("oclc_token", t)
+func GetToken(c echo.Context) (string, error){
+  token, err := utils.FetchCookieVal(c, "oclc_token")
+  if token == "" || err != nil {
+    token, err := OclcAuth()
+    if err != nil { log.Println(err); return "", err }
+    utils.WriteCookie(c, 20, "oclc_token", token)
   }
-  return t, nil
+  return token, nil
 }
 
