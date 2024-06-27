@@ -57,7 +57,7 @@ func OclcAuth() (string, error) {
 func GetToken(c echo.Context) (string, error){
   token, err := utils.FetchCookieVal(c, "oclc_token")
   if token == "" || err != nil {
-    token, err := OclcAuth()
+    token, err = OclcAuth()
     if err != nil { log.Println(err); return "", err }
     utils.WriteCookie(c, 20, "oclc_token", token)
   }
