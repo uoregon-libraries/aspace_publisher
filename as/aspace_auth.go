@@ -25,7 +25,7 @@ func As_basic(username, password string, c echo.Context) (bool, error){
   if session_id == "" || err != nil {
     session_id, err = AuthenticateAS(username, password)
     if err != nil { return false, err }
-    utils.WriteCookie(c, 5, "as_session", session_id)
+    utils.WriteCookie(c, 120, "as_session", session_id)
   }
   return true, nil
 }
@@ -33,7 +33,7 @@ func As_basic(username, password string, c echo.Context) (bool, error){
 //Note: this will work on the server. Or from a local machine using VPN
 func AuthenticateAS(uname string, pass string) (string, error){
   var authresp AuthResp
-  verbose := os.Getenv("VERBOSE")
+  debug := os.Getenv("DEBUG")
   authurl := os.Getenv("ASPACE_URL") + fmt.Sprintf("users/%s/login", uname)
   data := url.Values{}
   data.Set("password", pass)
@@ -43,10 +43,10 @@ func AuthenticateAS(uname string, pass string) (string, error){
   request.Header.Set("Accept", "*/*")
   request.Header.Set("User-Agent", "curl/7.61.1")
 
-  if verbose == "true" {
+  if debug == "true" {
     reqdump, err := httputil.DumpRequestOut(request, true)
-    if err != nil { log.Println(err); return "", err }
-    log.Printf("REQUEST:\n%s", string(reqdump))
+    if err != nil { log.Println(err) } else {
+      log.Printf("REQUEST:\n%s", string(reqdump)) }
   }
   if err != nil { log.Println(err); return "", errors.New("Unable to create login request") }
   client := http.Client{
@@ -55,10 +55,10 @@ func AuthenticateAS(uname string, pass string) (string, error){
   response, err := client.Do(request)
   if err != nil { log.Println(err); return "", errors.New("Unable to complete login to aspace") }
 
-  if verbose == "true" {
+  if debug == "true" {
     respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err); return "", err }
-    log.Printf("RESPONSE:\n%s", string(respdump))
+    if err != nil { log.Println(err) } else {
+      log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
 
   defer response.Body.Close()

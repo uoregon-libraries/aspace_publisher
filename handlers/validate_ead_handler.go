@@ -11,7 +11,7 @@ import(
 )
 
 
-func TestValidateHandler(c echo.Context) error {
+func ValidateEadHandler(c echo.Context) error {
   ead_id := c.Param("id")
   repo_id := "2"
   verbose := os.Getenv("VERBOSE")
