@@ -25,7 +25,7 @@ func OclcCreateHandler(c echo.Context) error {
 
   //authenticate with OCLC
   token, err := oclc.GetToken(c)
-  if err != nil { return echo.NewHTTPError(520, "Oclc authorization is in progress, please wait a moment and try request again.") }
+  if err != nil { return echo.NewHTTPError(520, err) }
   //push MARC to OCLC
   oclc_resp, err := oclc.Create(token, marc_stripped)
   if err != nil { return echo.NewHTTPError(400, err) }
