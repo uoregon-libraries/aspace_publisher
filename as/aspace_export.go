@@ -11,10 +11,12 @@ import(
   "os"
 )
 
-func AcquireMarc(sessionid string, repo_id string, resource_id string) (string, error){
+func AcquireMarc(sessionid string, repo_id string, resource_id string, published string) (string, error){
+  include := "false"
+  if published == "false" { include = "true" }
   verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("ASPACE_URL")
-  url := base_url + fmt.Sprintf("repositories/%s/resources/marc21/%s.xml?include_unpublished_marc=%s", repo_id, resource_id, "False")
+  url := base_url + fmt.Sprintf("repositories/%s/resources/marc21/%s.xml?include_unpublished_marc=%s", repo_id, resource_id, include)
   req, err := http.NewRequest("GET", url, nil)
   if err != nil { log.Println(err); return "", errors.New("unable to create http request") }
 
@@ -65,5 +67,3 @@ func AcquireJson(sessionid string, repo_id string, resource_id string) ([]byte, 
 
   return body, nil
 }
-
-//func SetUserDefined(field string, value string, json ){}

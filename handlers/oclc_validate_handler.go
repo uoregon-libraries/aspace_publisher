@@ -15,8 +15,14 @@ func OclcValidateHandler(c echo.Context) error {
   //get session id
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(520, "Aspace authorization is in progress, please wait a moment and try request again.") }
+  //get aspace resource
+  json, err := as.AcquireJson(session_id, repo_id, id)
+  if err != nil { return echo.NewHTTPError(400,  err) }
+  //is it published?
+  published, err := as.IsPublished(json)
+  if err != nil { return echo.NewHTTPError(400, err) }
   //get MARC
-  marc_rec, err := as.AcquireMarc(session_id, repo_id, id)
+  marc_rec, err := as.AcquireMarc(session_id, repo_id, id, published)
   if err != nil { return echo.NewHTTPError(400, err) }
   //strip outer tag
   marc_stripped, err := marc.StripOuterTags(marc_rec)
@@ -26,7 +32,10 @@ func OclcValidateHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(520, err) }
   //push MARC to OCLC
   oclc_resp, err := oclc.Validate(token, marc_stripped)
-  if err != nil { return echo.NewHTTPError(400, err) }
-
+  if err != nil {
+    if oclc_resp != "" {
+      return c.String(http.StatusOK, oclc_resp) } else {
+      return echo.NewHTTPError(400, err) }
+  }
   return c.String(http.StatusOK, oclc_resp)
 }
