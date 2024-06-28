@@ -42,9 +42,7 @@ func Create(token string, marc string) (string, error){
   if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return "", errors.New("unable to read response from oclc") }
-  if response.StatusCode != 200 {
-    return "", errors.New(fmt.Sprintf("Unable to create worldcat record: %s", string(body)))
-  }
+  if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }
 
   return string(body), nil
 
@@ -84,6 +82,6 @@ func Validate(token string, marc string)(string, error){
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return "", errors.New("unable to read response from oclc server.") }
 
+  if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }
   return string(body), nil
 }
-

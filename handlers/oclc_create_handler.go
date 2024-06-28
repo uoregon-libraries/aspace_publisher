@@ -16,8 +16,14 @@ func OclcCreateHandler(c echo.Context) error {
   //get session id
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(520, "Aspace authorization is in progress, please wait a moment and try request again.") }
+  //acquire aspace resource, which is in json
+  json, err := as.AcquireJson(session_id, repo_id, id)
+  if err != nil { return echo.NewHTTPError(400,  err) }
+  //is it published?
+  published, err := as.IsPublished(json)
+  if err != nil { return echo.NewHTTPError(400, err) }
   //get MARC
-  marc_rec, err := as.AcquireMarc(session_id, repo_id, id)
+  marc_rec, err := as.AcquireMarc(session_id, repo_id, id, published)
   if err != nil { return echo.NewHTTPError(400, err) }
   //strip outer tag
   marc_stripped, err := marc.StripOuterTags(marc_rec)
@@ -28,14 +34,14 @@ func OclcCreateHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(520, err) }
   //push MARC to OCLC
   oclc_resp, err := oclc.Create(token, marc_stripped)
-  if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil {
+    if oclc_resp != "" { return c.String(http.StatusOK, oclc_resp) } else {
+ return echo.NewHTTPError(400, err) }
+  }
 
   //extract oclc number
   oclc, err := marc.ExtractOclc(string(oclc_resp))
   if err != nil { return echo.NewHTTPError(500, err) }
-  //acquire aspace resource, which is in json
-  json, err := as.AcquireJson(session_id, repo_id, id)
-    if err != nil { return echo.NewHTTPError(400,  err) }
   //insert oclc
   modified, err := as.UpdateUserDefined1(json, oclc)
   if err != nil { return echo.NewHTTPError(500,  err) }
