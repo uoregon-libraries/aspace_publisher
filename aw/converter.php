@@ -10,5 +10,5 @@ $arr = call_convert($argv[1]);
 if (sizeof($arr['errors']) > 0)
   echo "errors: " . implode($arr['errors'], "|");
 else
-  echo html_entity_decode($arr['ead']);
+  echo $arr['ead'];
 ?>
