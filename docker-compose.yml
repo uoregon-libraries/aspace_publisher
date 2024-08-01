@@ -8,6 +8,13 @@ services:
     environment:
       - SECRET=$SECRET
       - ASPACE_URL=$ASPACE_URL
+      - PORT=:3000
+      - HOME_DIR=$HOME_DIR
+      - AWEST_NAME=$AWEST_NAME
+      - AWEST_PASS=$AWEST_PASS
+      - AWEST_URL=$AWEST_URL
+      - VERBOSE=true
+
     tty: true
     volumes:
       - .:/usr/local/src/aspace_publisher

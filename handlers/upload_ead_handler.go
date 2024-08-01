@@ -46,7 +46,7 @@ func UploadEadHandler(c echo.Context) error {
   response, err := aw.Upload(aw_session, boundary, verbose, form)
   if err != nil { return echo.NewHTTPError(400, "Unable to complete request.") }
 
-  return c.String(http.StatusOK, response)
-  //Use Inline or Attachment
-  //return c.Inline(f.Name(), filename)
+  parsed, err := aw.ParseResult(response)
+  if err != nil { return echo.NewHTTPError(400, "Unable to parse response.") }
+  return c.HTML(http.StatusOK, parsed)
 }

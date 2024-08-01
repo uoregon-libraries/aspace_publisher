@@ -7,6 +7,7 @@ import(
   "errors"
   "net/http"
   "net/http/httputil"
+  "golang.org/x/net/html"
   "log"
   "os"
   "strings"
@@ -30,14 +31,10 @@ func MakeUploadMap(ark, filekey, filepath string)(map[string]string, error){
   return vals, nil
 }
 
-// tries to upload an ead in two steps
-// first post the upload
-// second get confirmation upload was successful
-// return confirmation page
-func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffer)(string, error){
+func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffer)(io.Reader, error){
   url := os.Getenv("AWEST_URL") + "upload-process.php"
   req, err := http.NewRequest("POST", url, form)
-  if err != nil { return "", errors.New("unable to create http request") }
+  if err != nil { return nil, errors.New("unable to create http request") }
 
   req.Header.Set("cookie", "PHPSESSID=" + sessionid)
   req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", boundary))
@@ -49,15 +46,13 @@ func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffe
     reqdump, err := httputil.DumpRequest(req, true)
     if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
   }
-  response, err := client.Do(req); if err != nil { return "", err }
+  response, err := client.Do(req); if err != nil { return nil, err }
   defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else {  log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-  body, err := io.ReadAll(response.Body); if err != nil { return "", err }
-
-  return string(body), nil
+  return response.Body, nil
 }
 
 func ark_url(ark string)(string){
@@ -84,10 +79,10 @@ func TestArk(ark string)(bool, error){
   return true, nil
 }
 
-func Validate(sessionid string, boundary string, verbose string, form *bytes.Buffer)(string, error){
+func Validate(sessionid string, boundary string, verbose string, form *bytes.Buffer)(io.Reader, error){
   url := os.Getenv("AWEST_URL") + "validation-process.php"
   req, err := http.NewRequest("POST", url, form)
-  if err != nil { return "", errors.New("unable to create http request") }
+  if err != nil { return nil, errors.New("unable to create http request") }
 
   req.Header.Set("cookie", "PHPSESSID=" + sessionid)
   req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", boundary))
@@ -98,12 +93,31 @@ func Validate(sessionid string, boundary string, verbose string, form *bytes.Buf
     reqdump, err := httputil.DumpRequest(req, true)
     if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
   }
-  response, err := client.Do(req); if err != nil { return "", err }
+  response, err := client.Do(req); if err != nil { return nil, err }
   defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else { log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-  body, err := io.ReadAll(response.Body); if err != nil { return "", err }
-  return string(body), nil
+  return response.Body, nil
+}
+
+func ParseResult(r io.Reader)(string, error){
+  var b bytes.Buffer
+  doc, err := goquery.NewDocumentFromReader(r)
+  if err != nil { log.Println(err); return "", err }
+  success := doc.Find(".success")
+  if success.Length() > 0 {
+    err := html.Render(&b, success.Nodes[0])
+    if err != nil { log.Println(err); return "", err }
+    return b.String(), nil
+  } else {
+    err_nodes := doc.Find(".errors")
+    if err_nodes.Length() > 0 {
+      err := html.Render(&b, err_nodes.Nodes[0])
+      if err != nil { log.Println(err); return "", err }
+      return b.String(), nil
+    }
+  }
+  return "", nil
 }
