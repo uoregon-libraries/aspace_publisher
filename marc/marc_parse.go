@@ -5,6 +5,7 @@ import (
   "log"
   "errors"
   "strings"
+  "unicode"
 )
 
 func ExtractOclc(marc string)(string, error){
