@@ -8,8 +8,7 @@ import (
   "os"
 )
 
-
-func main() {
+func main(){
   e := echo.New()
   // Middleware
   e.Use(middleware.Logger())
@@ -19,6 +18,10 @@ func main() {
   e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
   e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
+  e.Static("/uploads", "views") //urlpath,directorypath, uploads/do.html
+  e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
+
   e.Logger.Fatal(e.Start(os.Getenv("PORT")))
+
 }
 

@@ -37,17 +37,10 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
   items := gjson.Get(digital_obj_list, "digital_objects")
   items.ForEach(func(key, value gjson.Result) bool {
     aoid := gjson.Get(value.String(), "digital_object_id")
-    result := CreateDigitalObjectFake(aoid.String(), value.String(), sessionid)
+    result := CreateDigitalObject(aoid.String(), value.String(), sessionid)
     r.responses = append(r.responses, result)
     return true
   })
-  return r
-}
-
-func CreateDigitalObjectFake(identifier string, digital_obj string, sessionid string) (Response){
-  var r Response
-  r.id = identifier
-  r.response = digital_obj
   return r
 }
 
