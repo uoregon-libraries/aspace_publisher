@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/beevik/etree v1.4.0
 	github.com/labstack/echo/v4 v4.4.0
-	github.com/tidwall/gjson v1.14.2
+	github.com/tidwall/gjson v1.17.3
 	github.com/tidwall/sjson v1.2.5
 )
 
@@ -27,5 +27,4 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
-
 )
