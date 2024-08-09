@@ -16,7 +16,7 @@ func OclcValidateHandler(c echo.Context) error {
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(520, "Aspace authorization is in progress, please wait a moment and try request again.") }
   //get aspace resource
-  json, err := as.AcquireJson(session_id, repo_id, id)
+  json, err := as.AcquireJson(session_id, repo_id, "resources/" + id)
   if err != nil { return echo.NewHTTPError(400,  err) }
   //is it published?
   published, err := as.IsPublished(json)
