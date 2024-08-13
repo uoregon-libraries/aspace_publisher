@@ -11,3 +11,7 @@ func IsPublished(record []byte)(string, error){
   return result.String(), nil
 }
 
+func GetOclcId(record []byte)(string){
+  result := gjson.GetBytes(record, "user_defined.string_1")
+  return result.String()
+}

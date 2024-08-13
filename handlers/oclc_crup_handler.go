@@ -9,7 +9,7 @@ import(
   "net/http"
 )
 
-func OclcCreateHandler(c echo.Context) error {
+func OclcCrupHandler(c echo.Context) error {
 
   id := c.Param("id")
   repo_id := "2"
@@ -22,6 +22,10 @@ func OclcCreateHandler(c echo.Context) error {
   //is it published?
   published, err := as.IsPublished(json)
   if err != nil { return echo.NewHTTPError(400, err) }
+
+  //is it a new record?
+  oclc_id := as.GetOclcId(json)
+  
   //get MARC
   marc_rec, err := as.AcquireMarc(session_id, repo_id, id, published)
   if err != nil { return echo.NewHTTPError(400, err) }
@@ -33,22 +37,25 @@ func OclcCreateHandler(c echo.Context) error {
   token, err := oclc.GetToken(c)
   if err != nil { return echo.NewHTTPError(520, err) }
   //push MARC to OCLC
-  oclc_resp, err := oclc.Create(token, marc_stripped)
+  oclc_resp, err := oclc.Request(token, marc_stripped, "manage/bibs", oclc_id, "marcxml+xml")
   if err != nil {
     if oclc_resp != "" { return c.String(http.StatusOK, oclc_resp) } else {
  return echo.NewHTTPError(400, err) }
   }
+  //if updating, done
+  if oclc_id != "" {
+    return c.String(http.StatusOK, oclc_resp)
+  }
 
-  //extract oclc number
-  oclc, err := marc.ExtractOclc(string(oclc_resp))
+  oclc_id, err = marc.ExtractOclc(string(oclc_resp))
   if err != nil { return echo.NewHTTPError(500, err) }
   //insert oclc
-  modified, err := as.UpdateUserDefined1(json, oclc)
+  modified, err := as.UpdateUserDefined1(json, oclc_id)
   if err != nil { return echo.NewHTTPError(500,  err) }
 
   //post resource json back to aspace
-  as_resp, err := as.UpdateResource(session_id, repo_id, id, string(modified))
-  if err != nil { return echo.NewHTTPError(400, err) }
+  as_resp := as.Post(session_id, id, repo_id, id, string(modified))
+
   //print response to user
-  return c.String(http.StatusOK, as_resp)
+  return c.String(http.StatusOK, as_resp.ResponseToString())
 }

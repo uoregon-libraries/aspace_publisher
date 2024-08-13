@@ -9,18 +9,19 @@ import(
   "errors"
   "time"
   "strings"
+  "slices"
   "net/http/httputil"
 )
 
-
-func Create(token string, marc string) (string, error){
+func Request(token string, marc string, path string, id string, accept string) (string, error){
   verbose := os.Getenv("VERBOSE")
-  base_url := "https://metadata.api.oclc.org/worldcat"
-  url := base_url + "/manage/bibs"
+  url := assembleUrl([]string{"https://metadata.api.oclc.org/worldcat",path,id})
   data := strings.NewReader(marc)
-  req, err := http.NewRequest("POST", url, data)
+  var action string
+  if id != "" { action = "PUT" } else { action = "POST" }
+  req, err := http.NewRequest(action, url, data)
   if err != nil { log.Println(err); return "", errors.New("unable to create http request") }
-  req.Header.Set("accept", "application/marcxml+xml")
+  req.Header.Set("accept", "application/" + accept)
   req.Header.Set("Content-Type", "application/marcxml+xml")
   req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
   if verbose == "true" {
@@ -48,40 +49,9 @@ func Create(token string, marc string) (string, error){
 
 }
 
-func Update(token string, marc string) {
-
+func assembleUrl(parts []string) string{
+  parts = slices.DeleteFunc(parts, func(str string) bool{
+    return str == "" } )
+  return strings.Join(parts, "/")
 }
 
-func Validate(token string, marc string)(string, error){
-  verbose := os.Getenv("VERBOSE")
-  base_url := "https://metadata.api.oclc.org/worldcat"
-  url := base_url + "/manage/bibs/validate/validateFull"
-  data := strings.NewReader(marc)
-  req, err := http.NewRequest("POST", url, data)
-  if err != nil { log.Println(err); return "", errors.New("unable to create http request") }
-  req.Header.Set("accept", "application/json")
-  req.Header.Set("Content-Type", "application/marcxml+xml")
-  req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
-  client := &http.Client{
-    Timeout: time.Second * 60,
-  }
-  response, err := client.Do(req)
-  defer response.Body.Close()
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
-
-  if err != nil { log.Println(err); return "", errors.New("unable to complete http request to oclc.") }
-  body, err := io.ReadAll(response.Body)
-  if err != nil { log.Println(err); return "", errors.New("unable to read response from oclc server.") }
-
-  if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }
-  return string(body), nil
-}
