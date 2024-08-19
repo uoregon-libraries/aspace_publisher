@@ -8,6 +8,7 @@ require (
 	github.com/labstack/echo/v4 v4.4.0
 	github.com/tidwall/gjson v1.17.3
 	github.com/tidwall/sjson v1.2.5
+	golang.org/x/net v0.26.0
 )
 
 require (
@@ -23,7 +24,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/net v0.26.0
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect

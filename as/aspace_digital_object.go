@@ -15,13 +15,15 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
     aoid := extractIdFromInstance(value)
     result := Post(sessionid, doident.String(), "2", "digital_objects", value.String())
     r.responses = append(r.responses, result)
-    if strings.Contains(result.response, "error"){ return false }
-    doid := extractIdFromResponse(result.response)
-
+    if strings.Contains(result.ResponseToString(), "error"){ return false }
+    doid := extractIdFromResponse(result.ResponseToString())
+    if doid == "" {
+      log.Println("failed to extract doid from aspace response for " + aoid)
+      return false }
     json, err := AcquireJson(sessionid, "2", "archival_objects/" + aoid)
     if err != nil {
       log.Println(err)
-      r.responses = append(r.responses, Response{ aoid, err.Error() } )
+      r.responses = append(r.responses, Response{ aoid, BuildErrorMessage(err.Error()) } )
       return false
     }
     inst := Instance("/repositories/2/digital_objects/" + doid)
@@ -47,8 +49,7 @@ func extractIdFromPath(ref string) string {
 
 // extract DO id from aspace response, returns "" if not found
 func extractIdFromResponse(body string) string {
-  id := gjson.Get(body, "id")
+  id := gjson.Get(body, "message.id")
   return id.String()
 }
-
 
