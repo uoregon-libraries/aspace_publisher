@@ -15,7 +15,9 @@ func TestExtractIdFromInstance(t *testing.T){
 
 func TestExtractIdFromResponse(t *testing.T){
   resp_string := `{"status":"success","id":"12345","errors":[]}`
-  doid := extractIdFromResponse(resp_string)
+  r := Response{"abcde",BuildMessage(resp_string)}
+  s := r.ResponseToString()
+  doid := extractIdFromResponse(s)
   if doid != "12345" { t.Fatalf("doid is not correct") }
 }
 
