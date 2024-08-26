@@ -3,6 +3,11 @@ package as
 import (
   "testing"
   "github.com/tidwall/gjson"
+  "fmt"
+  "os"
+  "net/http/httptest"
+  "net/http"
+  "strings"
 )
 
 func TestExtractIdFromInstance(t *testing.T){
@@ -29,4 +34,19 @@ func TestUpdateWithInstance(t *testing.T){
   if len(arr) != 2 { t.Fatalf("adding to instances fail") }
   inst_type := gjson.Get(arr[1].String(), "instance_type")
   if inst_type.String() != "digital_object" { t.Fatalf("adding to instances fail") }
+}
+
+func TestPost(t *testing.T){
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.Header.Get("X-ArchivesSpace-Session") != "abcde_sessionstring_1234" { t.Errorf("request bungled adding session id to header") }
+      fmt.Fprintf(w, `{ "status": "success", "id":"3456"}`)
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/")
+
+  response := Post("abcde_sessionstring_1234", "9876", "2", "resources/5432", "jsonrecordstring" )
+  str_resp := response.ResponseToString()
+  if !strings.Contains(str_resp, `"id":"9876"`) { t.Errorf("response is wrong") }
+  if !strings.Contains(str_resp, `"id":"3456"`) { t.Errorf("response is wrong") }
+  if !strings.Contains(str_resp, `"status":"success"`) { t.Errorf("response is wrong") }
 }
