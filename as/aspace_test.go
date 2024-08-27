@@ -7,7 +7,6 @@ import (
   "os"
   "net/http/httptest"
   "net/http"
-  "strings"
 )
 
 func TestExtractIdFromInstance(t *testing.T){
@@ -46,7 +45,19 @@ func TestPost(t *testing.T){
 
   response := Post("abcde_sessionstring_1234", "9876", "2", "resources/5432", "jsonrecordstring" )
   str_resp := response.ResponseToString()
-  if !strings.Contains(str_resp, `"id":"9876"`) { t.Errorf("response is wrong") }
-  if !strings.Contains(str_resp, `"id":"3456"`) { t.Errorf("response is wrong") }
-  if !strings.Contains(str_resp, `"status":"success"`) { t.Errorf("response is wrong") }
+  value := gjson.Get(str_resp, "id")
+  if value.String() != "9876" { t.Errorf("response is wrong") }
+  value = gjson.Get(str_resp, "message.id")
+  if value.String() != "3456" { t.Errorf("response is wrong") }
+}
+
+func TestBuildMessage(t *testing.T){
+  mess := `{"id":"12345","warning":"the end of the world is nigh"}`
+  resp := Response{ "67890", BuildMessage(mess) }
+  r_str := resp.ResponseToString()
+  value := gjson.Get(r_str, "id")
+  if value.String() != "67890" { t.Errorf("id is wrong") }
+  fmt.Println(value.String())
+  value = gjson.Get(r_str, "message.id")
+  if value.String() != "12345" { t.Errorf("message is wrong") }
 }
