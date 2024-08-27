@@ -7,7 +7,33 @@ import (
   "os"
   "net/http/httptest"
   "net/http"
+  "strings"
+  "path/filepath"
 )
+
+func TestCreateDigitalObjects(t *testing.T){
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.Method == "GET" {
+      fmt.Fprintf(w, `{"title":"Ahoy", "instances":[{"instance_type":"thing"}]}`)
+    } else if strings.Contains(r.URL.String(), "/repositories/2/digital_objects") {
+      fmt.Fprintf(w, `{ "status":"created", "id":"3456"}`)
+    } else if strings.Contains(r.URL.String(), "repositories/2/archival_objects/26462") {
+      fmt.Fprintf(w, `{ "status":"updated", "id":"26462" }`)
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/")
+  home_dir := os.Getenv("HOME_DIR")
+  fpath := filepath.Join(home_dir, "fixtures/do_output6.json")
+  jstr, err := os.ReadFile(fpath)
+  if err != nil { fmt.Println(err) }
+  responses := CreateDigitalObjects(string(jstr), "abcde_session_1234")
+  str_resp := responses.ResponsesToString()
+  val := gjson.Get(str_resp, "id")
+  if val.String() != "Ax078_b012_f009" { t.Fatalf("response id is not correct") }
+  val = gjson.Get(str_resp, "message.id")
+  if val.String() != "3456" { t.Fatalf("response id is not correct") }
+}
 
 func TestExtractIdFromInstance(t *testing.T){
   do_string := `{"jsonmodel_type":"digital_object","linked_instances":[{"ref":"/repositories/2/archival_objects/17801"}],"digital_object_id":"Ax019_b013_f008"}`
@@ -57,7 +83,6 @@ func TestBuildMessage(t *testing.T){
   r_str := resp.ResponseToString()
   value := gjson.Get(r_str, "id")
   if value.String() != "67890" { t.Errorf("id is wrong") }
-  fmt.Println(value.String())
   value = gjson.Get(r_str, "message.id")
   if value.String() != "12345" { t.Errorf("message is wrong") }
 }
