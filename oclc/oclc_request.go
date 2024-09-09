@@ -15,7 +15,8 @@ import(
 
 func Request(token string, marc string, path string, id string, accept string) (string, error){
   verbose := os.Getenv("VERBOSE")
-  url := assembleUrl([]string{"https://metadata.api.oclc.org/worldcat",path,id})
+  base_url := os.Getenv("OCLC_URL")
+  url := assembleUrl([]string{base_url,path,id})
   data := strings.NewReader(marc)
   var action string
   if id != "" { action = "PUT" } else { action = "POST" }
