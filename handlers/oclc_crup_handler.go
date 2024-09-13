@@ -67,7 +67,7 @@ func OclcCrupHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(500,  err) }
 
   //post resource json back to aspace
-  as_resp := as.Post(session_id, id, repo_id, id, string(modified))
+  as_resp := as.Post(session_id, id, repo_id, "resources/" + id, string(modified))
 
   //print response to user
   return c.String(http.StatusOK, as_resp.ResponseToString())
