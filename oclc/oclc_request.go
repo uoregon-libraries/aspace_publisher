@@ -60,7 +60,7 @@ func Record(token string, id string)(string, error){
   verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("OCLC_URL")
   url := assembleUrl([]string{base_url,"manage/bibs", id})
-  req, err := http.NewRequest("GET", url)
+  req, err := http.NewRequest("GET", url, nil)
   if err != nil { log.Println(err); return "", errors.New("unable to create http request") }
   req.Header.Set("accept", "application/marcxml+xml")
   req.Header.Set("Content-Type", "application/marcxml+xml")

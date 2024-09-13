@@ -37,20 +37,19 @@ func OclcCrupHandler(c echo.Context) error {
   token, err := oclc.GetToken(c)
   if err != nil { return echo.NewHTTPError(520, err) }
 
-  //edit the marc if updating
-  if oclc_id != "" {
-    oclc_marc, err := oclc.Record(token, oclc_id)
-    if err != nil{ return echo.NewHTTPError(400, err) }
-    edited_marc, err := marc.EditMarcForOCLC(as_marc, oclc_marc)
-    if err != nil{ return echo.NewHTTPError(400, err) }
-  }
-  //post or put the marc
   var oclc_resp string
-  if oclc_id == "" {
-    oclc_resp, err = oclc.Request(token, as_marc, "manage/bibs", "", "marcxml+xml")
-  } else {
+
+  //edit the marc if updating, put or post marc
+  if oclc_id != "" {
+    oclc_marc, err_ := oclc.Record(token, oclc_id)
+    if err_ != nil{ return echo.NewHTTPError(400, err_) }
+    edited_marc, err_ := marc.EditMarcForOCLC(marc_stripped, oclc_marc)
+    if err_ != nil{ return echo.NewHTTPError(400, err_) }
     oclc_resp, err = oclc.Request(token, edited_marc, "manage/bibs", oclc_id, "marcxml+xml")
+  } else {
+    oclc_resp, err = oclc.Request(token, marc_stripped, "manage/bibs", "", "marcxml+xml")
   }
+
   if err != nil {
     if oclc_resp != "" { return c.String(http.StatusOK, oclc_resp) } else {
       return echo.NewHTTPError(400, err) }
