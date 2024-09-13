@@ -10,7 +10,6 @@ func EditMarcForOCLC(oclc_marc string, as_marc string)(string,error){
   oclc := etree.NewDocument()
   err := oclc.ReadFromString(oclc_marc)
   if err != nil { log.Println(err); return "", errors.New("unable to read oclc marc") }
-
   as := etree.NewDocument()
   err = as.ReadFromString(as_marc)
   if err != nil { log.Println(err); return "", errors.New("unable to read as marc") }
