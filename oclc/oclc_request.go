@@ -16,6 +16,7 @@ import(
 func Request(token string, marc string, path string, id string, accept string) (string, error){
   verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("OCLC_URL")
+  test := os.Getenv("TEST")
   url := assembleUrl([]string{base_url,path,id})
   data := strings.NewReader(marc)
   var action string
@@ -34,6 +35,9 @@ func Request(token string, marc string, path string, id string, accept string) (
   client := &http.Client{
     Timeout: time.Second * 60,
   }
+
+  if test == "true" { return `<record></record>`, nil }
+
   response, err := client.Do(req)
   defer response.Body.Close()
   if verbose == "true" {

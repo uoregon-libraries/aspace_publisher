@@ -43,7 +43,7 @@ func OclcCrupHandler(c echo.Context) error {
   if oclc_id != "" {
     oclc_marc, err_ := oclc.Record(token, oclc_id)
     if err_ != nil{ return echo.NewHTTPError(400, err_) }
-    edited_marc, err_ := marc.EditMarcForOCLC(marc_stripped, oclc_marc)
+    edited_marc, err_ := marc.EditMarcForOCLC(oclc_marc, marc_stripped)
     if err_ != nil{ return echo.NewHTTPError(400, err_) }
     oclc_resp, err = oclc.Request(token, edited_marc, "manage/bibs", oclc_id, "marcxml+xml")
   } else {
