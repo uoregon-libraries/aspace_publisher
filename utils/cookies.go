@@ -4,36 +4,24 @@ import(
   "net/http"
   "time"
   "github.com/labstack/echo/v4"
+  "log"
+  "errors"
 )
 
+//expires value is in minutes
 func WriteCookie(c echo.Context, expires int, name string, value string) {
   cookie := new(http.Cookie)
   cookie.Name = name
   cookie.Value = value
   cookie.Path = "/"
-  cookie.Expires = time.Now().Add(time.Duration(expires) * time.Hour)
+  cookie.Expires = time.Now().Add(time.Duration(expires) * time.Minute)
   c.SetCookie(cookie)
-}
-
-func FetchExpirableCookie(c echo.Context, name string) (string, error){
-  if Expired(c, name) { return "", nil }
-  cookie, err := c.Cookie(name)
-  if err != nil { return "", err }
-
-  return cookie.Value, nil
 }
 
 func FetchCookieVal(c echo.Context, name string) (string, error) {
   cookie, err := c.Cookie(name)
-  if err != nil { return "", err }
+  if err != nil { log.Println(err); return "", errors.New("unable to fetch cookie") }
 
   return cookie.Value, nil
 }
 
-func Expired(c echo.Context, name string) (bool) {
-  cookie, err := c.Cookie(name)
-  if err != nil { return true }
-  if cookie.Expires.After(time.Now()) {
-    return false
-  } else { return true }
-}

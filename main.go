@@ -19,6 +19,10 @@ func main() {
   e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
   e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
+  e.GET("/oclc/crup/:id", handlers.OclcCrupHandler)
+  e.GET("/oclc/validate/:id", handlers.OclcValidateHandler)
+
   e.Logger.Fatal(e.Start(os.Getenv("PORT")))
+
 }
 
