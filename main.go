@@ -8,12 +8,12 @@ import (
   "os"
 )
 
-
-func main() {
+func main(){
   e := echo.New()
   // Middleware
   e.Use(middleware.Logger())
   e.Use(middleware.Recover())
+  e.GET("/version", handlers.VersionHandler)
   e.Use(middleware.BasicAuth(as.As_basic))
 
   e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
