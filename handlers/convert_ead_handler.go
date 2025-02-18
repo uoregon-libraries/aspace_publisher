@@ -16,7 +16,7 @@ func ConvertEadHandler(c echo.Context) error {
 
     verbose := os.Getenv("VERBOSE")
     session_id, err := utils.FetchCookieVal(c, "as_session")
-    if err != nil { return echo.NewHTTPError(520, "Authorization is in progress, please wait a moment and try request again.") }
+    if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session. Try redoing login.") }
 
     ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id, verbose)
     if err != nil { log.Println(err); return echo.NewHTTPError(400, ead_orig) }
