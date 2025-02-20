@@ -19,7 +19,7 @@ func GetSession(c echo.Context, verbose string) (string, error){
   if session_id == "" || err != nil {
     session_id, err = authenticate(verbose)
     if err != nil { return "", err }
-    utils.WriteCookie(c, 480, "aw_session", session_id)
+    utils.WriteCookie(c, 60, "aw_session", session_id)
   }
   return session_id, nil
 }
