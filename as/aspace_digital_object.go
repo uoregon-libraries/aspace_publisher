@@ -15,16 +15,16 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
     aoid := extractIdFromInstance(value)
     result := Post(sessionid, doident.String(), "2", "digital_objects", value.String())
     r.responses = append(r.responses, result)
-    if strings.Contains(result.ResponseToString(), "error"){ return false }
+    if strings.Contains(result.ResponseToString(), "error"){ return true }
     doid := extractIdFromResponse(result.ResponseToString())
     if doid == "" {
       log.Println("failed to extract doid from aspace response for " + aoid)
-      return false }
+      return true }
     json, err := AcquireJson(sessionid, "2", "archival_objects/" + aoid)
     if err != nil {
       log.Println(err)
       r.responses = append(r.responses, Response{ aoid, BuildErrorMessage(err.Error()) } )
-      return false
+      return true
     }
     inst := Instance("/repositories/2/digital_objects/" + doid)
     modified, err := UpdateWithInstance(json, inst)

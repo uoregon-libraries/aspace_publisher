@@ -62,6 +62,7 @@ func Post(sessionid string, identifier string, repo_id string, record_id string,
 if err != nil { log.Println(err); return Response{identifier, BuildErrorMessage("unable to create http request")} }
 
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Content-Type", "text/json")
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
