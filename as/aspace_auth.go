@@ -53,14 +53,13 @@ func AuthenticateAS(uname string, pass string) (string, error){
 	 Timeout: 60 * time.Second,
   }
   response, err := client.Do(request)
-  if err != nil { log.Println(err); return "", errors.New("Unable to complete login to aspace") }
-
   if debug == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else {
       log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-
+  if err != nil { log.Println(err); return "", errors.New("Unable to complete login to aspace") }
+  if response.StatusCode != 200 { log.Println("unable to log into Aspace"); return "", errors.New("Unable to complete login to aspace") }
   defer response.Body.Close()
   byteVal, _ := io.ReadAll(response.Body)
   err = json.Unmarshal(byteVal, &authresp)

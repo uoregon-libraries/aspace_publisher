@@ -15,7 +15,7 @@ func OclcCrupHandler(c echo.Context) error {
   repo_id := "2"
   //get session id
   session_id, err := utils.FetchCookieVal(c, "as_session")
-  if err != nil { return echo.NewHTTPError(520, "Aspace authorization is in progress, please wait a moment and try request again.") }
+  if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session, try redoing login.") }
   //acquire aspace resource, which is in json
   json, err := as.AcquireJson(session_id, repo_id, id)
   if err != nil { return echo.NewHTTPError(400,  err) }
