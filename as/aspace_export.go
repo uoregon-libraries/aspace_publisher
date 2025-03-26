@@ -46,9 +46,9 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
   return string(body), nil
 }
 
-func AcquireJson(sessionid string, repo_id string, resource_id string) ([]byte, error){
+func AcquireJson(sessionid string, repo_id string, record_id string) ([]byte, error){
   base_url := os.Getenv( "ASPACE_URL")
-  url := base_url + fmt.Sprintf("/repositories/%s/resources/%s", repo_id, resource_id)
+  url := base_url + fmt.Sprintf("/repositories/%s/%s", repo_id, record_id)
   req, err := http.NewRequest("GET", url, nil)
   if err != nil { log.Println(err); return nil, errors.New("unable to create http request") }
 
@@ -60,10 +60,12 @@ func AcquireJson(sessionid string, repo_id string, resource_id string) ([]byte, 
     Timeout: time.Second * 60,
   }
   response, err := client.Do(req)
-  defer response.Body.Close()
   if err != nil { log.Println(err); return nil, errors.New("unable to complete request to archivesspace.") }
+  defer response.Body.Close()
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return nil, errors.New("unable to read response from archivesspace") }
 
   return body, nil
 }
+
+

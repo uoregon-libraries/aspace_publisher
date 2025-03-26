@@ -20,6 +20,8 @@ func main(){
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
   e.GET("/oclc/crup/:id", handlers.OclcCrupHandler)
   e.GET("/oclc/validate/:id", handlers.OclcValidateHandler)
+  e.Static("/uploads", "views") //urlpath,directorypath, uploads/do.html
+  e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
 
   e.Logger.Fatal(e.Start(os.Getenv("PORT")))
 
