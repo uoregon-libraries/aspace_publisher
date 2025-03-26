@@ -50,13 +50,14 @@ as above, with one additional step, run: `register-app .` (generates docker-comp
 
 ### Production:
 1. `go build`
-2. scp the executable to the server
+2. scp the executable and any static files to the server
 3. if needed, edit /etc/aspace-pub.env
 4. `sudo systemctl stop aspace-pub`
 5. move executable to /usr/local/aspace-pub
-6. `sudo systemctl start aspace-pub`
+6. move static files to the appropriate place in /usr/local/aspace-pub
+7. `sudo systemctl start aspace-pub`
 
-logging: `journalctl -fu aspace_publisher`
+logging: `journalctl -fu aspace-pub`
 
 NOTE this service is only reachable from campus or while on the VPN.
 
