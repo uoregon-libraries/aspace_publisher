@@ -20,6 +20,13 @@ func UpdateUserDefined1(record []byte, oclc string)([]byte, error){
   return modified, nil
 }
 
+// refactor
+func UpdateUserDefined2(record []byte, mms_id string)([]byte, error){
+  modified, err := sjson.SetBytes(record, "user_defined.string_2", mms_id)
+  if err != nil { log.Println(err); return nil, err }
+  return modified, nil
+}
+
 func UpdateResource(sessionid string, repo_id string, resource_id string, json_record string )(string, error){
   verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("ASPACE_URL")
