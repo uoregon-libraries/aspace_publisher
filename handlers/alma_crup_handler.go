@@ -41,6 +41,10 @@ func AlmaCrupHandler(c echo.Context) error {
   mms_id, err = alma.ProcessBib(mms_id, oclc_marc, create)
   if err != nil { return echo.NewHTTPError(400, err) }
 
+  var holding_id = ""
+  if create == false { holding_id = alma.GetHoldingId(mms_id) }
+  holding_id, err = alma.ProcessHolding(mms_id, holding_id, oclc_marc, create)
+
   if create == true {
     //update the aspace resource
     modified, err := as.UpdateUserDefined2(rjson, mms_id)

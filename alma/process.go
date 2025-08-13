@@ -37,6 +37,24 @@ func BuildUrl(path []string)string{
   return _url.String()
 }
 
+func ProcessHolding(mms_id string, holding_id string, marc_string string, create bool)(string, error){
+  holding := ConstructHolding(marc_string)
+  path := []string{"bibs", mms_id, "holdings", holding_id}
+  _url := BuildUrl(path)
+  params := []string{ ApiKey() }
+  var result []byte
+  var err error
+  if create {
+    result, err = Post(_url, params, holding) } else {
+    result, err = Put(_url, params, holding)
+  }
+  if err != nil { return "", err }
+  if create {
+    holding_id = ExtractHoldingID(result)
+  }
+  return holding_id, err
+}
+
 func ApiKey()string{
   key := os.Getenv("ALMA_KEY")
   return "apikey=" + key
