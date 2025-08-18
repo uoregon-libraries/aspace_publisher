@@ -37,3 +37,9 @@ func TestExtractHoldingID( t *testing.T){
   if holding_id != "12341234123" { t.Errorf("incorrect holding_id") }
 
 }
+
+func TestExtractItemID( t *testing.T){
+  data := "{\"item_data\":{\"pid\": \"123456789\" }}"
+  id := ExtractItemID([]byte(data))
+  if id != "123456789" { t.Errorf("incorrect item id") }
+}
