@@ -12,6 +12,8 @@ import (
   "fmt"
   "time"
   "io"
+  "net/url"
+  "slices"
 )
 
 func UpdateUserDefined1(record []byte, oclc string)([]byte, error){
@@ -68,6 +70,44 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   return string(body), nil
 }
 
+func Update(sessionid string, _url string, json_record string )(string, error){
+  verbose := os.Getenv("VERBOSE")
+  data := strings.NewReader(json_record)
+  req, err := http.NewRequest("POST", _url, data)
+  if err != nil { return "", errors.New("unable to create http request") }
+
+  req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Accept", "*/*")
+  req.Header.Set("User-Agent", "curl/7.61.1")
+
+  if verbose == "true" {
+    reqdump, err := httputil.DumpRequest(req, true)
+    if err != nil { log.Println(err) } else {
+      log.Printf("REQUEST:\n%s", string(reqdump)) }
+  }
+
+  client := &http.Client{
+    Timeout: time.Second * 60,
+  }
+  response, err := client.Do(req)
+  if err != nil { return "", err }
+  defer response.Body.Close()
+
+  if verbose == "true" {
+    respdump, err := httputil.DumpResponse(response, true)
+    if err != nil { log.Println(err) } else {
+      log.Printf("RESPONSE:\n%s", string(respdump)) }
+  }
+
+  body, err := io.ReadAll(response.Body)
+  if err != nil { log.Println(err); return "", errors.New("unable to read response") }
+
+  if response.StatusCode != 200 {
+    return "", errors.New(fmt.Sprintf("Unable to update aspace record: %s", string(body)))
+  }
+
+  return string(body), nil
+}
 // takes AO json and inserts instance
 func UpdateWithInstance(record []byte, instance string)([]byte, error){
   instance_json := gjson.Parse(instance)
@@ -78,4 +118,18 @@ func UpdateWithInstance(record []byte, instance string)([]byte, error){
 
 func Instance(path string) string {
   return fmt.Sprintf(`{"instance_type": "digital_object", "jsonmodel_type": "instance", "is_representative": false, "digital_object": { "ref": "%s"}`, path)
+}
+
+func AssemblePath(parts []string) string{
+  parts = slices.DeleteFunc(parts, func(str string) bool{
+    return str == "" } )
+  return strings.Join(parts, "/")
+}
+
+func AssembleUrl(path []string)(string, error){
+  base_url := os.Getenv("ASPACE_URL")
+  path_string := AssemblePath(path)
+  _url, err := url.JoinPath(base_url, path_string)
+  if err != nil { log.Println(err); return "", err }
+  return _url, nil
 }

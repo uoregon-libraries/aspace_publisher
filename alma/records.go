@@ -3,6 +3,7 @@ package alma
 import (
   "encoding/xml"
   "github.com/tidwall/gjson"
+  "encoding/json"
   "log"
 )
 
@@ -46,6 +47,37 @@ type Holding struct {
   HoldingId string `xml:"holding_id,omitempty"`
   Suppress bool `xml:"suppress_from_publishing"`
   Rec Record `xml:"record"`
+}
+
+func ExtractItemID(data []byte)string{
+  var i Item
+  err := json.Unmarshal(data, &i)
+  if err != nil {}
+  return i.Item_data.Item_pid
+}
+
+type Item struct{
+  Holding_data HoldingData `json:"holding_data"`
+  Item_data ItemData `json:"item_data"`
+}
+
+type BibData struct{
+  Mms_id string `json:"mms_id,omitempty"`
+}
+
+type HoldingData struct{
+  Holding_id string `json:"holding_id"`
+}
+
+type ItemData struct{
+  Item_pid string `json:"pid,omitempty"`
+  Barcode string `json:"barcode"`
+  Policy Value `json:"policy"`
+  Description string `json:"description"`
+  Base_status Value `json:"base_status"`
+  Library Value `json:"library"`
+  Location Value `json:"location"`
+  Physical_material_type Value `json:"physical_material_type"`
 }
 
 type Value struct {

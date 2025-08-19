@@ -6,6 +6,7 @@ import (
   "aspace_publisher/as"
   "aspace_publisher/oclc"
   "aspace_publisher/alma"
+  "encoding/json"
   "net/http"
 )
 
@@ -21,7 +22,7 @@ func AlmaCrupHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(400,  err) }
 
   oclc_id := as.GetOclcId(rjson)
-  //published, err := as.IsPublished(rjson)
+  published, err := as.IsPublished(rjson)
   if err != nil { return echo.NewHTTPError(400, err) }
 
   //try for mms_id and create based on presence in resource json
@@ -45,15 +46,35 @@ func AlmaCrupHandler(c echo.Context) error {
   if create == false { holding_id = alma.GetHoldingId(mms_id) }
   holding_id, err = alma.ProcessHolding(mms_id, holding_id, oclc_marc, create)
 
-  if create == true {
+  itemlist := []string{}
+  tclist,err := as.TCList(session_id, repo_id, mms_id) //get the top containers
+  if err != nil { return echo.NewHTTPError(400, err) }
+  for _,tc_path := range tclist{
+    tc_id := as.ExtractID(tc_path)
+    jsonTC, err := as.AcquireJson(session_id, repo_id, "top_containers/" + tc_id)
+    if err != nil { return echo.NewHTTPError(400, err) }
+    item_id, _ := as.GetTCRefs(jsonTC)
+    var tc as.TopContainer
+    err = json.Unmarshal(jsonTC, &tc)
+    if err != nil { return echo.NewHTTPError(400, err) }
+    item_id, err = alma.ProcessItem(mms_id, holding_id, item_id, tc.Mapify(), published, create)
+    if err != nil { return echo.NewHTTPError(400, err) }
+    itemlist = append(itemlist, item_id)
+    if create {
+      err = as.UpdateTC(repo_id, tc_id, jsonTC, holding_id, item_id, session_id)
+      if err != nil { return echo.NewHTTPError(400, err) }
+    }
+  //use itemlist in reporting
+  itemlist = append(itemlist, item_id)
+  }
+  if create {
     //update the aspace resource
     modified, err := as.UpdateUserDefined2(rjson, mms_id)
     if err != nil { return echo.NewHTTPError(400, err) }
     as.UpdateResource(session_id, "2", id, string(modified))
-    list := []string{ mms_id }
-    // this will take a bit longer so run last; todo: switch to worker.
-    filename := ""
-    alma.LinkToNetwork(list, filename)
+    filename := ""//todo: add filename and reporting
+    // alma job, will take a bit longer so run last; todo: switch to worker.
+    alma.LinkToNetwork([]string{ mms_id }, filename)
   }
   return c.String(http.StatusOK, "ok")
 }

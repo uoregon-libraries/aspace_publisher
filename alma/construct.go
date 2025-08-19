@@ -3,6 +3,7 @@ package alma
 import (
   "aspace_publisher/marc"
   "github.com/beevik/etree"
+  "encoding/json"
   "encoding/xml"
   "log"
   "fmt"
@@ -41,6 +42,28 @@ func ConstructHolding(marc_string string)string{
   return string(output)
 }
 
+func ConstructItem(item_id string, holding_id string, published string, tc_data map[string]string)string{
+  var item = Item{}
+  item.Holding_data = HoldingData{ Holding_id: holding_id }
+  var idata = ItemData{}
+  idata.Barcode = tc_data["barcode"]
+  idata.Policy = Value{ Val: policy(published) }
+  idata.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
+  idata.Library = Value{ Val: "SpecColl"}
+  idata.Location = Value{ Val: "spmanus"}
+  idata.Base_status = Value{ Val: "1" }
+  idata.Physical_material_type = Value{ Val: "MANUSCRIPT" }
+  item.Item_data = idata
+  data, err := json.Marshal(item)
+  if err != nil { log.Println(err); return "" }
+  return string(data)
+}
+
+func policy(published string)string{
+  if published == "true" { return "999" } else {
+    return "Unarranged"
+  }
+}
 type Record struct{
   Leader string `xml:"leader"`
   Cfields []Controlfield
