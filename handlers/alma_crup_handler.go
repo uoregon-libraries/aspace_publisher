@@ -22,8 +22,6 @@ func AlmaCrupHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(400,  err) }
 
   oclc_id := as.GetOclcId(rjson)
-  published, err := as.IsPublished(rjson)
-  if err != nil { return echo.NewHTTPError(400, err) }
 
   //try for mms_id and create based on presence in resource json
   mms_id := as.GetMmsId(rjson)
@@ -57,8 +55,8 @@ func AlmaCrupHandler(c echo.Context) error {
     var tc as.TopContainer
     err = json.Unmarshal(jsonTC, &tc)
     if err != nil { return echo.NewHTTPError(400, err) }
-    item_id, err = alma.ProcessItem(mms_id, holding_id, item_id, tc.Mapify(), published, create)
     if err != nil { return echo.NewHTTPError(400, err) }
+    item_id, err = alma.ProcessItem(mms_id, holding_id, item_id, tc.Mapify(), create)
     itemlist = append(itemlist, item_id)
     if create {
       err = as.UpdateTC(repo_id, tc_id, jsonTC, holding_id, item_id, session_id)

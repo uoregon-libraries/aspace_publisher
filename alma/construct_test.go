@@ -44,7 +44,7 @@ func TestConstructItem(t *testing.T){
   if err != nil { t.Errorf("error unmarshalling tc data") } 
   expected, err := ioutil.ReadFile(home + "/fixtures/item_alma.json")
   if err != nil { t.Errorf("error reading file") }
-  result := ConstructItem("", "98765432987", "true", tc.Mapify())
+  result := ConstructItem("", "98765432987", tc.Mapify())
   var itemA Item
   var itemB Item
   json.Unmarshal([]byte(result), &itemA)

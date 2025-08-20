@@ -55,8 +55,8 @@ func ProcessHolding(mms_id string, holding_id string, marc_string string, create
   return holding_id, err
 }
 
-func ProcessItem(mms_id string, holding_id string, item_id string, container_data map[string]string, published string, create bool)(string, error){
-  item := ConstructItem(item_id, holding_id, published, container_data)
+func ProcessItem(mms_id string, holding_id string, item_id string, container_data map[string]string, create bool)(string, error){
+  item := ConstructItem(item_id, holding_id, container_data)
   path := []string{"bibs", mms_id, "holdings", holding_id, "items", item_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
