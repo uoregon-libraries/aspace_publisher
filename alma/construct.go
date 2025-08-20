@@ -8,6 +8,7 @@ import (
   "log"
   "fmt"
   "errors"
+  "strings"
 )
 
 func ConstructBib(marc_string string)string{
@@ -42,12 +43,12 @@ func ConstructHolding(marc_string string)string{
   return string(output)
 }
 
-func ConstructItem(item_id string, holding_id string, published string, tc_data map[string]string)string{
+func ConstructItem(item_id string, holding_id string, tc_data map[string]string)string{
   var item = Item{}
   item.Holding_data = HoldingData{ Holding_id: holding_id }
   var idata = ItemData{}
   idata.Barcode = tc_data["barcode"]
-  idata.Policy = Value{ Val: policy(published) }
+  idata.Policy = Value{ Val: policy(tc_data["type"]) }
   idata.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
   idata.Library = Value{ Val: "SpecColl"}
   idata.Location = Value{ Val: "spmanus"}
@@ -59,9 +60,10 @@ func ConstructItem(item_id string, holding_id string, published string, tc_data 
   return string(data)
 }
 
-func policy(published string)string{
-  if published == "true" { return "999" } else {
-    return "Unarranged"
+func policy(_type string)string{
+  if strings.Contains(_type, "Unarranged") { return "Unarranged" } else if
+    strings.Contains(_type, "Restricted") { return "Restricted" } else {
+    return "999"
   }
 }
 type Record struct{
