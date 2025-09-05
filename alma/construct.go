@@ -12,15 +12,19 @@ import (
 )
 
 func ConstructBib(marc_string string)(string, error){
-  marc_stripped, err := marc.StripOuterTags(marc_string)
-  if err != nil { return "", err }
-  return "<bib>" + marc_stripped + "</bib>", nil
+  var bib = Bib{}
+  bib.SuppressPublish = false
+  bib.SuppressExternal = true
+  var rec = Record{}
+  xml.Unmarshal([]byte(marc_string), &rec)
+  bib.Rec = rec
+  output, err := xml.Marshal(bib)
+  if err != nil { log.Println(err); return "", errors.New("unable to construct bib xml") }
+  return string(output), nil
 }
 
-func ConstructHolding(marc_string string)(string, error){
+func ConstructHolding(marc_string string, id_0 string)(string, error){
   marc_xml, err := ParseMarc(marc_string)
-  if err != nil { return "", err }
-  call_num, err := ExtractCall(marc_xml)
   if err != nil { return "", err }
   link, err := BuildFindingLink(marc_xml)
   if err != nil { return "", err }
@@ -33,9 +37,9 @@ func ConstructHolding(marc_string string)(string, error){
   if err != nil { return "", err }
 
   rec.Cfields = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
-  sfb := Subfield{Code:"b", Value:"Special Collections"}
+  sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
-  sfh := Subfield{Code:"h", Value: call_num}
+  sfh := Subfield{Code:"h", Value: id_0}
   df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
   df852.Sfields = []Subfield{sfb, sfc, sfh}
   sfz := Subfield{Code: "z", Value: link }
@@ -44,13 +48,13 @@ func ConstructHolding(marc_string string)(string, error){
   rec.Dfields = []Datafield{ df852, df866 }
   h.Rec = rec
   output, err := xml.MarshalIndent(h, "  ", "    ")
-  if err != nil { log.Println(err); return "", errors.New("unable to contruct holding json") }
+  if err != nil { log.Println(err); return "", errors.New("unable to construct holding xml") }
   return string(output), nil
 }
 
 func ConstructItem(item_id string, holding_id string, tc_data map[string]string)(string, error){
   var item = Item{}
-  item.Holding_data = HoldingData{ Holding_id: holding_id }
+  item.Holding_data = HoldingData{ Holding_id: holding_id, Copy_id: "1" }
   var idata = ItemData{}
   idata.Barcode = tc_data["barcode"]
   idata.Policy = Value{ Val: policy(tc_data["type"]) }
@@ -114,8 +118,10 @@ func BuildFindingLink(marc_xml *etree.Document)(string, error){
   if url == nil { return "", errors.New("unable to extract 856") }
   text := marc_xml.FindElement("//datafield[@tag='856']/subfield[@code='z']")
   if text == nil { return "", errors.New("unable to extract 856") }
-  link := fmt.Sprintf("<a href='%s' target='_blank'>%s</a>", url.Text(), text.Text())
-  if text.Text() == "Notice of Interest in Unprocessed Collections" {
+  message := text.Text()
+  if strings.Contains(message, "Connect to the online") { message = strings.ToUpper(text.Text()) }
+  link := fmt.Sprintf("<a href='%s' target='_blank'>%s</a>", url.Text(), message)
+  if message == "Notice of Interest in Unprocessed Collections" {
     link = "UNARRANGED COLLECTION UNAVAILABLE FOR USE. Inquiries regarding these materials should be submitted via the " + link
   }
   return link, nil

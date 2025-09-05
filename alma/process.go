@@ -19,8 +19,8 @@ func ProcessBib(mms_id string, marc_string string, create bool)(string, error){
   params := []string{ ApiKey() }
   var result []byte
   if create { 
-    result, err = Post(_url, params, bib) } else {
-    result, err = Put(_url, params, bib)
+    result, err = Post(_url, params, bib, "xml") } else {
+    result, err = Put(_url, params, bib, "xml")
   }
   if err != nil { log.Println(err); return "", err }
   if create {
@@ -39,16 +39,16 @@ func BuildUrl(path []string)string{
   return _url.String()
 }
 
-func ProcessHolding(mms_id string, holding_id string, marc_string string, create bool)(string, error){
-  holding, err := ConstructHolding(marc_string)
+func ProcessHolding(mms_id string, holding_id string, marc_string string, id_0 string, create bool)(string, error){
+  holding, err := ConstructHolding(marc_string, id_0)
   if err != nil { return "", errors.New("Unable to construct holding: " + err.Error()) }
   path := []string{"bibs", mms_id, "holdings", holding_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte
   if create {
-    result, err = Post(_url, params, holding) } else {
-    result, err = Put(_url, params, holding)
+    result, err = Post(_url, params, holding, "xml") } else {
+    result, err = Put(_url, params, holding, "xml")
   }
   if err != nil { return "", err }
   if create {
@@ -65,8 +65,8 @@ func ProcessItem(mms_id string, holding_id string, item_id string, container_dat
   params := []string{ ApiKey() }
   var result []byte
   if create {
-    result, err = Post(_url, params, item) } else {
-    result, err = Put(_url, params, item)
+    result, err = Post(_url, params, item, "json") } else {
+    result, err = Put(_url, params, item, "json")
   }
   if err != nil { return "", errors.New("problem posting to alma: " + err.Error()) }
   if create {
@@ -83,7 +83,7 @@ func ApiKey()string{
 func LinkToNetwork(list []string, filename string){
   setid := os.Getenv("LINK_TO_NETWORK_SET")
   jobid := os.Getenv("LINK_TO_NETWORK_JOB")
-  err := UpdateSet(setid, "BIB_MMS", list)
+  err := UpdateSet("LINK_TO_NETWORK_SET", "BIB_MMS", list)
   if err != nil { file.WriteReport(filename, []string{ "problem updating alma set: " + err.Error()}); return }
   var params = []Param{
     Param{ Name: Val{ Value: "set_id" }, Value: setid },

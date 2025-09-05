@@ -17,7 +17,7 @@ func UpdateSet(setname string, setcontent string, list []string)error{
   set = SetMembers(set, list)
   body, err := json.Marshal(set)
   if err != nil { log.Println(err); return err }
-  _, err = Post(_url.String(), params, string(body))
+  _, err = Post(_url.String(), params, string(body), "json")
   if err != nil { log.Println(err); return err }
   return nil 
 }

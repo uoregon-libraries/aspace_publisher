@@ -31,6 +31,8 @@ func AlmaCrupHandler(c echo.Context) error {
   mms_id := as.GetMmsId(rjson)
   create := true
   if mms_id != "" { create = false }
+  //needed for holding record, appears as 099 in the aspace MARC but not OCLC's
+  id_0 := as.ExtractID0(rjson)
 
   //authenticate with OCLC
   token, err := oclc.GetToken(c)
@@ -46,29 +48,27 @@ func AlmaCrupHandler(c echo.Context) error {
 
   var holding_id = ""
   if create == false { holding_id = alma.GetHoldingId(mms_id) }
-  holding_id, err = alma.ProcessHolding(mms_id, holding_id, oclc_marc, create)
+  holding_id, err = alma.ProcessHolding(mms_id, holding_id, oclc_marc, id_0, create)
   if err != nil { file.WriteReport(filename, []string{ "Could not create Alma Holding: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   itemlist := []string{}
-  tclist,err := as.TCList(session_id, repo_id, mms_id) //get the top containers
+  tclist,err := as.TCList(session_id, repo_id, id) //get the top containers
   if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC list: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
   for _,tc_path := range tclist{
     tc_id := as.ExtractID(tc_path)
     jsonTC, err := as.AcquireJson(session_id, repo_id, "top_containers/" + tc_id)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC json " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+    if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC json " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     item_id, _ := as.GetTCRefs(jsonTC)
     var tc as.TopContainer
     err = json.Unmarshal(jsonTC, &tc)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to process TC json: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+    if err != nil { file.WriteReport(filename, []string{ "Unable to process TC json: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     item_id, err = alma.ProcessItem(mms_id, holding_id, item_id, tc.Mapify(), create)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to process Alma item: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+    if err != nil { file.WriteReport(filename, []string{ "Unable to process Alma item: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     itemlist = append(itemlist, item_id)
     if create {
       err = as.UpdateTC(repo_id, tc_id, jsonTC, holding_id, item_id, session_id)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to update TC in aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+      if err != nil { file.WriteReport(filename, []string{ "Unable to update TC in aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     }
-  //use itemlist in reporting
-  itemlist = append(itemlist, item_id)
   }
   if create {
     //update the aspace resource

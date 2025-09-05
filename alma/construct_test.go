@@ -11,9 +11,9 @@ import (
 )
 
 func TestConstructBib( t *testing.T){
-  fstring := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><blah>banana</blah></record>"
+  fstring := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>123</leader></record>"
   bib_string, _ := ConstructBib(fstring)
-  if bib_string != "<bib><record><blah>banana</blah></record></bib>" {
+  if bib_string != "<bib><suppress_from_publishing>false</suppress_from_publishing><suppress_from_external_search>true</suppress_from_external_search><record><leader>123</leader></record></bib>" {
     t.Errorf("incorrect bib record")
   }
 }
@@ -24,7 +24,7 @@ func TestConstructHolding(t *testing.T){
   if err != nil { t.Errorf("error reading file") }
   expected, err := ioutil.ReadFile(home + "/fixtures/holding_alma.xml")
   if err != nil { t.Errorf("error reading file") }
-  result, _ := ConstructHolding(string(hold))
+  result, _ := ConstructHolding(string(hold), "Coll 408")
   var itemA Holding
   var itemB Holding
   xml.Unmarshal([]byte(result), &itemA)

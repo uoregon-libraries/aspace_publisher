@@ -38,6 +38,7 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   if err != nil { return "", errors.New("unable to create http request") }
 
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Content-Type", "text/json")
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
@@ -70,13 +71,14 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   return string(body), nil
 }
 
-func Update(sessionid string, _url string, json_record string )(string, error){
+func Update(sessionid string, _url string, json_record string)(string, error){
   verbose := os.Getenv("VERBOSE")
   data := strings.NewReader(json_record)
   req, err := http.NewRequest("POST", _url, data)
   if err != nil { return "", errors.New("unable to create http request") }
 
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Content-Type", "text/json")
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 

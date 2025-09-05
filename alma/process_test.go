@@ -10,4 +10,9 @@ func TestBuildUrl(t *testing.T){
   os.Setenv("ALMA_URL", "http://blah.org")
   url := BuildUrl(path)
   if url != "http://blah.org/one/two/three" { t.Errorf("incorrect url") }
+
+  path = []string{"one", "two", "", "three"}
+  url = BuildUrl(path)
+  if url != "http://blah.org/one/two/three" { t.Errorf("incorrect url") }
+
 }

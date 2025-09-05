@@ -13,6 +13,14 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
   items.ForEach(func(key, value gjson.Result) bool {
     doident := gjson.Get(value.String(), "digital_object_id")
     aoid := extractIdFromInstance(value)
+    // if ao does not exist, skip and go on
+    json, err := AcquireJson(sessionid, "2", "archival_objects/" + aoid)
+    if err != nil {
+      log.Println(err)
+      r.responses = append(r.responses, Response{ aoid, BuildErrorMessage(err.Error()) } )
+      return true
+    }
+
     result := Post(sessionid, doident.String(), "2", "digital_objects", value.String())
     r.responses = append(r.responses, result)
     if strings.Contains(result.ResponseToString(), "error"){ return true }
@@ -20,12 +28,6 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
     if doid == "" {
       log.Println("failed to extract doid from aspace response for " + aoid)
       return true }
-    json, err := AcquireJson(sessionid, "2", "archival_objects/" + aoid)
-    if err != nil {
-      log.Println(err)
-      r.responses = append(r.responses, Response{ aoid, BuildErrorMessage(err.Error()) } )
-      return true
-    }
     inst := Instance("/repositories/2/digital_objects/" + doid)
     modified, err := UpdateWithInstance(json, inst)
     result = Post(sessionid, aoid, "2", "archival_objects/" + aoid, string(modified))
