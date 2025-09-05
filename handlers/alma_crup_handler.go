@@ -6,20 +6,24 @@ import (
   "aspace_publisher/as"
   "aspace_publisher/oclc"
   "aspace_publisher/alma"
+  "aspace_publisher/file"
   "encoding/json"
   "net/http"
+  "os"
+  "fmt"
 )
 
 func AlmaCrupHandler(c echo.Context) error {
   id := c.Param("id")
   repo_id := "2"
+  filename := file.Filename()
   //get session id
   session_id, err := utils.FetchCookieVal(c, "as_session")
-  if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session, try redoing login.") }
+  if err != nil { return echo.NewHTTPError(500, "Cannot retrieve session, try redoing login.") }
 
   //acquire aspace resource
   rjson, err := as.AcquireJson(session_id, repo_id, "resources/" + id)
-  if err != nil { return echo.NewHTTPError(400,  err) }
+  if err != nil { file.WriteReport(filename, []string{ "Could not aquire JSON from aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   oclc_id := as.GetOclcId(rjson)
 
@@ -30,37 +34,38 @@ func AlmaCrupHandler(c echo.Context) error {
 
   //authenticate with OCLC
   token, err := oclc.GetToken(c)
-  if err != nil { return echo.NewHTTPError(520, err) }
+  if err != nil { file.WriteReport(filename, []string{ "Could not authenticate with OCLC: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   //get oclc marc
-  oclc_marc, err_ := oclc.Record(token, oclc_id)
-  if err_ != nil{ return echo.NewHTTPError(400, err_) }
+  oclc_marc, err := oclc.Record(token, oclc_id)
+  if err != nil { file.WriteReport(filename, []string{ "Could not acquire OCLC MARC " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   //create bib, holding, items
   mms_id, err = alma.ProcessBib(mms_id, oclc_marc, create)
-  if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil { file.WriteReport(filename, []string{ "Could not create Alma Bib " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   var holding_id = ""
   if create == false { holding_id = alma.GetHoldingId(mms_id) }
   holding_id, err = alma.ProcessHolding(mms_id, holding_id, oclc_marc, create)
+  if err != nil { file.WriteReport(filename, []string{ "Could not create Alma Holding: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   itemlist := []string{}
   tclist,err := as.TCList(session_id, repo_id, mms_id) //get the top containers
-  if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC list: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
   for _,tc_path := range tclist{
     tc_id := as.ExtractID(tc_path)
     jsonTC, err := as.AcquireJson(session_id, repo_id, "top_containers/" + tc_id)
-    if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC json " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     item_id, _ := as.GetTCRefs(jsonTC)
     var tc as.TopContainer
     err = json.Unmarshal(jsonTC, &tc)
-    if err != nil { return echo.NewHTTPError(400, err) }
-    if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil { file.WriteReport(filename, []string{ "Unable to process TC json: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     item_id, err = alma.ProcessItem(mms_id, holding_id, item_id, tc.Mapify(), create)
+  if err != nil { file.WriteReport(filename, []string{ "Unable to process Alma item: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     itemlist = append(itemlist, item_id)
     if create {
       err = as.UpdateTC(repo_id, tc_id, jsonTC, holding_id, item_id, session_id)
-      if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil { file.WriteReport(filename, []string{ "Unable to update TC in aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     }
   //use itemlist in reporting
   itemlist = append(itemlist, item_id)
@@ -68,11 +73,12 @@ func AlmaCrupHandler(c echo.Context) error {
   if create {
     //update the aspace resource
     modified, err := as.UpdateUserDefined2(rjson, mms_id)
-    if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil { file.WriteReport(filename, []string{ err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
     as.UpdateResource(session_id, "2", id, string(modified))
-    filename := ""//todo: add filename and reporting
-    // alma job, will take a bit longer so run last; todo: switch to worker.
+
+    //todo: switch to worker.
     alma.LinkToNetwork([]string{ mms_id }, filename)
   }
-  return c.String(http.StatusOK, "ok")
+  base_url := os.Getenv("HOME_URL")
+  return c.HTML(http.StatusOK, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, filename, filename))
 }

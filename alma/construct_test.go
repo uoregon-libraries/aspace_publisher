@@ -12,7 +12,7 @@ import (
 
 func TestConstructBib( t *testing.T){
   fstring := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><blah>banana</blah></record>"
-  bib_string := ConstructBib(fstring)
+  bib_string, _ := ConstructBib(fstring)
   if bib_string != "<bib><record><blah>banana</blah></record></bib>" {
     t.Errorf("incorrect bib record")
   }
@@ -24,7 +24,7 @@ func TestConstructHolding(t *testing.T){
   if err != nil { t.Errorf("error reading file") }
   expected, err := ioutil.ReadFile(home + "/fixtures/holding_alma.xml")
   if err != nil { t.Errorf("error reading file") }
-  result := ConstructHolding(string(hold))
+  result, _ := ConstructHolding(string(hold))
   var itemA Holding
   var itemB Holding
   xml.Unmarshal([]byte(result), &itemA)
@@ -44,7 +44,7 @@ func TestConstructItem(t *testing.T){
   if err != nil { t.Errorf("error unmarshalling tc data") } 
   expected, err := ioutil.ReadFile(home + "/fixtures/item_alma.json")
   if err != nil { t.Errorf("error reading file") }
-  result := ConstructItem("", "98765432987", tc.Mapify())
+  result, _ := ConstructItem("", "98765432987", tc.Mapify())
   var itemA Item
   var itemB Item
   json.Unmarshal([]byte(result), &itemA)

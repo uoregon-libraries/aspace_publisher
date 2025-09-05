@@ -24,6 +24,7 @@ func main(){
   e.GET("/oclc/validate/:id", handlers.OclcValidateHandler)
   e.File("/as/do.html", path + "views/as/do.html") //urlpath,directorypath, uploads/do.html
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
+  e.Static("/reports", "views/reports")
 
   e.Logger.Fatal(e.Start(os.Getenv("PORT")))
 

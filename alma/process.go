@@ -7,15 +7,17 @@ import(
   "log"
   "time"
   "slices"
+  "errors"
+  "aspace_publisher/file"
 )
 
 func ProcessBib(mms_id string, marc_string string, create bool)(string, error){
-  bib := ConstructBib(marc_string)
+  bib, err := ConstructBib(marc_string)
+  if err != nil { return "", errors.New("unable to construct bib: " + err.Error()) }
   path := []string{"bibs", mms_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte
-  var err error
   if create { 
     result, err = Post(_url, params, bib) } else {
     result, err = Put(_url, params, bib)
@@ -38,12 +40,12 @@ func BuildUrl(path []string)string{
 }
 
 func ProcessHolding(mms_id string, holding_id string, marc_string string, create bool)(string, error){
-  holding := ConstructHolding(marc_string)
+  holding, err := ConstructHolding(marc_string)
+  if err != nil { return "", errors.New("Unable to construct holding: " + err.Error()) }
   path := []string{"bibs", mms_id, "holdings", holding_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte
-  var err error
   if create {
     result, err = Post(_url, params, holding) } else {
     result, err = Put(_url, params, holding)
@@ -56,17 +58,17 @@ func ProcessHolding(mms_id string, holding_id string, marc_string string, create
 }
 
 func ProcessItem(mms_id string, holding_id string, item_id string, container_data map[string]string, create bool)(string, error){
-  item := ConstructItem(item_id, holding_id, container_data)
+  item, err := ConstructItem(item_id, holding_id, container_data)
+  if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
   path := []string{"bibs", mms_id, "holdings", holding_id, "items", item_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte
-  var err error
   if create {
     result, err = Post(_url, params, item) } else {
     result, err = Put(_url, params, item)
   }
-  if err != nil { return "", err }
+  if err != nil { return "", errors.New("problem posting to alma: " + err.Error()) }
   if create {
     item_id = ExtractItemID(result)
   }
@@ -82,7 +84,7 @@ func LinkToNetwork(list []string, filename string){
   setid := os.Getenv("LINK_TO_NETWORK_SET")
   jobid := os.Getenv("LINK_TO_NETWORK_JOB")
   err := UpdateSet(setid, "BIB_MMS", list)
-  if err != nil {}
+  if err != nil { file.WriteReport(filename, []string{ "problem updating alma set: " + err.Error()}); return }
   var params = []Param{
     Param{ Name: Val{ Value: "set_id" }, Value: setid },
     Param{ Name: Val{ Value: "contribute_nz" }, Value: "true" },
@@ -93,7 +95,7 @@ func LinkToNetwork(list []string, filename string){
     Param{ Name: Val{ Value: "ignoreResourceType" }, Value: "false" },
   }
   instance,err := SubmitJob(jobid, params)
-  if err != nil {}
+  if err != nil { file.WriteReport(filename, []string{ "problem submitting alma job: " + err.Error() } ); return }
   span,_ := time.ParseDuration(os.Getenv("JOB_WAIT_TIME"))
   time.Sleep(span)
   CheckJob(instance, nil, filename, nil)

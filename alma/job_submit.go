@@ -10,6 +10,7 @@ import(
   "strconv"
   "net/url"
   "fmt"
+  "aspace_publisher/file"
 )
 
 // filename, list
@@ -36,7 +37,7 @@ func CheckJob(joblink string, nextFun ProcessFunc, filename string, list []strin
       time.Sleep(span)
       continue
     }
-    log.Println( fmt.Sprintf("%s: %s, %s", result["jobname"], result["status"], joblink))
+    file.WriteReport(filename, []string{ fmt.Sprintf("%s: %s, %s", result["jobname"], result["status"], joblink) } )
     if result["status"] == "COMPLETED_SUCCESS" {
       if nextFun != nil {
         nextFun(filename, list)
@@ -44,7 +45,7 @@ func CheckJob(joblink string, nextFun ProcessFunc, filename string, list []strin
     }
     return
   }
-  log.Println(fmt.Sprintf("See %s re: %s", joblink, result["alert"]))
+  file.WriteReport(filename, []string{ fmt.Sprintf("See %s re: %s", joblink, result["alert"]) } )
 }
 
 func DummyFunc(word string, list map[string][]bool){
