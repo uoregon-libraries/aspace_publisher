@@ -18,7 +18,10 @@ func ExtractBibID(data []byte)string{
 // POST requires XML in and out
 type Bib struct {
   XMLName xml.Name 	`xml:"bib"`	
-  Mms_id string 	`xml:"mms_id"`
+  Mms_id string 	`xml:"mms_id,omitempty"`
+  SuppressPublish bool	`xml:"suppress_from_publishing"`
+  SuppressExternal bool	`xml:"suppress_from_external_search"`
+  Rec Record `xml:"record"`
 }
 
 // pulls holding list for a existing bib from alma api
@@ -67,6 +70,7 @@ type BibData struct{
 
 type HoldingData struct{
   Holding_id string `json:"holding_id"`
+  Copy_id string `json:"copy_id"`
 }
 
 type ItemData struct{

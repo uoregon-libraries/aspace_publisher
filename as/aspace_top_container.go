@@ -27,8 +27,8 @@ func (t TopContainer)Mapify()map[string]string{
 
 //returns array of top container ids (paths)
 //json_list example: [{"ref":"/repositories/2/top_containers/59527"}]
-func TCList(session_id, repo_id, mms_id string)([]string, error){
-  json_list, err := AcquireJson(session_id, repo_id, "resources/" + mms_id + "/top_containers")
+func TCList(session_id, repo_id, id string)([]string, error){
+  json_list, err := AcquireJson(session_id, repo_id, "resources/" + id + "/top_containers")
   if err != nil { return nil, err }
   pathlist := gjson.GetBytes(json_list, "#.ref")
   idlist := []string{}
