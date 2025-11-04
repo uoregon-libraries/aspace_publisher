@@ -42,7 +42,7 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
 
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return "", errors.New("unable to read response from archivesspace") }
-  if response.StatusCode != 200 { return body, errors.New("aspace error exporting MARC") }
+  if response.StatusCode != 200 { return string(body), errors.New("aspace error exporting MARC") }
   return string(body), nil
 }
 
