@@ -17,13 +17,25 @@ func OclcValidateHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session, try redoing login.") }
   //get aspace resource
   json, err := as.AcquireJson(session_id, repo_id, "resources/" + id)
-  if err != nil { return echo.NewHTTPError(400,  err) }
+  if err != nil {
+    if len(json) != 0 {
+      return echo.NewHTTPError(400, json) } else {
+      return echo.NewHTTPError(400, err)
+    }
+  }
+
   //is it published?
   published, err := as.IsPublished(json)
   if err != nil { return echo.NewHTTPError(400, err) }
   //get MARC
   marc_rec, err := as.AcquireMarc(session_id, repo_id, id, published)
-  if err != nil { return echo.NewHTTPError(400, err) }
+  if err != nil {
+    if marc_rec != "" {
+      return echo.NewHTTPError(400, marc_rec) } else {
+      return echo.NewHTTPError(400, err)
+    }
+  }
+
   //strip outer tag
   marc_stripped, err := marc.StripOuterTags(marc_rec)
   if err != nil { return echo.NewHTTPError(400, err) }

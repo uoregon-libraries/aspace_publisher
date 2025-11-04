@@ -19,7 +19,12 @@ func ValidateEadHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session, try redoing login.") }
 
   ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id, verbose)
-  if err != nil { log.Println(err); return echo.NewHTTPError(400, ead_orig) }
+  if err != nil {
+    if ead_orig != "" {
+      return echo.NewHTTPError(400, ead_orig) } else {
+      return echo.NewHTTPError(400, err)
+    }
+  }
 
   ead_prepped, _, ark, err := aw.PrepareEad(repo_id, ead_id, ead_orig)
   if err != nil { log.Println(err); return echo.NewHTTPError(400, "unable to prep ead") }
