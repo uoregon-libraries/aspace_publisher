@@ -13,18 +13,18 @@ import(
   "net/http/httputil"
 )
 
-func Request(token string, marc string, path string, id string, accept string) (string, error){
+func Request(token string, method string, marc string, path string, id string, accept string) (string, error){
   verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("OCLC_URL")
   test := os.Getenv("TEST")
   url := assembleUrl([]string{base_url,path,id})
   data := strings.NewReader(marc)
-  var action string
-  if id != "" { action = "PUT" } else { action = "POST" }
-  req, err := http.NewRequest(action, url, data)
+  req, err := http.NewRequest(method, url, data)
   if err != nil { log.Println(err); return "", errors.New("unable to create http request") }
   req.Header.Set("accept", "application/" + accept)
-  req.Header.Set("Content-Type", "application/marcxml+xml")
+  if marc != "" {
+    req.Header.Set("Content-Type", "application/marcxml+xml")
+  }
   req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(req, true)
