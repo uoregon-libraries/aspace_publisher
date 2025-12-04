@@ -48,7 +48,7 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
 
 func AcquireJson(sessionid string, repo_id string, record_id string) ([]byte, error){
   base_url := os.Getenv( "ASPACE_URL")
-  url := base_url + fmt.Sprintf("/repositories/%s/%s", repo_id, record_id)
+  url := base_url + fmt.Sprintf("repositories/%s/%s", repo_id, record_id)
   req, err := http.NewRequest("GET", url, nil)
   if err != nil { log.Println(err); return nil, errors.New("unable to create http request") }
 
