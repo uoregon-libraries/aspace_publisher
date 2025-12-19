@@ -39,13 +39,13 @@ func Request(token string, method string, marc string, path string, id string, a
   if test == "true" { return `<record></record>`, nil }
 
   response, err := client.Do(req)
+  if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
   defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else {
       log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-  if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return "", errors.New("unable to read response from oclc") }
   if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }
@@ -79,13 +79,13 @@ func Record(token string, id string)(string, error){
     Timeout: time.Second * 60,
   }
   response, err := client.Do(req)
+  if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
   defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else {
       log.Printf("RESPONSE:\n%s", string(respdump)) }
   }
-  if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return "", errors.New("unable to read response from oclc") }
   if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }

@@ -25,9 +25,9 @@ func TestRequestCreate(t *testing.T){
     if r.Header.Get("Content-Type") != "application/marcxml+xml" { t.Fatalf("request header is not correct")}
   }))
   defer ts.Close()
-  os.Setenv("OCLC_URL", ts.URL + "/")
+  os.Setenv("OCLC_URL", ts.URL)
   marc := `<record></record>`
-  _,_ = Request("token", marc, "manage/bibs", "", "marcxml+xml")
+  _,_ = Request("token", "POST", marc, "manage/bibs", "", "marcxml+xml")
 }
 
 func TestRequestUpdate(t *testing.T){
@@ -41,9 +41,9 @@ func TestRequestUpdate(t *testing.T){
     if matched != true { t.Fatalf("id is not present") }
   }))
   defer ts.Close()
-  os.Setenv("OCLC_URL", ts.URL + "/")
+  os.Setenv("OCLC_URL", ts.URL)
   marc := `<record></record>`
-  _,_ = Request("token", marc, "manage/bibs", "12345678", "marcxml+xml")
+  _,_ = Request("token", "PUT", marc, "manage/bibs", "12345678", "marcxml+xml")
 }
 
 func TestRequestValidate(t *testing.T){
@@ -53,7 +53,7 @@ func TestRequestValidate(t *testing.T){
     if r.Header.Get("Content-Type") != "application/marcxml+xml" { t.Fatalf("request header is not correct")}
   }))
   defer ts.Close()
-  os.Setenv("OCLC_URL", ts.URL + "/")
+  os.Setenv("OCLC_URL", ts.URL)
   marc := `<record></record>`
-  _,_ = Request("token", marc, "validate/validateFull", "", "json")
+  _,_ = Request("token", "POST", marc, "validate/validateFull", "", "json")
 }

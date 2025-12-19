@@ -38,8 +38,8 @@ func OclcAuth() (string, error) {
     Timeout: time.Second * 10,
   }
   response, err := client.Do(req)
-  defer response.Body.Close()
   if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
+  defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { log.Println(err) } else {

@@ -43,7 +43,7 @@ func OclcValidateHandler(c echo.Context) error {
   token, err := oclc.GetToken(c)
   if err != nil { return echo.NewHTTPError(520, err) }
   //push MARC to OCLC
-  oclc_resp, err := oclc.Request(token, marc_stripped, "manage/bibs/validate/validateFull", "","json")
+  oclc_resp, err := oclc.Request(token, "POST", marc_stripped, "manage/bibs/validate/validateFull", "","json")
   if err != nil {
     if oclc_resp != "" {
       return c.String(http.StatusOK, oclc_resp) } else {
