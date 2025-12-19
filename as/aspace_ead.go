@@ -37,6 +37,6 @@ func AcquireEad(sessionid string, repo_id string, resource_id string, verbose st
 
   body, err := io.ReadAll(response.Body); if err != nil { log.Println(err); return "", err }
   if response.StatusCode != 200 {
-    return string(body), errors.New("unable to retrieve ead")
+    return string(body), errors.New("problem retrieving ead")
   } else { return string(body), nil }
 }

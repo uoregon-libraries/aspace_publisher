@@ -21,7 +21,7 @@ func TestTCList(t *testing.T){
     }
   }))
   defer ts.Close()
-  os.Setenv("ASPACE_URL", ts.URL + "/api")
+  os.Setenv("ASPACE_URL", ts.URL + "/api/")
   list, err := TCList("432143214321", "2", "987")
   if err != nil { log.Println(err) }
   if slices.Contains(list, "/repositories/2/top_containers/12345") != true { t.Errorf("incorrect top container list") }
