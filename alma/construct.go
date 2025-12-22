@@ -36,18 +36,18 @@ func ConstructHolding(marc_string string, id_0 string)(string, error){
   rec.Leader, err = ExtractLeader(marc_xml)
   if err != nil { return "", err }
 
-  rec.Cfields = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
+  rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
   sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
   sfh := Subfield{Code:"h", Value: id_0}
   df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
-  df852.Sfields = []Subfield{sfb, sfc, sfh}
+  df852.Subfield = []Subfield{sfb, sfc, sfh}
   sfz := Subfield{Code: "z", Value: link }
   df866 := Datafield{Ind1:"4", Ind2:"1", Tag:"866"}
-  df866.Sfields = []Subfield{ sfz }
-  rec.Dfields = []Datafield{ df852, df866 }
+  df866.Subfield = []Subfield{ sfz }
+  rec.Datafield = []Datafield{ df852, df866 }
   h.Rec = rec
-  output, err := xml.MarshalIndent(h, "  ", "    ")
+  output, err := xml.Marshal(h)
   if err != nil { log.Println(err); return "", errors.New("unable to construct holding xml") }
   return string(output), nil
 }
@@ -77,27 +77,24 @@ func policy(_type string)string{
 }
 type Record struct{
   Leader string `xml:"leader"`
-  Cfields []Controlfield
-  Dfields []Datafield
+  Controlfield []Controlfield `xml:"controlfield"`
+  Datafield []Datafield `xml:"datafield"`
 }
 
 type Controlfield struct{
-  XMLName xml.Name `xml:"controlfield"`
   Tag string `xml:"tag,attr"`
   Value string `xml:",chardata"`
 }
 
 type Datafield struct{
-  XMLName xml.Name `xml:"datafield"`
   Tag string `xml:"tag,attr"`
   Ind1 string `xml:"ind1,attr"`
   Ind2 string `xml:"ind2,attr"`
-  Sfields []Subfield
+  Subfield []Subfield `xml:"subfield"`
   Value string `xml:",chardata"`
 }
 
 type Subfield struct{
-  XMLName xml.Name `xml:"subfield"`
   Code string `xml:"code,attr"`
   Value string `xml:",chardata"`
 }
