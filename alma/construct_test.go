@@ -8,7 +8,6 @@ import (
   "encoding/json"
   "aspace_publisher/as"
   "reflect"
-  "fmt"
 )
 
 func TestConstructBib( t *testing.T){
