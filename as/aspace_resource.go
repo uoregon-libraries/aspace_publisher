@@ -17,9 +17,9 @@ func GetOclcId(resource []byte)(string){
   return result.String()
 }
 
-func GetMmsId(resource []byte)string{
+func GetMmsId(resource []byte)(string,bool){
   result := gjson.GetBytes(resource, "user_defined.string_2")
-  return result.String()
+  return result.String(), result.String() == ""
   }
 
 func ExtractID(_url string)string{
