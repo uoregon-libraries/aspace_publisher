@@ -34,7 +34,7 @@ func ProcessBib(args ProcessArgs, marc_string string, rjson []byte){
   params := []string{ ApiKey() }
   var result []byte
   // push to alma
-  if args.Create { 
+  if args.Create {
     result, err = Post(_url, params, bib, "xml") } else {
     result, err = Put(_url, params, bib, "xml")
   }
