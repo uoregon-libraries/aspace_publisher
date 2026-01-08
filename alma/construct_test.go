@@ -8,17 +8,26 @@ import (
   "encoding/json"
   "aspace_publisher/as"
   "reflect"
+  "strings"
 )
 
 func TestConstructBib( t *testing.T){
-  fstring := `<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>123</leader><controlfield tag="001">on1097882240</controlfield><controlfield tag="003">OCoLC</controlfield><datafield ind1="0" ind2=" " tag="041"><subfield code="a">eng</subfield></datafield><datafield ind1=" " ind2=" " tag="099"><subfield code="a">Coll 408</subfield></datafield></record>`
-  expected := `<bib><suppress_from_publishing>false</suppress_from_publishing><suppress_from_external_search>true</suppress_from_external_search><record><leader>123</leader><controlfield tag="001">on1097882240</controlfield><controlfield tag="003">OCoLC</controlfield><datafield ind1="0" ind2=" " tag="041"><subfield code="a">eng</subfield></datafield><datafield ind1=" " ind2=" " tag="099"><subfield code="a">Coll 408</subfield></datafield></record></bib>`
-  bib_string, _ := ConstructBib(fstring)
-  var itemA Bib
-  var itemB Bib
-  xml.Unmarshal([]byte(bib_string), &itemA)
-  xml.Unmarshal([]byte(expected), &itemB)
-  if reflect.DeepEqual(itemA, itemB) != true { t.Errorf("incorrect bib rec") }
+  fstring := bibstring_fixture4
+  expected := bibstring_fixture5
+  bib := ConstructBib(fstring, false)
+  bibstr,_ := bib.Stringify()
+  if strings.Compare(bibstr, expected) != 1 { t.Errorf("incorrect bib rec") }
+}
+
+func TestConstructBoundwith(t *testing.T){
+  fstring := bibstring_fixture1
+  expected := bibstring_fixture2
+  bibstring := bibstring_fixture3
+  tcmap :=  map[string]string{ "mms_id": "9999123456456" }
+  bib, err := ConstructBoundwith(fstring,bibstring,tcmap)
+  bibstr, err := bib.Stringify()
+  if err != nil { t.Errorf("error in stringify") }
+  if strings.Compare(bibstr, expected) != 1 { t.Errorf("incorrect boundwith rec") }
 }
 
 func TestConstructHolding(t *testing.T){
@@ -27,15 +36,15 @@ func TestConstructHolding(t *testing.T){
   if err != nil { t.Errorf("error reading file") }
   expected, err := ioutil.ReadFile(home + "/fixtures/holding_alma.xml")
   if err != nil { t.Errorf("error reading file") }
-  result, _ := ConstructHolding(string(hold), "Coll 408")
+  var h = Holding{}
+  result, _ := ConstructHolding(string(hold), h, "Coll 408")
+  holdstr, err := result.Stringify()
+  if err != nil { t.Errorf("stringify error") }
   var itemA Holding
   var itemB Holding
-  xml.Unmarshal([]byte(result), &itemA)
+  xml.Unmarshal([]byte(holdstr), &itemA)
   xml.Unmarshal(expected, &itemB)
   if reflect.DeepEqual(itemA, itemB) != true { t.Errorf("incorrect holding rec") }
-  strA,_ := xml.Marshal(itemA)
-  strB,_ := xml.Marshal(itemB)
-  if string(strA) != string(strB) { t.Errorf("incorrect holding record") }
 }
 
 func TestConstructItem(t *testing.T){
@@ -47,10 +56,9 @@ func TestConstructItem(t *testing.T){
   if err != nil { t.Errorf("error unmarshalling tc data") } 
   expected, err := ioutil.ReadFile(home + "/fixtures/item_alma.json")
   if err != nil { t.Errorf("error reading file") }
-  result, _ := ConstructItem("", "98765432987", tc.Mapify())
-  var itemA Item
-  var itemB Item
-  json.Unmarshal([]byte(result), &itemA)
-  json.Unmarshal(expected, &itemB)
-  if itemA != itemB { t.Errorf("incorrect item record") }
+  item := Item{}
+  result, _ := ConstructItem("98765432987",item, tc.Mapify())
+  itemstr, err := result.Stringify()
+  if err != nil { t.Errorf("error in stringify") }
+  if strings.Compare(itemstr, string(expected)) != 1 { t.Errorf("inccorect item rec") }
 }

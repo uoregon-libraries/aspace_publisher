@@ -23,7 +23,7 @@ func CheckJob(joblink string, nextFun ProcessFunc, filename string, list []strin
   params := []string{ ApiKey() }
   var result map[string]string
   for i < MAX {
-    resp,err := Get(joblink, params)
+    resp,err := Get(joblink, params, "application/json")
     if err != nil { 
       log.Println(err)
       /*** count this as one try ****/

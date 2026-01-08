@@ -6,14 +6,17 @@ import (
   "slices"
   "encoding/json"
   "log"
+  "strconv"
 )
 
 type TopContainer struct{
+  Uri string `json:"uri"`
   Barcode string `json:"barcode"`
   Indicator string `json:"indicator"`
   Type string `json:"type"`
   Ils_holding string `json:"ils_holding_id"`
   Ils_item string `json:"ils_item_id"`
+  Boundwith bool
 }
 
 // helper to avoid including the as package in alma construct
@@ -22,6 +25,10 @@ func (t TopContainer)Mapify()map[string]string{
   tc_map["type"] = t.Type
   tc_map["indicator"] = t.Indicator
   tc_map["barcode"] = t.Barcode
+  tc_map["boundwith"] = strconv.FormatBool(t.Boundwith)
+  tc_map["uri"] = t.Uri
+  tc_map["ils_holding"] = t.Ils_holding
+  tc_map["ils_item"] = t.Ils_item
   return tc_map
 }
 
@@ -56,14 +63,42 @@ func UpdateIlsIds(record []byte, holding_id, item_id string)([]byte, error){
   return modified2, nil
 }
 
-// puts modified top container json to asapce
-func UpdateTC(repo_id string, tc_id string, jsonTC []byte, holding_id string, item_id string, session_id string)error{
-  path := []string{ "repositories", repo_id, "top_containers", tc_id }
+// puts modified top container json to aspace
+func UpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
+  tc_id := ExtractID(tcmap["uri"])
+  jsonTC, err := AcquireJson(session_id, repo_id, "top_containers/" + tc_id)
+  if err != nil { return err }
   modified, err := UpdateIlsIds(jsonTC, holding_id, item_id)
   if err != nil { return err }
+  path := []string{ "repositories", repo_id, "top_containers", tc_id }
   _url, err := AssembleUrl(path)
   if err != nil { return err }
   _,err = Update(session_id, _url, string(modified))
   if err != nil { return err }
   return nil
+}
+
+func ExtractTCData(session string, repo_id string, resource_id string)([]map[string]string, []string){
+  msgs := []string{}
+  tclist,err := TCList(session, repo_id, resource_id)
+  if err != nil { msgs = append(msgs, "Unable to acquire TC list: " + err.Error()); return nil, msgs}
+  var top_containers []map[string]string
+  for _,tc_path := range tclist{
+    tc_id := ExtractID(tc_path)
+    jsonTC, err := AcquireJson(session, repo_id, "top_containers/" + tc_id)
+    if err != nil { msgs = append(msgs, "Unable to acquire TC json " + err.Error()); continue }
+
+    var tc TopContainer
+    err = json.Unmarshal(jsonTC, &tc)
+    if err != nil { msgs = append(msgs, "Unable to process TC json: " + err.Error()); continue }
+    tc.Boundwith = IsBoundwith(jsonTC)
+    top_containers = append(top_containers, tc.Mapify())
+  }
+  return top_containers, msgs
+}
+
+func IsBoundwith(jsontc []byte)bool{
+  result := gjson.GetBytes(jsontc, "collection")
+  if len(result.Array()) > 1 { return true }
+  return false
 }

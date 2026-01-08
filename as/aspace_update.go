@@ -135,3 +135,11 @@ func AssembleUrl(path []string)(string, error){
   if err != nil { log.Println(err); return "", err }
   return _url, nil
 }
+
+type AfterBibFun func([]byte, map[string]string)error
+func AfterBibCreate(rjson []byte, args_map map[string]string)error{
+  modified, err := UpdateUserDefined2(rjson, args_map["mms_id"])
+    if err != nil { return err }
+  UpdateResource(args_map["session_id"], args_map["repo_id"], args_map["resource_id"], string(modified))
+  return nil
+}

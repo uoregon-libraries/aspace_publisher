@@ -8,6 +8,7 @@ import(
   "slices"
   "errors"
   "encoding/json"
+  "encoding/xml"
   "aspace_publisher/file"
   "aspace_publisher/as"
 )
@@ -25,9 +26,34 @@ type ProcessArgs struct {
   Filename string
 }
 
-func ProcessBib(args ProcessArgs, marc_string string, rjson []byte){
+func (p ProcessArgs)Mapify()map[string]string{
+  pa_map := map[string]string{}
+  pa_map["repo_id"] = p.Repo_id
+  pa_map["resource_id"] = p.Resource_id
+  pa_map["mms_id"] = p.Mms_id
+  pa_map["holding_id"] = p.Holding_id
+  pa_map["session_id"] = p.Session_id
+  pa_map["oclc_token"] = p.Oclc_token
+  pa_map["oclc_id"] = p.Oclc_id
+  pa_map["id_0"] = p.Id_0
+  pa_map["filename"] = p.Filename
+  return pa_map
+}
+
+type FunMap struct {
+  BoundwithPF ProcessBoundwithFun
+  HoldingPF ProcessHoldingFun
+  ItemsPF ProcessItemsFun
+  ItemPF ProcessItemFun
+  NZPF LinkToNetworkFun
+  FetchBib FetchBibIDFun
+  AfterBib as.AfterBibFun
+}
+
+func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
   // assemble record
-  bib, err := ConstructBib(marc_string)
+  bib := ConstructBib(marc_string, false)
+  bib_str, err := bib.Stringify()
   if err != nil { file.WriteReport(args.Filename, []string{ "Unable to construct bib: " + err.Error() }); return }
   path := []string{"bibs", args.Mms_id}
   _url := BuildUrl(path)
@@ -35,20 +61,19 @@ func ProcessBib(args ProcessArgs, marc_string string, rjson []byte){
   var result []byte
   // push to alma
   if args.Create {
-    result, err = Post(_url, params, bib, "xml") } else {
-    result, err = Put(_url, params, bib, "xml")
+    result, err = Post(_url, params, bib_str, "xml") } else {
+    result, err = Put(_url, params, bib_str, "xml")
   }
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to publish bib" + err.Error()}); return }
   if args.Create {
     args.Mms_id = ExtractBibID(result)
     //update the aspace resource
-    modified, err := as.UpdateUserDefined2(rjson, args.Mms_id)
-    if err != nil { file.WriteReport(args.Filename, []string{ err.Error() }); return }
-    as.UpdateResource(args.Session_id, args.Repo_id, args.Resource_id, string(modified))
+    err = fs.AfterBib(rjson, args.Mapify())
+    if err != nil { file.WriteReport(args.Filename, []string{ err.Error() }) }
     //todo: switch to worker.
-    LinkToNetwork([]string{ args.Mms_id }, args.Filename)
+    fs.NZPF([]string{ args.Mms_id }, args.Filename)
   }
-  ProcessHolding(args, marc_string)
+  fs.BoundwithPF(args, marc_string, tcmap, fs)
 }
 
 func BuildUrl(path []string)string{
@@ -61,48 +86,89 @@ func BuildUrl(path []string)string{
   return _url.String()
 }
 
-func ProcessHolding(args ProcessArgs, marc_string string){
+type ProcessBoundwithFun func(ProcessArgs, string, []map[string]string, FunMap)
+// if a given top container is not a multi-collection box, 
+// the only action sets the tc['mms_id'] to the bib being created/updated
+// if boundwith true and error occurs, write report and stop
+func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]string, fs FunMap){
+  var process_holding = false
+  msgs := []string{}
+  for _,tc := range tcmap{
+    if tc["boundwith"] == "true" {
+      mms_id := fs.FetchBib(tc["barcode"])
+      tc["mms_id"] = mms_id
+      path := []string{"bibs", mms_id}
+      _url := BuildUrl(path)
+      params := []string{ ApiKey() }
+      bw_marc, err := Get(_url, params, "application/xml")
+      if err != nil { msgs = append(msgs, err.Error()); continue }
+      bw_bib, err := ConstructBoundwith(string(bw_marc), marc_string, tc)
+      if err != nil { msgs = append(msgs, err.Error()); continue }
+      bw_bib_str, err := bw_bib.Stringify()
+      if err != nil { msgs = append(msgs, err.Error()); continue }
+      _, err = Put(_url, params, bw_bib_str, "xml")
+      if err != nil { msgs = append(msgs, err.Error()); continue }
+    } else { tc["mms_id"] = args.Mms_id; args.Holding_id = tc["ils_holding"]; process_holding = true }
+  }
+  if len(msgs) != 0 { file.WriteReport(args.Filename, msgs); return }
+  if process_holding { fs.HoldingPF(args, marc_string, tcmap, fs) } else {
+    fs.ItemsPF(args, tcmap, fs)
+  }
+}
+
+type ProcessHoldingFun func(ProcessArgs, string, []map[string]string, FunMap)
+// does not need tcmap, passes it to items processing which does
+func ProcessHolding(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   //assemble holding record
-  holding, err := ConstructHolding(marc_string, args.Id_0)
+    path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
+    _url := BuildUrl(path)
+    params := []string{ ApiKey() }
+
+  var holding = Holding{}
+  if args.Holding_id != "" {//checks if this is an update. MAKE SURE Holding_id gets set upstream
+    holdxml, err := Get(_url, params, "application/xml")
+    if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
+    xml.Unmarshal(holdxml, &holding)
+  }
+  holding, err := ConstructHolding(marc_string, holding, args.Id_0)
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
-  _url := BuildUrl(path)
-  params := []string{ ApiKey() }
+  holdingstr, err := holding.Stringify()
+  if err != nil {}
   var result []byte
   // push record to alma
   if args.Create {
-    result, err = Post(_url, params, holding, "xml") } else {
-    result, err = Put(_url, params, holding, "xml")
+    result, err = Post(_url, params, holdingstr, "xml") } else {
+    result, err = Put(_url, params, holdingstr, "xml")
   }
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
   if args.Create {
     args.Holding_id = ExtractHoldingID(result)
-    // call oclc holding set here
   }
-  ProcessItems(args)
+  fs.ItemsPF(args, tcmap, fs)
 }
 
-func ProcessItems(args ProcessArgs){
+type ProcessItemsFun func(ProcessArgs, []map[string]string, FunMap)
+func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
   itemlist := []string{}
   msgs := []string{}
-  tclist,err := as.TCList(args.Session_id, args.Repo_id, args.Resource_id)
-  if err != nil { file.WriteReport(args.Filename, []string{ "Unable to acquire TC list: " + err.Error() }); return }
 
   // iterate through the top containers
   // if an error occurs during the loop, report and continue
-  for _,tc_path := range tclist{
-    tc_id := as.ExtractID(tc_path)
-    jsonTC, err := as.AcquireJson(args.Session_id, args.Repo_id, "top_containers/" + tc_id)
-    if err != nil { msgs = append(msgs, "Unable to acquire TC json " + err.Error()); continue }
-    item_id, _ := as.GetTCRefs(jsonTC)
-    var tc as.TopContainer
-    err = json.Unmarshal(jsonTC, &tc)
-    if err != nil { msgs = append(msgs, "Unable to process TC json: " + err.Error()); continue }
-    item_id, err = ProcessItem(args, item_id, tc.Mapify())
+  for _,tc := range tcmap{
+    var item = Item{}
+    if tc["ils_item"] != "" { //this is an update. mms_id is hopefully set in ProcessBoundwith
+      path := []string{"bibs", tc["mms_id"], "holdings", tc["ils_holding"], "items", tc["ils_item"]}
+      _url := BuildUrl(path)
+      params := []string{ ApiKey() }
+      itemjson, err := Get(_url, params, "application/json")
+      if err != nil { msgs = append(msgs, "Unable to request Alma item: " + err.Error()); continue }
+      json.Unmarshal(itemjson, &item)
+    }
+    item_id, err := fs.ItemPF(args, item, tc)
     if err != nil { msgs = append(msgs, "Unable to process Alma item: " + err.Error()); continue }
     itemlist = append(itemlist, item_id)
-    if args.Create {
-      err = as.UpdateTC(args.Repo_id, tc_id, jsonTC, args.Holding_id, item_id, args.Session_id)
+    if tc["ils_item"] == "" {
+      err = as.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc)
       if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue }
     }
   }
@@ -110,23 +176,28 @@ func ProcessItems(args ProcessArgs){
   file.WriteReport(args.Filename, msgs)
 }
 
+type ProcessItemFun func(ProcessArgs, Item, map[string]string)(string, error)
 // does not log or write reports
-func ProcessItem(args ProcessArgs, item_id string, container_data map[string]string)(string, error){
+func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, error){
   //assemble item record
-  item, err := ConstructItem(item_id, args.Holding_id, container_data)
+  item, err := ConstructItem(args.Holding_id, item, tcmap)
   if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
-  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items", item_id}
+  itemstr, err := item.Stringify()
+  if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
+  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items", tcmap["ils_item"]}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte
   //push record to alma
-  if args.Create {
-    result, err = Post(_url, params, item, "json") } else {
-    result, err = Put(_url, params, item, "json")
+  if tcmap["ils_item"] != "" {
+    result, err = Post(_url, params, itemstr, "json") } else {
+    result, err = Put(_url, params, itemstr, "json")
   }
   if err != nil { return "", errors.New("problem posting to alma: " + err.Error()) }
+  var item_id string
   if args.Create {
-    item_id = ExtractItemID(result)
+    item_id = ExtractItemID(result) } else {
+    item_id = tcmap["Ils_item_id"]
   }
   return item_id, err
 }
@@ -136,6 +207,7 @@ func ApiKey()string{
   return "apikey=" + key
 }
 
+type LinkToNetworkFun func([]string, string)
 func LinkToNetwork(list []string, filename string){
   setid := os.Getenv("LINK_TO_NETWORK_SET")
   jobid := os.Getenv("LINK_TO_NETWORK_JOB")

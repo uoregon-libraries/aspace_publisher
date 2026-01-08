@@ -6,6 +6,7 @@ import (
   "net/http/httptest"
   "net/http"
   "os"
+  "strings"
 )
 
 func TestExtractBibID( t *testing.T){
@@ -42,4 +43,32 @@ func TestExtractItemID( t *testing.T){
   data := "{\"item_data\":{\"pid\": \"123456789\" }}"
   id := ExtractItemID([]byte(data))
   if id != "123456789" { t.Errorf("incorrect item id") }
+}
+
+func TestFetchBibID(t *testing.T){
+  data := `{ "bib_data": {"mms_id":"123456789123"} }`
+  barcode := "123123123123123"
+  path := "/almaws/v1/items?item_barcode=" + barcode
+   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == path {
+      fmt.Fprintf(w, data)
+    } else {
+      t.Errorf("incorrect request url")
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
+  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
+  id := FetchBibID(barcode)
+  if id != "123456789123" { t.Errorf("incorrect mms id") }
+
+}
+
+func TestStringify(t *testing.T){
+  fstring := `<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>123</leader><controlfield tag="001">on1097882240</controlfield><controlfield tag="003">OCoLC</controlfield><datafield ind1="0" ind2=" " tag="041"><subfield code="a">eng</subfield></datafield><datafield ind1=" " ind2=" " tag="099"><subfield code="a">Coll 408</subfield></datafield></record>`
+  expected := `<bib><suppress_from_publishing>false</suppress_from_publishing><suppress_from_external_search>true</suppress_from_external_search><record><leader>123</leader><controlfield tag="001">on1097882240</controlfield><controlfield tag="003">OCoLC</controlfield><datafield ind1="0" ind2=" " tag="041"><subfield code="a">eng</subfield></datafield><datafield ind1=" " ind2=" " tag="099"><subfield code="a">Coll 408</subfield></datafield></record></bib>`
+  bib := ConstructBib(fstring, false)
+  bib_string,err := bib.Stringify()
+  if err != nil { t.Errorf("incorrect response") }
+  if strings.Compare(bib_string, expected) != 1 { t.Errorf("incorrect result") }
 }
