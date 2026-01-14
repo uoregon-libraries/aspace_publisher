@@ -48,6 +48,7 @@ type FunMap struct {
   NZPF LinkToNetworkFun
   FetchBib FetchBibIDFun
   AfterBib as.AfterBibFun
+  UpdateTC as.UpdateTCFun
 }
 
 func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
@@ -125,7 +126,7 @@ func ProcessHolding(args ProcessArgs, marc_string string, tcmap []map[string]str
     params := []string{ ApiKey() }
 
   var holding = Holding{}
-  if args.Holding_id != "" {//checks if this is an update. MAKE SURE Holding_id gets set upstream
+  if args.Holding_id != "" {
     holdxml, err := Get(_url, params, "application/xml")
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
     xml.Unmarshal(holdxml, &holding)
@@ -168,7 +169,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
     if err != nil { msgs = append(msgs, "Unable to process Alma item: " + err.Error()); continue }
     itemlist = append(itemlist, item_id)
     if tc["ils_item"] == "" {
-      err = as.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc)
+      err = fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc)
       if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue }
     }
   }

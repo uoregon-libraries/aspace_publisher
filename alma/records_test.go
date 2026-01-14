@@ -6,7 +6,6 @@ import (
   "net/http/httptest"
   "net/http"
   "os"
-  "strings"
 )
 
 func TestExtractBibID( t *testing.T){
@@ -65,10 +64,10 @@ func TestFetchBibID(t *testing.T){
 }
 
 func TestStringify(t *testing.T){
-  fstring := `<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>123</leader><controlfield tag="001">on1097882240</controlfield><controlfield tag="003">OCoLC</controlfield><datafield ind1="0" ind2=" " tag="041"><subfield code="a">eng</subfield></datafield><datafield ind1=" " ind2=" " tag="099"><subfield code="a">Coll 408</subfield></datafield></record>`
-  expected := `<bib><suppress_from_publishing>false</suppress_from_publishing><suppress_from_external_search>true</suppress_from_external_search><record><leader>123</leader><controlfield tag="001">on1097882240</controlfield><controlfield tag="003">OCoLC</controlfield><datafield ind1="0" ind2=" " tag="041"><subfield code="a">eng</subfield></datafield><datafield ind1=" " ind2=" " tag="099"><subfield code="a">Coll 408</subfield></datafield></record></bib>`
+  fstring := bibstring_fixture4
+  expected := bibstring_fixture5
   bib := ConstructBib(fstring, false)
   bib_string,err := bib.Stringify()
   if err != nil { t.Errorf("incorrect response") }
-  if strings.Compare(bib_string, expected) != 1 { t.Errorf("incorrect result") }
+  if compareXML(bib_string, expected) != true { t.Errorf("incorrect rec") }
 }

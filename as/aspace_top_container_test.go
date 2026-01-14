@@ -53,7 +53,7 @@ func TestMapify(t *testing.T){
 func TestExtractTCData(t *testing.T){
   listdata := "[{\"ref\":\"/repositories/2/top_containers/12345\"},{\"ref\":\"/repositories/2/top_containers/67890\"}]"
   listpath := "/api/repositories/2/resources/987/top_containers"
-  tcdata2 := `{"barcode":"35025042622635","ils_holding_id":"22452547390001852","ils_item_id":"23452547370001852","indicator":"[35025042622635]","created_by":"alexagoff","last_modified_by":"alexagoff","create_time":"2023-11-21T20:00:48Z","system_mtime":"2025-12-19T23:32:52Z","user_mtime":"2025-11-03T21:50:00Z","created_for_collection":"/repositories/2/resources/9634","type":"Multiple Collection Box","indicator":"[35025042622635]","collection":[{"ref":"/repositories/2/resources/3340","identifier":"PH 200_333","display_string":"Tony Minthorn collection of Nez Perce photographs"},{"ref":"/repositories/2/resources/3639","identifier":"PH 363","display_string":"Ronda Skubi collection of Lord and Schryver Slides"}],"uri":"/repositories/2/top_containers/67890"}`
+  tcdata2 := topcontainer_fixture1
   tcpath1 := "/api/repositories/2/top_containers/12345"
   tcpath2 := "/api/repositories/2/top_containers/67890"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -81,9 +81,8 @@ func TestExtractTCData(t *testing.T){
 }
 
 func TestIsBoundwith(t *testing.T){
-  data1 := `{"barcode":"35025042622635","ils_holding_id":"22452547390001852","ils_item_id":"23452547370001852","indicator":"[35025042622635]","created_by":"alexagoff","last_modified_by":"alexagoff","create_time":"2023-11-21T20:00:48Z","system_mtime":"2025-12-19T23:32:52Z","user_mtime":"2025-11-03T21:50:00Z","created_for_collection":"/repositories/2/resources/9634","type":"Multiple Collection Box","indicator":"[35025042622635]","collection":[{"ref":"/repositories/2/resources/3340","identifier":"PH 200_333","display_string":"Tony Minthorn collection of Nez Perce photographs"},{"ref":"/repositories/2/resources/3639","identifier":"PH 363","display_string":"Ronda Skubi collection of Lord and Schryver Slides"}],"uri":"/repositories/2/top_containers/67890"}`
-
-  data2 := `{"barcode":"35025042622635","ils_holding_id":"22452547390001852","ils_item_id":"23452547370001852","indicator":"[35025042622635]","created_by":"alexagoff","last_modified_by":"alexagoff","create_time":"2023-11-21T20:00:48Z","system_mtime":"2025-12-19T23:32:52Z","user_mtime":"2025-11-03T21:50:00Z","created_for_collection":"/repositories/2/resources/9634","type":"Box","indicator":"[35025042622635]","collection":[{"ref":"/repositories/2/resources/3340","identifier":"PH 200_333","display_string":"Tony Minthorn collection of Nez Perce photographs"}],"uri":"/repositories/2/top_containers/67890"}`
+  data1 := topcontainer_fixture1
+  data2 := topcontainer_fixture2
   result1 := IsBoundwith([]byte(data1))
   if result1 != true { t.Errorf("incorrect result") }
   result2 := IsBoundwith([]byte(data2))

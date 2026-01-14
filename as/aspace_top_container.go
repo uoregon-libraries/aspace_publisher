@@ -63,6 +63,7 @@ func UpdateIlsIds(record []byte, holding_id, item_id string)([]byte, error){
   return modified2, nil
 }
 
+type UpdateTCFun func(string, string, string, string, map[string]string)error
 // puts modified top container json to aspace
 func UpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
   tc_id := ExtractID(tcmap["uri"])
