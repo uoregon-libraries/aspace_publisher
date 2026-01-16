@@ -90,24 +90,25 @@ func BuildUrl(path []string)string{
 type ProcessBoundwithFun func(ProcessArgs, string, []map[string]string, FunMap)
 // if a given top container is not a multi-collection box, 
 // the only action sets the tc['mms_id'] to the bib being created/updated
-// if boundwith true and error occurs, write report and stop
+// if boundwith true and error occurs, write report and stop once loop is complete
 func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]string, fs FunMap){
   var process_holding = false
   msgs := []string{}
   for _,tc := range tcmap{
     if tc["boundwith"] == "true" {
-      mms_id := fs.FetchBib(tc["barcode"])
+      mms_id := fs.FetchBib(tc["barcode"])//get boundwith mms_id
+      // currently only handling bwbib exists case
       tc["mms_id"] = mms_id
       path := []string{"bibs", mms_id}
       _url := BuildUrl(path)
       params := []string{ ApiKey() }
-      bw_marc, err := Get(_url, params, "application/xml")
+      bwbib_byte, err := Get(_url, params, "application/xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
-      bw_bib, err := ConstructBoundwith(string(bw_marc), marc_string, tc)
+      bwbib, err := ConstructBoundwith(bwbib_byte, marc_string, args.Mms_id, tc)
       if err != nil { msgs = append(msgs, err.Error()); continue }
-      bw_bib_str, err := bw_bib.Stringify()
+      bwbib_str, err := bwbib.Stringify()
       if err != nil { msgs = append(msgs, err.Error()); continue }
-      _, err = Put(_url, params, bw_bib_str, "xml")
+      _, err = Put(_url, params, bwbib_str, "xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
     } else { tc["mms_id"] = args.Mms_id; args.Holding_id = tc["ils_holding"]; process_holding = true }
   }

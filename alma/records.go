@@ -35,9 +35,9 @@ type FetchBibIDFun func(string)string
 // retrieves bib id by doing GET on item barcode
 // for use with boundwith process
 func FetchBibID(barcode string)string{
-  path := []string{"items?item_barcode=" + barcode}
+  path := []string{ "items" }
   _url := BuildUrl(path)
-  params := []string{ ApiKey() }
+  params := []string{ ApiKey(), "item_barcode=" + barcode }
   item,err := Get(_url, params, "application/json")
   if err != nil { log.Println(err); return ""}
   mms_id := gjson.GetBytes(item, "bib_data.mms_id")

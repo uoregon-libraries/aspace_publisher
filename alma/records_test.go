@@ -6,6 +6,7 @@ import (
   "net/http/httptest"
   "net/http"
   "os"
+  "strings"
 )
 
 func TestExtractBibID( t *testing.T){
@@ -47,8 +48,9 @@ func TestExtractItemID( t *testing.T){
 func TestFetchBibID(t *testing.T){
   data := `{ "bib_data": {"mms_id":"123456789123"} }`
   barcode := "123123123123123"
-  path := "/almaws/v1/items?item_barcode=" + barcode
+  path := "/almaws/v1/items"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if strings.Contains(r.URL.String(), "item_barcode=" + barcode) != true { t.Errorf("incorrect params") }
     if r.URL.Path == path {
       fmt.Fprintf(w, data)
     } else {

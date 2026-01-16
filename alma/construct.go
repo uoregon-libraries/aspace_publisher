@@ -20,19 +20,24 @@ func ConstructBib(marc_string string, suppress bool)(Bib){
   return bib
 }
 
-func ConstructBoundwith(boundwith_marc string, bib_marc string, tcmap map[string]string)(Bib, error){
-  var bib = Bib{}
-  bib = ConstructBib(boundwith_marc, true)
-  marc_xml, err := ParseMarc(bib_marc)
-  if err != nil { return bib, err }
-  title, err := ExtractTitle(marc_xml)
-  if err != nil { return bib, err }
+func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
+  var bwbib = Bib{}
+  xml.Unmarshal(boundwith_bib, &bwbib)
+  bw_xml, err := ParseMarc(string(boundwith_bib))
+  if err != nil { return bwbib, err }
+  if df774Exists(bw_xml, resource_mmsid) { return bwbib, nil }
+
+  bib_xml, err := ParseMarc(resource_marc)
+  if err != nil { return bwbib, err }
+
+  title, err := ExtractTitle(bib_xml)
+  if err != nil { return bwbib, err }
   sft := Subfield{Code: "t", Value: title}//title from the new coll/bib
-  sfw := Subfield{Code: "w", Value: tcmap["mms_id"] }//mms_id of the new coll/bib
+  sfw := Subfield{Code: "w", Value: resource_mmsid }//mms_id of the new coll/bib
   d774 := Datafield{Ind1:"1", Ind2:" ", Tag:"774"}
   d774.Subfield = []Subfield{sft, sfw}
-  bib.Rec.Datafield = append(bib.Rec.Datafield, d774)
-  return bib, nil
+  bwbib.Rec.Datafield = append(bwbib.Rec.Datafield, d774)
+  return bwbib, nil
 }
 
 func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error){
@@ -132,5 +137,10 @@ func ExtractTitle(marc_xml *etree.Document)(string, error){
   title := marc_xml.FindElement("//datafield[@tag='245']/subfield[@code='a']")
   if title == nil { return "", errors.New("unable to extract 245") }
   return title.Text(), nil
+}
 
+func df774Exists(marc_xml *etree.Document, resource_mmsid string) bool{
+  df774 := marc_xml.FindElements(fmt.Sprintf("//datafield[@tag='774']/[subfield='%s']", resource_mmsid))
+  if len(df774) == 0 { return false }
+  return true
 }

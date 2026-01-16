@@ -38,11 +38,27 @@ func TestConstructBib( t *testing.T){
 }
 
 func TestConstructBoundwith(t *testing.T){
-  fstring := bibstring_fixture1
+  bwmarc := bibstring_fixture1
+  bwmmsid := "9999123456456"
   expected := bibstring_fixture2
-  bibstring := bibstring_fixture3
-  tcmap :=  map[string]string{ "mms_id": "9999123456456" }
-  bib, err := ConstructBoundwith(fstring,bibstring,tcmap)
+  bibmarc := bibstring_fixture3
+  bibmmsid := "999954325432"
+  tcmap :=  map[string]string{ "mms_id": bwmmsid }
+  bib, err := ConstructBoundwith([]byte(bwmarc),bibmarc,bibmmsid,tcmap)
+  bibstr, err := bib.Stringify()
+  if err != nil { t.Errorf("error in stringify") }
+  if compareXML(bibstr, expected) != true { t.Errorf("incorrect boundwith rec") }
+}
+
+// case where df774exists == true
+func TestConstructBoundwith2(t *testing.T){
+  bwmarc := bibstring_fixture2
+  bwmmsid := "9999123456456"
+  expected := bibstring_fixture2
+  bibmarc := bibstring_fixture3
+  bibmmsid := "999954325432"
+  tcmap :=  map[string]string{ "mms_id": bwmmsid }
+  bib, err := ConstructBoundwith([]byte(bwmarc),bibmarc,bibmmsid,tcmap)
   bibstr, err := bib.Stringify()
   if err != nil { t.Errorf("error in stringify") }
   if compareXML(bibstr, expected) != true { t.Errorf("incorrect boundwith rec") }
@@ -75,4 +91,13 @@ func TestConstructItem(t *testing.T){
   itemstr, err := result.Stringify()
   if err != nil { t.Errorf("error in stringify") }
   if compareJSON(itemstr, expected) != true { t.Errorf("incorrect item rec") }
+}
+
+func TestDf774Exists(t *testing.T){
+  bwbibstr := bibstring_fixture2
+  bwbib_xml,_ := ParseMarc(bwbibstr)
+  res := df774Exists(bwbib_xml, "999954325432")
+  if res != true { t.Errorf("incorrect result") }
+  res2 := df774Exists(bwbib_xml, "999912341234")
+  if res2 != false { t.Errorf("incorrect result") }
 }
