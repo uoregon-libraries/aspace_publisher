@@ -49,3 +49,42 @@ func TestMapify(t *testing.T){
   if tmap["indicator"] != "yellow" { t.Errorf("indicator is incorrect") }
   if tmap["type"] != "square" { t.Errorf("type is incorrect") }
 }
+
+func TestExtractTCData(t *testing.T){
+  listdata := "[{\"ref\":\"/repositories/2/top_containers/12345\"},{\"ref\":\"/repositories/2/top_containers/67890\"}]"
+  listpath := "/api/repositories/2/resources/987/top_containers"
+  tcdata2 := topcontainer_fixture1
+  tcpath1 := "/api/repositories/2/top_containers/12345"
+  tcpath2 := "/api/repositories/2/top_containers/67890"
+   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == listpath {
+      fmt.Fprintf(w, listdata)
+    } else if r.URL.Path == tcpath1 {
+      w.WriteHeader(http.StatusNotFound)
+      fmt.Fprintf(w, "{\"error\": \"Not found\"}")
+    } else if r.URL.Path == tcpath2 {
+      fmt.Fprintf(w, tcdata2)
+    } else {
+      t.Errorf("incorrect request url")
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/api/")
+  tcmap,msgs := ExtractTCData("123456789", "2", "987")
+  if msgs[0] != "Unable to acquire TC json aspace error exporting record" {
+    t.Errorf("incorrect response to error")
+  }
+  if tcmap[0]["barcode"] != "35025042622635" {
+    t.Errorf("incorrect tcmap returned")
+  }
+  if tcmap[0]["boundwith"] != "true" { t.Errorf("incorrect boundwith value") }
+}
+
+func TestIsBoundwith(t *testing.T){
+  data1 := topcontainer_fixture1
+  data2 := topcontainer_fixture2
+  result1 := IsBoundwith([]byte(data1))
+  if result1 != true { t.Errorf("incorrect result") }
+  result2 := IsBoundwith([]byte(data2))
+  if result2 != false { t.Errorf("incorrect result") }
+}

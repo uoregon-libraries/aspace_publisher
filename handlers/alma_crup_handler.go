@@ -7,78 +7,45 @@ import (
   "aspace_publisher/oclc"
   "aspace_publisher/alma"
   "aspace_publisher/file"
-  "encoding/json"
   "net/http"
   "os"
   "fmt"
 )
 
 func AlmaCrupHandler(c echo.Context) error {
-  id := c.Param("id")
-  repo_id := "2"
-  filename := file.Filename()
-  //get session id
-  session_id, err := utils.FetchCookieVal(c, "as_session")
+  var args alma.ProcessArgs
+  args.Resource_id = c.Param("id")
+  args.Repo_id = "2"
+  args.Filename = file.Filename()
+  var err error
+  args.Session_id, err = utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(500, "Cannot retrieve session, try redoing login.") }
 
   //acquire aspace resource
-  rjson, err := as.AcquireJson(session_id, repo_id, "resources/" + id)
-  if err != nil { file.WriteReport(filename, []string{ "Could not aquire JSON from aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+  rjson, err := as.AcquireJson(args.Session_id, args.Repo_id, "resources/" + args.Resource_id)
+  if err != nil { file.WriteReport(args.Filename, []string{ "Could not aquire JSON from aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
-  oclc_id := as.GetOclcId(rjson)
-
+  args.Oclc_id = as.GetOclcId(rjson)
   //try for mms_id and create based on presence in resource json
-  mms_id := as.GetMmsId(rjson)
-  create := true
-  if mms_id != "" { create = false }
+  args.Mms_id, args.Create = as.GetMmsId(rjson)
+  //needed for holding record, appears as 099 in the aspace MARC but not OCLC's
+  args.Id_0 = as.ExtractID0(rjson)
 
   //authenticate with OCLC
-  token, err := oclc.GetToken(c)
-  if err != nil { file.WriteReport(filename, []string{ "Could not authenticate with OCLC: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+  args.Oclc_token, err = oclc.GetToken(c)
+  if err != nil { file.WriteReport(args.Filename, []string{ "Could not authenticate with OCLC: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   //get oclc marc
-  oclc_marc, err := oclc.Record(token, oclc_id)
-  if err != nil { file.WriteReport(filename, []string{ "Could not acquire OCLC MARC " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+  oclc_marc, err := oclc.Record(args.Oclc_token, args.Oclc_id)
+  if err != nil { file.WriteReport(args.Filename, []string{ "Could not acquire OCLC MARC " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
-  //create bib, holding, items
-  mms_id, err = alma.ProcessBib(mms_id, oclc_marc, create)
-  if err != nil { file.WriteReport(filename, []string{ "Could not create Alma Bib " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
+  tcmap, errmsgs := as.ExtractTCData(args.Session_id, args.Repo_id, args.Resource_id)
+  if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return c.String(http.StatusInternalServerError, "Error, please see report.") }
+  //launch processing, starting with bib
+  //eventually hand this off to a worker?
+  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate }
+  alma.ProcessBib(args, oclc_marc, rjson, tcmap, fs)
 
-  var holding_id = ""
-  if create == false { holding_id = alma.GetHoldingId(mms_id) }
-  holding_id, err = alma.ProcessHolding(mms_id, holding_id, oclc_marc, create)
-  if err != nil { file.WriteReport(filename, []string{ "Could not create Alma Holding: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-
-  itemlist := []string{}
-  tclist,err := as.TCList(session_id, repo_id, mms_id) //get the top containers
-  if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC list: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-  for _,tc_path := range tclist{
-    tc_id := as.ExtractID(tc_path)
-    jsonTC, err := as.AcquireJson(session_id, repo_id, "top_containers/" + tc_id)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to acquire TC json " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-    item_id, _ := as.GetTCRefs(jsonTC)
-    var tc as.TopContainer
-    err = json.Unmarshal(jsonTC, &tc)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to process TC json: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-    item_id, err = alma.ProcessItem(mms_id, holding_id, item_id, tc.Mapify(), create)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to process Alma item: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-    itemlist = append(itemlist, item_id)
-    if create {
-      err = as.UpdateTC(repo_id, tc_id, jsonTC, holding_id, item_id, session_id)
-  if err != nil { file.WriteReport(filename, []string{ "Unable to update TC in aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-    }
-  //use itemlist in reporting
-  itemlist = append(itemlist, item_id)
-  }
-  if create {
-    //update the aspace resource
-    modified, err := as.UpdateUserDefined2(rjson, mms_id)
-  if err != nil { file.WriteReport(filename, []string{ err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-    as.UpdateResource(session_id, "2", id, string(modified))
-
-    //todo: switch to worker.
-    alma.LinkToNetwork([]string{ mms_id }, filename)
-  }
   base_url := os.Getenv("HOME_URL")
-  return c.HTML(http.StatusOK, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, filename, filename))
+  return c.HTML(http.StatusOK, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, args.Filename, args.Filename))
 }

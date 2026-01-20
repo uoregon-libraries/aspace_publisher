@@ -17,12 +17,17 @@ func GetOclcId(resource []byte)(string){
   return result.String()
 }
 
-func GetMmsId(resource []byte)string{
+func GetMmsId(resource []byte)(string,bool){
   result := gjson.GetBytes(resource, "user_defined.string_2")
-  return result.String()
+  return result.String(), result.String() == ""
   }
 
 func ExtractID(_url string)string{
   parts := strings.Split(_url, "/")
   return parts[len(parts)-1]
+}
+
+func ExtractID0(resource []byte) string {
+  result := gjson.GetBytes(resource, "id_0")
+  return result.String()
 }

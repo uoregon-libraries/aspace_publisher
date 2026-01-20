@@ -23,7 +23,7 @@ func CheckJob(joblink string, nextFun ProcessFunc, filename string, list []strin
   params := []string{ ApiKey() }
   var result map[string]string
   for i < MAX {
-    resp,err := Get(joblink, params)
+    resp,err := Get(joblink, params, "application/json")
     if err != nil { 
       log.Println(err)
       /*** count this as one try ****/
@@ -73,7 +73,7 @@ func SubmitJob(jobid string, job_params []Param)(string, error){
   params := []string{ "op=run", ApiKey() }
   job := JobInit(job_params)
   json,_ := json.Marshal(job)
-  resp,err := Post(_url.String(), params, string(json))
+  resp,err := Post(_url.String(), params, string(json), "json")
   if err != nil { 
     log.Println(err)
     return "", err

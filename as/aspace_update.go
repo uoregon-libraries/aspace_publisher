@@ -38,6 +38,7 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   if err != nil { return "", errors.New("unable to create http request") }
 
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Content-Type", "text/json")
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
@@ -70,13 +71,14 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   return string(body), nil
 }
 
-func Update(sessionid string, _url string, json_record string )(string, error){
+func Update(sessionid string, _url string, json_record string)(string, error){
   verbose := os.Getenv("VERBOSE")
   data := strings.NewReader(json_record)
   req, err := http.NewRequest("POST", _url, data)
   if err != nil { return "", errors.New("unable to create http request") }
 
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
+  req.Header.Set("Content-Type", "text/json")
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
@@ -132,4 +134,12 @@ func AssembleUrl(path []string)(string, error){
   _url, err := url.JoinPath(base_url, path_string)
   if err != nil { log.Println(err); return "", err }
   return _url, nil
+}
+
+type AfterBibFun func([]byte, map[string]string)error
+func AfterBibCreate(rjson []byte, args_map map[string]string)error{
+  modified, err := UpdateUserDefined2(rjson, args_map["mms_id"])
+    if err != nil { return err }
+  UpdateResource(args_map["session_id"], args_map["repo_id"], args_map["resource_id"], string(modified))
+  return nil
 }

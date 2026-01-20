@@ -3,7 +3,6 @@ package alma
 import (
   "aspace_publisher/marc"
   "github.com/beevik/etree"
-  "encoding/json"
   "encoding/xml"
   "log"
   "fmt"
@@ -11,46 +10,64 @@ import (
   "strings"
 )
 
-func ConstructBib(marc_string string)(string, error){
-  marc_stripped, err := marc.StripOuterTags(marc_string)
-  if err != nil { return "", err }
-  return "<bib>" + marc_stripped + "</bib>", nil
+func ConstructBib(marc_string string, suppress bool)(Bib){
+  var bib = Bib{}
+  bib.SuppressPublish = suppress
+  bib.SuppressExternal = true
+  var rec = Record{}
+  xml.Unmarshal([]byte(marc_string), &rec)
+  bib.Rec = rec
+  return bib
 }
 
-func ConstructHolding(marc_string string)(string, error){
+func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
+  var bwbib = Bib{}
+  xml.Unmarshal(boundwith_bib, &bwbib)
+  bw_xml, err := ParseMarc(string(boundwith_bib))
+  if err != nil { return bwbib, err }
+  if df774Exists(bw_xml, resource_mmsid) { return bwbib, nil }
+
+  bib_xml, err := ParseMarc(resource_marc)
+  if err != nil { return bwbib, err }
+
+  title, err := ExtractTitle(bib_xml)
+  if err != nil { return bwbib, err }
+  sft := Subfield{Code: "t", Value: title}//title from the new coll/bib
+  sfw := Subfield{Code: "w", Value: resource_mmsid }//mms_id of the new coll/bib
+  d774 := Datafield{Ind1:"1", Ind2:" ", Tag:"774"}
+  d774.Subfield = []Subfield{sft, sfw}
+  bwbib.Rec.Datafield = append(bwbib.Rec.Datafield, d774)
+  return bwbib, nil
+}
+
+func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error){
   marc_xml, err := ParseMarc(marc_string)
-  if err != nil { return "", err }
-  call_num, err := ExtractCall(marc_xml)
-  if err != nil { return "", err }
+  if err != nil { return h, err }
   link, err := BuildFindingLink(marc_xml)
-  if err != nil { return "", err }
+  if err != nil { return h, err }
   fixed, err := ExtractFixed(marc_xml)
-  if err != nil { return "", err }
-  var h = Holding{}
+  if err != nil { return h, err }
   h.Suppress = false
   var rec Record
   rec.Leader, err = ExtractLeader(marc_xml)
-  if err != nil { return "", err }
+  if err != nil { return h, err }
 
-  rec.Cfields = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
-  sfb := Subfield{Code:"b", Value:"Special Collections"}
+  rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
+  sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
-  sfh := Subfield{Code:"h", Value: call_num}
+  sfh := Subfield{Code:"h", Value: id_0}
   df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
-  df852.Sfields = []Subfield{sfb, sfc, sfh}
+  df852.Subfield = []Subfield{sfb, sfc, sfh}
   sfz := Subfield{Code: "z", Value: link }
   df866 := Datafield{Ind1:"4", Ind2:"1", Tag:"866"}
-  df866.Sfields = []Subfield{ sfz }
-  rec.Dfields = []Datafield{ df852, df866 }
+  df866.Subfield = []Subfield{ sfz }
+  rec.Datafield = []Datafield{ df852, df866 }
   h.Rec = rec
-  output, err := xml.MarshalIndent(h, "  ", "    ")
-  if err != nil { log.Println(err); return "", errors.New("unable to contruct holding json") }
-  return string(output), nil
+  return h, nil
 }
 
-func ConstructItem(item_id string, holding_id string, tc_data map[string]string)(string, error){
-  var item = Item{}
-  item.Holding_data = HoldingData{ Holding_id: holding_id }
+func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item, error){
+  item.Holding_data = HoldingData{ Holding_id: holding_id, Copy_id: "1" }
   var idata = ItemData{}
   idata.Barcode = tc_data["barcode"]
   idata.Policy = Value{ Val: policy(tc_data["type"]) }
@@ -60,9 +77,7 @@ func ConstructItem(item_id string, holding_id string, tc_data map[string]string)
   idata.Base_status = Value{ Val: "1" }
   idata.Physical_material_type = Value{ Val: "MANUSCRIPT" }
   item.Item_data = idata
-  data, err := json.Marshal(item)
-  if err != nil { log.Println(err); return "", errors.New("unable to construct item json") }
-  return string(data), nil
+  return item, nil
 }
 
 func policy(_type string)string{
@@ -70,32 +85,6 @@ func policy(_type string)string{
     strings.Contains(_type, "Restricted") { return "Restricted" } else {
     return "999"
   }
-}
-type Record struct{
-  Leader string `xml:"leader"`
-  Cfields []Controlfield
-  Dfields []Datafield
-}
-
-type Controlfield struct{
-  XMLName xml.Name `xml:"controlfield"`
-  Tag string `xml:"tag,attr"`
-  Value string `xml:",chardata"`
-}
-
-type Datafield struct{
-  XMLName xml.Name `xml:"datafield"`
-  Tag string `xml:"tag,attr"`
-  Ind1 string `xml:"ind1,attr"`
-  Ind2 string `xml:"ind2,attr"`
-  Sfields []Subfield
-  Value string `xml:",chardata"`
-}
-
-type Subfield struct{
-  XMLName xml.Name `xml:"subfield"`
-  Code string `xml:"code,attr"`
-  Value string `xml:",chardata"`
 }
 
 func ParseMarc(marc_string string)(*etree.Document, error){
@@ -114,8 +103,10 @@ func BuildFindingLink(marc_xml *etree.Document)(string, error){
   if url == nil { return "", errors.New("unable to extract 856") }
   text := marc_xml.FindElement("//datafield[@tag='856']/subfield[@code='z']")
   if text == nil { return "", errors.New("unable to extract 856") }
-  link := fmt.Sprintf("<a href='%s' target='_blank'>%s</a>", url.Text(), text.Text())
-  if text.Text() == "Notice of Interest in Unprocessed Collections" {
+  message := text.Text()
+  if strings.Contains(message, "Connect to the online") { message = strings.ToUpper(text.Text()) }
+  link := fmt.Sprintf("<a href='%s' target='_blank'>%s</a>", url.Text(), message)
+  if message == "Notice of Interest in Unprocessed Collections" {
     link = "UNARRANGED COLLECTION UNAVAILABLE FOR USE. Inquiries regarding these materials should be submitted via the " + link
   }
   return link, nil
@@ -140,4 +131,16 @@ func ExtractFixed(marc_xml *etree.Document)(string, error){
   fixed := marc_xml.FindElement("//controlfield[@tag='008']")
   if fixed == nil { return "", errors.New("unable to extract 008") }
   return fixed.Text(), nil
+}
+
+func ExtractTitle(marc_xml *etree.Document)(string, error){
+  title := marc_xml.FindElement("//datafield[@tag='245']/subfield[@code='a']")
+  if title == nil { return "", errors.New("unable to extract 245") }
+  return title.Text(), nil
+}
+
+func df774Exists(marc_xml *etree.Document, resource_mmsid string) bool{
+  df774 := marc_xml.FindElements(fmt.Sprintf("//datafield[@tag='774']/[subfield='%s']", resource_mmsid))
+  if len(df774) == 0 { return false }
+  return true
 }
