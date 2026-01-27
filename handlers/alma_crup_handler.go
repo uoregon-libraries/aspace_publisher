@@ -43,7 +43,7 @@ func AlmaCrupHandler(c echo.Context) error {
   if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return c.String(http.StatusInternalServerError, "Error, please see report.") }
   //launch processing, starting with bib
   //eventually hand this off to a worker?
-  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate }
+  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding }
   alma.ProcessBib(args, oclc_marc, rjson, tcmap, fs)
 
   base_url := os.Getenv("HOME_URL")
