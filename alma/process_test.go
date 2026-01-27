@@ -28,7 +28,7 @@ func TestProcessBib(t *testing.T){
   expected := bibstring_fixture5
 
   tcmap := []map[string]string{ map[string]string{} }
-  fs := FunMap{ BoundwithPF: DummyBoundwithPF, NZPF: DummyNZPF, AfterBib: DummyAfterBib, SetHolding: DummySetHolding }
+  fs := FunMap{ BoundwithPF: DummyBoundwithPF, CallWorker: DummyCallWorker, AfterBib: DummyAfterBib, SetHolding: DummySetHolding }
   path := "/almaws/v1/bibs" //test post
   rjson := []byte{}
 
@@ -140,6 +140,15 @@ func TestProcessItem(t *testing.T){
   if id != "456745674567" { t.Errorf("incorrect id returned") }
 }
 
+func TestBuildWorkerUrl( t *testing.T){
+  worker_path := "do_things"
+  os.Setenv("WORKER_URL", "http://blahblah.org")
+  args := map[string]string{ "id": "banana", "value": "yellow" }
+  expected := "http://blahblah.org/do_things?id%3Dbanana%26value%3Dyellow"
+  _url := BuildWorkerUrl(worker_path, args)
+  if _url != expected { t.Errorf("incorrect response") }
+}
+
 func DummyBoundwithPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){ return }
 func DummyHoldingPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   if tcmap[0]["mms_id"] != "234523452345" { log.Println("incorrect update to tcmap") }
@@ -159,3 +168,10 @@ func DummyFetchBibID(barcode string)string{
 func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{ return nil }
 func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
 
+func DummyCallWorker(worker string, args map[string]string) error {
+  log.Println("worker: " + worker)
+  for k,v := range args {
+    log.Println(k + ": " + v )
+  }
+  return nil
+}
