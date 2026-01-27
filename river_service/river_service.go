@@ -3,6 +3,7 @@ package main
 import (
     "context"
     "fmt"
+    "log"
     "log/slog"
     "os"
 
@@ -10,7 +11,7 @@ import (
     "github.com/riverqueue/river"
     "github.com/riverqueue/river/riverdriver/riverpgxv5"
     "github.com/riverqueue/river/rivershared/util/slogutil"
-
+    "riverqueue.com/riverui"
     "aspace_publisher/river_worker"
     "net/http"
 )
@@ -51,9 +52,24 @@ func main() {
     }
     defer riverClient.Stop(ctx)
 
+    //add UI
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn, ReplaceAttr: slogutil.NoLevelTime}))
+    endpoints := riverui.NewEndpoints(riverClient, nil)
+    opts := &riverui.HandlerOpts{
+        Endpoints: endpoints,
+        Logger: logger,
+        Prefix: "/riverui", // mount the UI and its APIs at /riverui or some path
+        // ...
+    }
+    handler, err := riverui.NewHandler(opts)
+    if err != nil {
+        log.Fatal(err)
+    }
+    // Start the handler to initialize background processes for caching and periodic queries:
+    handler.Start(ctx)
     // add routes here
     http.HandleFunc("/startLTNJob", river_worker.StartLTNJob(riverClient, ctx, dbPool))
     http.HandleFunc("/startStatusJob", river_worker.StartStatusJob(riverClient, ctx, dbPool))
-
+    http.Handle("/riverui/", handler)
     http.ListenAndServe(":3200", nil)
 }
