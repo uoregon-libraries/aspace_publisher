@@ -13,18 +13,16 @@ import (
     "github.com/riverqueue/river/rivershared/util/slogutil"
     "riverqueue.com/riverui"
     "aspace_publisher/river_worker"
+    "aspace_publisher/db"
     "net/http"
 )
 
 func main() {
     ctx := context.Background()
     fmt.Println("have ctx")
-    pguser := os.Getenv("POSTGRES_USER")
-    pgpass := os.Getenv("POSTGRES_PASSWORD")
-    pgdb := os.Getenv("POSTGRES_DB")
-    pgaddress := os.Getenv("DATABASE_URL")
-
-    dbPool, err := pgxpool.New(ctx, fmt.Sprintf("postgres://%s:%s@%s/%s", pguser,pgpass,pgaddress,pgdb))
+    var dbcred db.DBPool
+    dbcred.Init()
+    dbPool, err := pgxpool.New(ctx, fmt.Sprintf("postgres://%s:%s@%s/%s", dbcred.Pguser, dbcred.Pgpass, dbcred.Pgaddress, dbcred.Pgdb))
     if err != nil {
         panic(err)
     }
@@ -38,7 +36,7 @@ func main() {
     riverClient, err := river.NewClient(riverpgxv5.New(dbPool), &river.Config{
         Logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn, ReplaceAttr: slogutil.NoLevelTime})),
         Queues: map[string]river.QueueConfig{
-            river.QueueDefault: {MaxWorkers: 100},
+            river.QueueDefault: {MaxWorkers: 3},
         },
         Workers:  workers,
     })
