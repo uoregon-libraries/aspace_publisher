@@ -9,7 +9,7 @@ type DBPool struct {
   Pgaddress string
 }
 
-func (db DBPool)Init(){
+func (db *DBPool)Init(){
   db.Pguser = os.Getenv("POSTGRES_USER")
   db.Pgpass = os.Getenv("POSTGRES_PASSWORD")
   db.Pgdb = os.Getenv("POSTGRES_DB")

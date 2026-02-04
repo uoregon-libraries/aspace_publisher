@@ -26,6 +26,8 @@ func AddTime(pool *pgxpool.Pool, ctx context.Context) (bool, string, error) {
     if err != nil { return false, "", err }
     return true, "", nil
   } else {
+    err = tx.Commit(ctx)
+    if err != nil { return false, "", err }
     return false, target, nil
   }
 }
@@ -45,14 +47,14 @@ func removeTime(tx pgx.Tx, ctx context.Context)(int, string, error){
   err = row.Scan(&timestr, &viewed)
   if err != nil { return count, "", err }
   deleteQuery := fmt.Sprintf("DELETE FROM tracker WHERE time = '%s'", timestr)
-  updateQuery := fmt.Sprintf("UPDATE TABLE tracker SET viewed = %v WHERE time = '%s'", viewed+1, timestr)
+  updateQuery := fmt.Sprintf("UPDATE tracker SET viewed = %v WHERE time = '%s'", viewed+1, timestr)
   result, target, err := TimeExpired(timestr, viewed)
   if err != nil { return count, "", err }
   if result {
     _, err = tx.Exec(ctx, deleteQuery)
     if err != nil { return count, "", err }
     return count-1, "", nil 
-  } else {
+  } else if count >= 5 {
     _, err = tx.Exec(ctx, updateQuery)
     if err != nil { return count, "", err }
   }
