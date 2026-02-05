@@ -56,9 +56,9 @@ func OclcCrupHandler(c echo.Context) error {
     if err_ != nil{ return echo.NewHTTPError(400, err_) }
     edited_marc, err_ := marc.EditMarcForOCLC(oclc_marc, marc_stripped)
     if err_ != nil{ return echo.NewHTTPError(400, err_) }
-    oclc_resp, err = oclc.Request(token, edited_marc, "manage/bibs", oclc_id, "marcxml+xml")
+    oclc_resp, err = oclc.Request(token, "PUT", edited_marc, "manage/bibs", oclc_id, "marcxml+xml")
   } else {
-    oclc_resp, err = oclc.Request(token, marc_stripped, "manage/bibs", "", "marcxml+xml")
+    oclc_resp, err = oclc.Request(token, "POST", marc_stripped, "manage/bibs", "", "marcxml+xml")
   }
 
   if err != nil {

@@ -20,7 +20,7 @@ func TestGetHoldingId( t *testing.T){
   path := "/almaws/v1/bibs/" + bib_id + "/holdings"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
-      fmt.Fprintf(w, data)
+      fmt.Fprint(w, data)
     } else {
       t.Errorf("incorrect request url")
     }
@@ -52,7 +52,7 @@ func TestFetchBibID(t *testing.T){
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if strings.Contains(r.URL.String(), "item_barcode=" + barcode) != true { t.Errorf("incorrect params") }
     if r.URL.Path == path {
-      fmt.Fprintf(w, data)
+      fmt.Fprint(w, data)
     } else {
       t.Errorf("incorrect request url")
     }

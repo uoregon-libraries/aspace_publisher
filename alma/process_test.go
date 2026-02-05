@@ -28,7 +28,7 @@ func TestProcessBib(t *testing.T){
   expected := bibstring_fixture5
 
   tcmap := []map[string]string{ map[string]string{} }
-  fs := FunMap{ BoundwithPF: DummyBoundwithPF, NZPF: DummyNZPF, AfterBib: DummyAfterBib }
+  fs := FunMap{ BoundwithPF: DummyBoundwithPF, NZPF: DummyNZPF, AfterBib: DummyAfterBib, SetHolding: DummySetHolding }
   path := "/almaws/v1/bibs" //test post
   rjson := []byte{}
 
@@ -39,7 +39,7 @@ func TestProcessBib(t *testing.T){
     if r.URL.Path != path {
       t.Errorf("incorrect request url")
     }
-    fmt.Fprintf(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>123456789111</mms_id></bib>")
+    fmt.Fprint(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>123456789111</mms_id></bib>")
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
@@ -65,9 +65,9 @@ func TestProcessBoundwith(t *testing.T){
       body, err := ioutil.ReadAll(r.Body)
       if err != nil { t.Errorf("error reading request body") }
       if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
-      fmt.Fprintf(w, "No good deed goes unpunished")
+      fmt.Fprint(w, "No good deed goes unpunished")
     } else if r.Method == "GET" {
-      fmt.Fprintf(w, fstring)
+      fmt.Fprint(w, fstring)
     } else { t.Errorf("incorrect http method") }
   }))
   defer ts.Close()
@@ -91,9 +91,9 @@ tcmap := []map[string]string{ map[string]string{ "boundwith": "false", "ils_hold
       body, err := ioutil.ReadAll(r.Body)
       if err != nil { t.Errorf("error reading request body") }
       if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
-      fmt.Fprintf(w, "why we can't have nice things")
+      fmt.Fprint(w, "why we can't have nice things")
     } else if r.Method == "GET" {
-      fmt.Fprintf(w, string(hold))
+      fmt.Fprint(w, string(hold))
     } else { t.Errorf("incorrect http method") }
   }))
   defer ts.Close()
@@ -110,7 +110,7 @@ func TestProcessItems(t *testing.T){
   path := "/almaws/v1/bibs/345634563456/holdings/234523452345/items/"
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != path { t.Errorf("incorrect alma path") }
-    fmt.Fprintf(w, string(item))
+    fmt.Fprint(w, string(item))
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
@@ -131,7 +131,7 @@ func TestProcessItem(t *testing.T){
       if err != nil { t.Errorf("error reading request body") }
       if compareJSON(string(body), expected) != true { t.Errorf("incorrect record posted") }
  }
-    fmt.Fprintf(w, itemstring_fixture2)
+    fmt.Fprint(w, itemstring_fixture2)
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
@@ -157,3 +157,5 @@ func DummyFetchBibID(barcode string)string{
   return "234523452345"
 }
 func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{ return nil }
+func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
+

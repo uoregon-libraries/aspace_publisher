@@ -11,6 +11,7 @@ import(
   "encoding/xml"
   "aspace_publisher/file"
   "aspace_publisher/as"
+  "aspace_publisher/oclc"
 )
 
 type ProcessArgs struct {
@@ -49,6 +50,7 @@ type FunMap struct {
   FetchBib FetchBibIDFun
   AfterBib as.AfterBibFun
   UpdateTC as.UpdateTCFun
+  SetHolding oclc.SetHoldingFun
 }
 
 func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
@@ -73,6 +75,11 @@ func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[
     if err != nil { file.WriteReport(args.Filename, []string{ err.Error() }) }
     //todo: switch to worker.
     fs.NZPF([]string{ args.Mms_id }, args.Filename)
+    res,err := fs.SetHolding(args.Oclc_id, args.Oclc_token)
+    if err != nil {
+      file.WriteReport(args.Filename, []string{ err.Error() }) } else {
+      file.WriteReport(args.Filename, []string{ res }) 
+    }
   }
   fs.BoundwithPF(args, marc_string, tcmap, fs)
 }
