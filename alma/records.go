@@ -43,7 +43,16 @@ func FetchBibID(barcode string)string{
   mms_id := gjson.GetBytes(item, "bib_data.mms_id")
   return mms_id.String()
 }
-
+// retrieve item id using barcode
+func FetchItemID(barcode string)string{
+  path := []string{ "items" }
+  _url := BuildUrl(path)
+  params := []string{ ApiKey(), "item_barcode=" + barcode }
+  item,err := Get(_url, params, "application/json")
+  if err != nil { log.Println(err); return ""}
+  item_id := gjson.GetBytes(item, "item_data.pid")
+  return item_id.String()
+}
 // pulls holding list for a existing bib from alma api
 // expects only one holding per bib
 func GetHoldingId(mms_id string)string{

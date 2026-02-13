@@ -26,6 +26,7 @@ func AlmaCrupHandler(c echo.Context) error {
   if err != nil { file.WriteReport(args.Filename, []string{ "Could not aquire JSON from aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
   args.Oclc_id = as.GetOclcId(rjson)
+  if args.Oclc_id == "" { file.WriteReport(args.Filename, []string{ "Could not acquire OCLC id from resource" }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
   //try for mms_id and create based on presence in resource json
   args.Mms_id, args.Create = as.GetMmsId(rjson)
   //needed for holding record, appears as 099 in the aspace MARC but not OCLC's
@@ -43,7 +44,7 @@ func AlmaCrupHandler(c echo.Context) error {
   if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return c.String(http.StatusInternalServerError, "Error, please see report.") }
   //launch processing, starting with bib
   //eventually hand this off to a worker?
-  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding }
+  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding, NZPF: alma.LinkToNetwork }
   alma.ProcessBib(args, oclc_marc, rjson, tcmap, fs)
 
   base_url := os.Getenv("HOME_URL")

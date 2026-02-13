@@ -134,6 +134,9 @@ func ProcessHolding(args ProcessArgs, marc_string string, tcmap []map[string]str
     params := []string{ ApiKey() }
 
   var holding = Holding{}
+  if args.Holding_id == "" && args.Create != true {
+    args.Holding_id = GetHoldingId(args.Mms_id)
+  }
   if args.Holding_id != "" {
     holdxml, err := Get(_url, params, "application/xml")
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
@@ -165,6 +168,9 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
   // if an error occurs during the loop, report and continue
   for _,tc := range tcmap{
     var item = Item{}
+    if tc["ils_item"] == "" && args.Create != true {
+      tc["ils_item"] = FetchItemID(tc["barcode"])
+    }
     if tc["ils_item"] != "" { //this is an update. mms_id is hopefully set in ProcessBoundwith
       path := []string{"bibs", tc["mms_id"], "holdings", tc["ils_holding"], "items", tc["ils_item"]}
       _url := BuildUrl(path)
