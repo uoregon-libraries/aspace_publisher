@@ -129,14 +129,14 @@ type ProcessHoldingFun func(ProcessArgs, string, []map[string]string, FunMap)
 // does not need tcmap, passes it to items processing which does
 func ProcessHolding(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   //assemble holding record
-    path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
-    _url := BuildUrl(path)
-    params := []string{ ApiKey() }
-
   var holding = Holding{}
   if args.Holding_id == "" && args.Create != true {
     args.Holding_id = GetHoldingId(args.Mms_id)
   }
+  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
+  _url := BuildUrl(path)
+  params := []string{ ApiKey() }
+
   if args.Holding_id != "" {
     holdxml, err := Get(_url, params, "application/xml")
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
