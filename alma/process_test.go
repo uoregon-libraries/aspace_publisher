@@ -8,6 +8,8 @@ import (
   "io/ioutil"
   "fmt"
   "log"
+  "strings"
+  "reflect"
 )
 
 func TestBuildUrl(t *testing.T){
@@ -51,11 +53,11 @@ func TestProcessBib(t *testing.T){
 func TestProcessBoundwith(t *testing.T){
   args := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
   tcmap := []map[string]string{
-    map[string]string{ "boundwith": "true", "barcode":"123412341234", "ils_holding": "", "ils_item": "" },
-    map[string]string{ "boundwith": "false", "ils_holding": "", "ils_item": ""},
+    map[string]string{ "mms_id": "561235612355", "boundwith": "true", "barcode":"123412341234", "ils_holding": "", "ils_item": "" },
+    map[string]string{ "mms_id": "345634563456","boundwith": "false", "barcode":"234562345623", "ils_holding": "", "ils_item": ""},
   }
-  fs := FunMap{ FetchBib: DummyFetchBibID, HoldingPF: DummyHoldingPF, ItemsPF: DummyItemsPF }
-  path := "/almaws/v1/bibs/234523452345" //test Get/Put
+  fs := FunMap{ HoldingPF: DummyHoldingPF, ItemsPF: DummyItemsPF }
+  path := "/almaws/v1/bibs/561235612355" //test Get/Put
   fstring := bibstring_fixture1
   expected := bibstring_fixture2
   bibstring := bibstring_fixture3
@@ -67,6 +69,7 @@ func TestProcessBoundwith(t *testing.T){
       if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
       fmt.Fprint(w, "No good deed goes unpunished")
     } else if r.Method == "GET" {
+      if r.URL.Path != path { t.Errorf("incorrect alma path") }
       fmt.Fprint(w, fstring)
     } else { t.Errorf("incorrect http method") }
   }))
@@ -138,6 +141,57 @@ func TestProcessItem(t *testing.T){
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
   id,_ := ProcessItem(args, item, tcmap)
   if id != "456745674567" { t.Errorf("incorrect id returned") }
+}
+
+//CheckTCMap calls FetchByBarcode, ParseHoldingItem
+  //cases: barcode == ""
+  //boundwith is true, fetch the id
+  //boundwith is true, unsuccessful fetch
+  //boundwith is false, create is true
+  //boundwith is false, create is false
+
+func TestCheckTCMap(t *testing.T){
+  barcodes := []string{ "35025042674552","35025042674553" }
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if strings.Contains(r.URL.String(), "item_barcode=" + barcodes[0]) == true {
+      fmt.Fprint(w, itemstring_fixture3)
+    }
+    if strings.Contains(r.URL.String(), "item_barcode=" + barcodes[1]) == true {
+      w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
+      w.WriteHeader(http.StatusNotFound)
+      fmt.Fprint(w, "Item not found")
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
+  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
+  tcmap0 := map[string]string{ "barcode":"", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcmap := []map[string]string{tcmap0}
+
+  // case no barcode
+  tcmapR1, err1 := CheckTCMap(tcmap)
+  if err1 == nil { t.Errorf("empty barcode should error") }
+  if !reflect.DeepEqual(tcmapR1,tcmap) { t.Errorf("there should be no change in returned map") }
+
+  // case barcode, successful fetch
+  tcmap[0]["barcode"] = barcodes[0]
+  tcmapR2, err2 := CheckTCMap(tcmap)
+  if err2 != nil { t.Errorf("there should be no errors raised") }
+  if tcmapR2[0]["mms_id"] != "1231231234" { t.Errorf("mms_id is incorrect")}
+  if tcmapR2[0]["ils_holding"] != "98765432987" { t.Errorf("holding is incorrect")}
+  if tcmapR2[0]["ils_item"] != "456745674567" { t.Errorf("pid is incorrect")}
+
+  //case barcode, boundwith true¸ unsuccessful fetch
+  tcmap[0] = map[string]string{ "barcode":barcodes[1], "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcmapR3, err3 := CheckTCMap(tcmap)
+  if err3 == nil { t.Errorf("error should be populated for failure to fetch") }
+  if !reflect.DeepEqual(tcmapR3,tcmap) { t.Errorf("there should be no change in returned map") }
+
+  // case barcode boundwith false, unsuccessful fetch
+  tcmap[0]["boundwith"] = "false"
+  tcmapR6, err6 := CheckTCMap(tcmap)
+  if err6 != nil { t.Errorf("there should not be any errors") }
+  if !reflect.DeepEqual(tcmapR6,tcmap) { t.Errorf("the map should not have changed") }
 }
 
 func DummyBoundwithPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){ return }

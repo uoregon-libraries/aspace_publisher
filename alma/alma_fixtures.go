@@ -16,3 +16,9 @@ var itemstring_fixture1 = `{"holding_data":{"holding_id":"98765432987", "copy_id
 
 //based on fixture1 but with pid
 var itemstring_fixture2 = `{"holding_data":{"holding_id":"98765432987", "copy_id":"1"},"item_data":{"pid":"456745674567","library":{"value":"SpecColl"},"location":{"value":"spmanus"},"barcode":"35025042674552","policy":{"value":"999"},"description":"Box 1","base_status":{"value":"1"},"physical_material_type":{"value":"MANUSCRIPT"}}}`
+
+//based on fixture2 but with bib
+var itemstring_fixture3 = `{"bib_data":{"mms_id": "1231231234"},"holding_data":{"holding_id":"98765432987", "copy_id":"1"},"item_data":{"pid":"456745674567","library":{"value":"SpecColl"},"location":{"value":"spmanus"},"barcode":"35025042674552","policy":{"value":"999"},"description":"Box 1","base_status":{"value":"1"},"physical_material_type":{"value":"MANUSCRIPT"}}}`
+
+var errstring_fixture1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><web_service_result xmlns="http://com/exlibris/urm/general/xmlbeans"><errorsExist>true</errorsExist><errorList><error><errorCode>401689</errorCode><errorMessage>No items found for barcode 1234567891.</errorMessage><trackingId>E01-1203204432-S0YS7-AWAE1544202929</trackingId></error></errorList></web_service_result>`
+//end

@@ -42,6 +42,9 @@ func AlmaCrupHandler(c echo.Context) error {
 
   tcmap, errmsgs := as.ExtractTCData(args.Session_id, args.Repo_id, args.Resource_id)
   if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return c.String(http.StatusInternalServerError, "Error, please see report.") }
+
+  tcmap, err = alma.CheckTCMap(tcmap)
+  if err != nil { file.WriteReport(args.Filename, []string{ "Error attempting to acquire ids: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.") }
   //launch processing, starting with bib
   //eventually hand this off to a worker?
   fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding, NZPF: alma.LinkToNetwork }

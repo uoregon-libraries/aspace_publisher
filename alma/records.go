@@ -31,29 +31,31 @@ func(b Bib)Stringify()(string, error){
   return string(output), nil
 }
 
-type FetchBibIDFun func(string)string
-// retrieves bib id by doing GET on item barcode
-// for use with boundwith process
-func FetchBibID(barcode string)string{
-  path := []string{ "items" }
-  _url := BuildUrl(path)
-  params := []string{ ApiKey(), "item_barcode=" + barcode }
-  item,err := Get(_url, params, "application/json")
-  if err != nil { log.Println(err); return ""}
+func ParseBibID(item []byte)string{
   mms_id := gjson.GetBytes(item, "bib_data.mms_id")
   return mms_id.String()
 }
-// retrieve item id using barcode
-func FetchItemID(barcode string)string{
+
+func ParseItemID(item []byte)string{
+  item_id := gjson.GetBytes(item, "item_data.pid")
+  return item_id.String()
+}
+
+func ParseHoldingItem(item []byte)(string,string){
+  item_id := gjson.GetBytes(item, "item_data.pid")
+  holding_id := gjson.GetBytes(item, "holding_data.holding_id")
+  return holding_id.String(), item_id.String()
+}
+
+func FetchByBarcode(barcode string)([]byte,error){
   path := []string{ "items" }
   _url := BuildUrl(path)
   params := []string{ ApiKey(), "item_barcode=" + barcode }
   item,err := Get(_url, params, "application/json")
-  if err != nil { log.Println(err); return ""}
-  item_id := gjson.GetBytes(item, "item_data.pid")
-  return item_id.String()
+  if err != nil { log.Println(err) }
+  return item, err
 }
-// pulls holding list for a existing bib from alma api
+// pulls holding list using mms_id
 // expects only one holding per bib
 func GetHoldingId(mms_id string)string{
   _url := BuildUrl( []string{"bibs", mms_id, "holdings"} )
