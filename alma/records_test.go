@@ -45,6 +45,13 @@ func TestExtractItemID( t *testing.T){
   if id != "123456789" { t.Errorf("incorrect item id") }
 }
 
+func TestParseHoldingItem( t *testing.T){
+  data := itemstring_fixture3
+  holding,item := ParseHoldingItem([]byte(data))
+  if holding != "98765432987" { t.Errorf("incorrect holding id") }
+  if item != "456745674567" { t.Errorf("incorrect item id") }
+}
+
 func TestStringify(t *testing.T){
   fstring := bibstring_fixture4
   expected := bibstring_fixture5

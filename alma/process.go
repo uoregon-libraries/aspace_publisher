@@ -173,7 +173,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
     item_id, err := fs.ItemPF(args, item, tc)
     if err != nil { msgs = append(msgs, "Unable to process Alma item: " + err.Error()); continue }
     itemlist = append(itemlist, item_id)
-    if tc["ils_item"] == "" {
+    if tc["ils_item"] == "" || tc["update_refs"] == "true" {
       err = fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc)
       if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue }
     }
@@ -195,7 +195,7 @@ func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, e
   params := []string{ ApiKey() }
   var result []byte
   //push record to alma
-  if tcmap["ils_item"] != "" {
+  if tcmap["ils_item"] == "" {
     result, err = Post(_url, params, itemstr, "json") } else {
     result, err = Put(_url, params, itemstr, "json")
   }
@@ -230,6 +230,7 @@ func CheckTCMap(tcmap []map[string]string)([]map[string]string, error){
     tc["mms_id"] = ParseBibID(item)
     if tc["ils_holding"] == "" {
       tc["ils_holding"], tc["ils_item"] = ParseHoldingItem(item)
+      tc["update_refs"] = "true"
     }
   }
   return tcmap, nil
