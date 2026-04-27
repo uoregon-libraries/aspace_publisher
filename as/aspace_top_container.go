@@ -17,6 +17,7 @@ type TopContainer struct{
   Ils_holding string `json:"ils_holding_id"`
   Ils_item string `json:"ils_item_id"`
   Boundwith bool
+  UpdateRefs bool
 }
 
 // helper to avoid including the as package in alma construct
@@ -29,6 +30,7 @@ func (t TopContainer)Mapify()map[string]string{
   tc_map["uri"] = t.Uri
   tc_map["ils_holding"] = t.Ils_holding
   tc_map["ils_item"] = t.Ils_item
+  tc_map["update_refs"] = strconv.FormatBool(t.UpdateRefs)
   return tc_map
 }
 

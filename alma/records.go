@@ -60,7 +60,7 @@ func FetchByBarcode(barcode string)([]byte,error){
 func GetHoldingId(mms_id string)string{
   _url := BuildUrl( []string{"bibs", mms_id, "holdings"} )
   params := []string { ApiKey() }
-  body,err := Get(_url, params, "application/xml")
+  body,err := Get(_url, params, "application/json")
   if err != nil { log.Println(err); return "" }
   holding_id := gjson.GetBytes(body, "holding.0.holding_id")
   return holding_id.String()
