@@ -45,38 +45,41 @@ func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error
   if err != nil { return h, err }
   link, err := BuildFindingLink(marc_xml)
   if err != nil { return h, err }
-  fixed, err := ExtractFixed(marc_xml)
-  if err != nil { return h, err }
-  h.Suppress = false
-  var rec Record
-  rec.Leader, err = ExtractLeader(marc_xml)
-  if err != nil { return h, err }
-
-  rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
-  sfb := Subfield{Code:"b", Value:"SpecColl"}
-  sfc := Subfield{Code:"c", Value: "spmanus"}
-  sfh := Subfield{Code:"h", Value: id_0}
-  df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
-  df852.Subfield = []Subfield{sfb, sfc, sfh}
+  var df852 Datafield
+  if h.HoldingId == "" {
+    fixed, err := ExtractFixed(marc_xml)
+    if err != nil { return h, err }
+    h.Suppress = false
+    h.Rec.Leader, err = ExtractLeader(marc_xml)
+    if err != nil { return h, err }
+    h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
+    sfb := Subfield{Code:"b", Value:"SpecColl"}
+    sfc := Subfield{Code:"c", Value: "spmanus"}
+    sfh := Subfield{Code:"h", Value: id_0}
+    df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
+    df852.Subfield = []Subfield{sfb, sfc, sfh}
+  }
   sfz := Subfield{Code: "z", Value: link }
   df866 := Datafield{Ind1:"4", Ind2:"1", Tag:"866"}
   df866.Subfield = []Subfield{ sfz }
-  rec.Datafield = []Datafield{ df852, df866 }
-  h.Rec = rec
+  h.Rec.Datafield = []Datafield{ df852, df866 }
+
   return h, nil
 }
 
 func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item, error){
-  item.Holding_data = HoldingData{ Holding_id: holding_id, Copy_id: "1" }
-  var idata = ItemData{}
-  idata.Barcode = tc_data["barcode"]
-  idata.Policy = Value{ Val: policy(tc_data["type"]) }
-  idata.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
-  idata.Library = Value{ Val: "SpecColl"}
-  idata.Location = Value{ Val: "spmanus"}
-  idata.Base_status = Value{ Val: "1" }
-  idata.Physical_material_type = Value{ Val: "MANUSCRIPT" }
-  item.Item_data = idata
+  if item.Item_data.Item_pid == "" {
+    item.Holding_data.Holding_id = holding_id
+    item.Holding_data.Copy_id = "1"
+    item.Item_data.Barcode = tc_data["barcode"]
+    item.Item_data.Library = Value{ Val: "SpecColl"}
+    item.Item_data.Location = Value{ Val: "spmanus"}
+    item.Item_data.Base_status = Value{ Val: "1" }
+    item.Item_data.Physical_material_type = Value{ Val: "MANUSCRIPT" }
+  }
+  item.Item_data.Policy = Value{ Val: policy(tc_data["type"]) }
+  item.Item_data.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
+
   return item, nil
 }
 

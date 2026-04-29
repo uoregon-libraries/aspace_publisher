@@ -10,6 +10,7 @@ import (
   "log"
   "strings"
   "reflect"
+  "encoding/json"
 )
 
 func TestBuildUrl(t *testing.T){
@@ -53,93 +54,119 @@ func TestProcessBib(t *testing.T){
 func TestProcessBoundwith(t *testing.T){
   args := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
   tcmap := []map[string]string{
-    map[string]string{ "mms_id": "561235612355", "boundwith": "true", "barcode":"123412341234", "ils_holding": "", "ils_item": "" },
+    map[string]string{ "mms_id": "561235612355", "boundwith": "true", "barcode":"123412341234", "ils_holding": "234567234567", "ils_item": "765476547654" },
     map[string]string{ "mms_id": "345634563456","boundwith": "false", "barcode":"234562345623", "ils_holding": "", "ils_item": ""},
   }
   fs := FunMap{ HoldingPF: DummyHoldingPF, ItemsPF: DummyItemsPF }
   path := "/almaws/v1/bibs/561235612355" //test Get/Put
-  fstring := bibstring_fixture1
+  initialbw := bibstring_fixture1
   expected := bibstring_fixture2
-  bibstring := bibstring_fixture3
+  marc := bibstring_fixture3
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != path { t.Errorf("incorrect alma path") }
     if r.Method == "PUT" {
       body, err := ioutil.ReadAll(r.Body)
       if err != nil { t.Errorf("error reading request body") }
       if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
-      fmt.Fprint(w, "No good deed goes unpunished")
+      fmt.Fprint(w, expected)
     } else if r.Method == "GET" {
       if r.URL.Path != path { t.Errorf("incorrect alma path") }
-      fmt.Fprint(w, fstring)
+      fmt.Fprint(w, initialbw)
     } else { t.Errorf("incorrect http method") }
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  ProcessBoundwith(args, bibstring, tcmap, fs)
+  ProcessBoundwith(args, marc, tcmap, fs)
 }
 
 func TestProcessHolding(t *testing.T){
-  path := "/almaws/v1/bibs/345634563456/holdings" //test Get/Put
-  args2 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true, Id_0: "Coll 408"}
+  path1 := "/almaws/v1/bibs/345634563456/holdings"
+  path2 := "/almaws/v1/bibs/345634563456/holdings/456745674567"
+  args1 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true, Id_0: "Coll 408"}
+  args2 := ProcessArgs{ Mms_id: "345634563456", Holding_id:"456745674567", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false, Id_0: "Coll 408"}
   fs := FunMap{ ItemsPF: DummyItemsPF }
-tcmap := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "", "ils_item": "" } }
+  tcmap1 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "", "ils_item": "" } }
+  tcmap2 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "456745674567", "ils_item": "234523452345" } }
   home := os.Getenv("HOME_DIR")
-  hold, err := ioutil.ReadFile(home + "fixtures/marc_3464.xml")
-  expected := holdingstring_fixture1
+  marc1, err := ioutil.ReadFile(home + "fixtures/marc_3464.xml")
+  if err != nil { t.Errorf("error reading file") }
+  marc2, err := ioutil.ReadFile(home + "fixtures/marc_3464b.xml")
+  if err != nil { t.Errorf("error reading file") }
+  expected1 := holdingstring_fixture1
+  expected2 := holdingstring_fixture3
   if err != nil { t.Errorf("error reading file") }
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != path { t.Errorf("incorrect alma path") }
+    body, err := ioutil.ReadAll(r.Body)
+    if err != nil { t.Errorf("error reading request body") }
     if r.Method == "POST" {
-      body, err := ioutil.ReadAll(r.Body)
-      if err != nil { t.Errorf("error reading request body") }
-      if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
-      fmt.Fprint(w, "why we can't have nice things")
-    } else if r.Method == "GET" {
-      fmt.Fprint(w, string(hold))
-    } else { t.Errorf("incorrect http method") }
+      if r.URL.Path != path1 { t.Errorf("incorrect alma path") }
+      if compareXML(string(body), expected1) != true { t.Errorf("incorrect record posted") }
+      fmt.Fprint(w, "fiddledeedee")
+    } else if r.Method == "PUT" {
+      if r.URL.Path != path2 { t.Errorf("incorrect alma path") }
+      if compareXML(string(body), expected2) != true { t.Errorf("incorrect record posted") }
+      fmt.Fprint(w, "arglebarglesnickersnack")
+    } else { fmt.Fprint(w, holdingstring_fixture2) }// only happens on an update
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  ProcessHolding(args2, string(hold), tcmap, fs)
+  ProcessHolding(args1, string(marc1), tcmap1, fs)
+  ProcessHolding(args2, string(marc2), tcmap2, fs)
 }
 
 func TestProcessItems(t *testing.T){
-  tcmap := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "234523452345", "ils_item": "", "mms_id": "345634563456" } }
-  args := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
-  fs := FunMap{ UpdateTC: DummyUpdateTC, ItemPF: DummyItemPF }
-  item := ""
-  path := "/almaws/v1/bibs/345634563456/holdings/234523452345/items/"
-  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != path { t.Errorf("incorrect alma path") }
-    fmt.Fprint(w, string(item))
-  }))
-  defer ts.Close()
-  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
-  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  ProcessItems(args, tcmap, fs)
-}
+  tcmap1 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "", "mms_id": "345634563456" } }
+  tcmap2 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "456745674567", "mms_id": "345634563456" } }
+  args1 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
+  args2 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false }
 
-func TestProcessItem(t *testing.T){
-  tcmap := map[string]string{ "boundwith": "false", "ils_holding": "234523452345", "ils_item": "", "mms_id": "345634563456" }
-  args := ProcessArgs{ Mms_id: "345634563456", Holding_id: "234523452345", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
-  path := "/almaws/v1/bibs/345634563456/holdings/234523452345/items"
-  item := Item{}
-  expected := itemstring_fixture2
+  fs := FunMap{ UpdateTC: DummyUpdateTC, ItemPF: DummyItemPF }
+  path := "/almaws/v1/bibs/345634563456/holdings/98765432987/items/456745674567"
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != path { t.Errorf("incorrect alma path") }
-    if r.Method == "POST" {
-      body, err := ioutil.ReadAll(r.Body)
-      if err != nil { t.Errorf("error reading request body") }
-      if compareJSON(string(body), expected) != true { t.Errorf("incorrect record posted") }
- }
     fmt.Fprint(w, itemstring_fixture2)
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  id,_ := ProcessItem(args, item, tcmap)
+  ProcessItems(args1, tcmap1, fs)
+  ProcessItems(args2, tcmap2, fs)
+}
+
+func TestProcessItem(t *testing.T){
+  tcmap1 := map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "", "mms_id": "345634563456", "barcode": "35025042674552", "type":"Box", "indicator":"1" }
+  tcmap2 :=  map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "456745674567", "mms_id": "345634563456", "barcode": "35025042674552", "type":"Box", "indicator":"1" }
+  args1 := ProcessArgs{ Mms_id: "345634563456", Holding_id: "98765432987", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
+  args2 := ProcessArgs{ Mms_id: "345634563456", Holding_id: "98765432987", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false }
+
+  path1 := "/almaws/v1/bibs/345634563456/holdings/98765432987/items"
+  path2 := "/almaws/v1/bibs/345634563456/holdings/98765432987/items/456745674567"
+  expected1 := itemstring_fixture1 //create, no pid
+  expected2 := itemstring_fixture2 //update, pid, plus changes to policy, description
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    body, err := ioutil.ReadAll(r.Body)
+    if err != nil { t.Errorf("error reading request body") }
+    if r.Method == "POST" {
+      if r.URL.Path != path1 { t.Errorf("incorrect alma path") }
+
+      if compareJSON(string(body), expected1) != true { t.Errorf("incorrect record posted") }
+      fmt.Fprint(w, itemstring_fixture2)
+    } else {
+      if r.URL.Path != path2 { t.Errorf("incorrect alma path") }
+      if compareJSON(string(body), expected2) != true { t.Errorf("incorrect record posted") }
+      fmt.Fprint(w, itemstring_fixture2)
+    }
+    }))
+  defer ts.Close()
+  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
+  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
+  item := Item{}
+  id,_ := ProcessItem(args1, item, tcmap1)
+  if id != "456745674567" { t.Errorf("incorrect id returned") }
+  json.Unmarshal([]byte(itemstring_fixture5), &item)
+  id,_ = ProcessItem(args2, item, tcmap2)
   if id != "456745674567" { t.Errorf("incorrect id returned") }
 }
 
@@ -196,20 +223,26 @@ func TestCheckTCMap(t *testing.T){
 
 func DummyBoundwithPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){ return }
 func DummyHoldingPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
-  if tcmap[0]["mms_id"] != "234523452345" { log.Println("incorrect update to tcmap") }
+  if args.Holding_id != "" { log.Fatal("incorrect holding set") }
   return
 }
 func DummyItemsPF(args ProcessArgs, tcmap []map[string]string, fs FunMap){ return }
-func DummyItemPF(args ProcessArgs, item Item, tcmap map[string]string)(string, error){ return "", nil }
+func DummyItemPF(args ProcessArgs, item Item, tcmap map[string]string)(string, error){
+  return "456745674567", nil
+}
 func DummyNZPF(list []string, filename string){ return }
 func DummyAfterBib(rjson []byte, args_map map[string]string)error{
-  if args_map["mms_id"] != "123456789111" { log.Println("incorrect mms_id") }
+  if args_map["mms_id"] != "123456789111" { log.Fatal("incorrect mms_id") }
   return nil
  }
 func DummyFetchBibID(barcode string)string{
-  if barcode != "123412341234" { log.Println("incorrect barcode sent") }
+  if barcode != "123412341234" { log.Fatal("incorrect barcode sent") }
   return "234523452345"
 }
-func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{ return nil }
+func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
+
+  if item_id != "456745674567" { log.Fatal("incorrect value sent to DummyUpdateTC") }
+  return nil
+}
 func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
 

@@ -6,8 +6,15 @@ import (
   "net/http/httptest"
   "net/http"
   "os"
+  "encoding/json"
 
 )
+func TestItem( t *testing.T){
+  itemjson := itemstring_fixture4
+  var item Item
+  json.Unmarshal([]byte(itemjson), &item)
+  if item.Item_data.Item_pid != "23329204380001852" { t.Errorf("did not unmarshal correctly") }
+}
 
 func TestExtractBibID( t *testing.T){
   fstring := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>123456789111</mms_id></bib>"
