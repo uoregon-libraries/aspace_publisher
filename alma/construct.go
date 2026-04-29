@@ -10,8 +10,9 @@ import (
   "strings"
 )
 
-func ConstructBib(marc_string string, suppress bool)(Bib){
+func ConstructBib(mms_id string, marc_string string, suppress bool)(Bib){
   var bib = Bib{}
+  if mms_id != "" { bib.Mms_id = mms_id }
   bib.SuppressPublish = suppress
   bib.SuppressExternal = true
   var rec = Record{}

@@ -32,7 +32,7 @@ func compareJSON(stringA string, stringB string) bool{
 func TestConstructBib( t *testing.T){
   fstring := bibstring_fixture4
   expected := bibstring_fixture5
-  bib := ConstructBib(fstring, false)
+  bib := ConstructBib("", fstring, false)
   bibstr,_ := bib.Stringify()
   if compareXML(bibstr, expected) != true { t.Errorf("incorrect bib rec") }
 }
