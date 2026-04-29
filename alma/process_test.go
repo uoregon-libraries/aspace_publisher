@@ -26,28 +26,37 @@ func TestBuildUrl(t *testing.T){
 
 //will call ConstructBib, Post/Put, ExtractBibID
 func TestProcessBib(t *testing.T){
-  args := ProcessArgs{ Mms_id: "", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
-  fstring := bibstring_fixture4
-  expected := bibstring_fixture5
-
+  args1 := ProcessArgs{ Mms_id: "", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
+  args2 := ProcessArgs{ Mms_id: "654365436543", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false }
+  marc := bibstring_fixture4
+  expected1 := bibstring_fixture5
+  expected2 := bibstring_fixture6
   tcmap := []map[string]string{ map[string]string{} }
   fs := FunMap{ BoundwithPF: DummyBoundwithPF, NZPF: DummyNZPF, AfterBib: DummyAfterBib, SetHolding: DummySetHolding }
-  path := "/almaws/v1/bibs" //test post
+  path1 := "/almaws/v1/bibs" //test post
+  path2 := "/almaws/v1/bibs/654365436543"
   rjson := []byte{}
 
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     body, err := ioutil.ReadAll(r.Body)
     if err != nil { t.Errorf("error reading request body") }
-    if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
-    if r.URL.Path != path {
-      t.Errorf("incorrect request url")
+
+    if r.Method == "POST" {
+      if r.URL.Path != path1 { t.Errorf("incorrect request url") }
+      if compareXML(string(body), expected1) != true { t.Errorf("incorrect record posted") }
+      fmt.Fprint(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>654365436543</mms_id></bib>")
     }
-    fmt.Fprint(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>123456789111</mms_id></bib>")
+    if r.Method == "PUT" {
+      if r.URL.Path != path2 { t.Errorf("incorrect request url") }
+      if compareXML(string(body), expected2) != true { t.Errorf("incorrect record posted") }
+      fmt.Fprint(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>654365436543</mms_id></bib>")
+    }
   }))
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  ProcessBib(args, fstring, rjson, tcmap, fs)
+  ProcessBib(args1, marc, rjson, tcmap, fs)
+  ProcessBib(args2, marc, rjson, tcmap, fs)
 }
 
 // tests ConstructBoundwith, calls Get/Put
@@ -232,7 +241,7 @@ func DummyItemPF(args ProcessArgs, item Item, tcmap map[string]string)(string, e
 }
 func DummyNZPF(list []string, filename string){ return }
 func DummyAfterBib(rjson []byte, args_map map[string]string)error{
-  if args_map["mms_id"] != "123456789111" { log.Fatal("incorrect mms_id") }
+  if args_map["mms_id"] != "654365436543" { log.Fatal("incorrect mms_id") }
   return nil
  }
 func DummyFetchBibID(barcode string)string{

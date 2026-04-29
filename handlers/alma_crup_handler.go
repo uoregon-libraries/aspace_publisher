@@ -39,7 +39,7 @@ func AlmaCrupHandler(c echo.Context) error {
   //get oclc marc
   oclc_marc, err := oclc.Record(args.Oclc_token, args.Oclc_id)
   if err != nil { file.WriteReport(args.Filename, []string{ "Could not acquire OCLC MARC " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
-
+  marc_clean := oclc.UnformatXML(oclc_marc)
   tcmap, errmsgs := as.ExtractTCData(args.Session_id, args.Repo_id, args.Resource_id)
   if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return c.String(http.StatusInternalServerError, "Error, please see report.") }
 
@@ -48,7 +48,7 @@ func AlmaCrupHandler(c echo.Context) error {
   //launch processing, starting with bib
   //eventually hand this off to a worker?
   fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingPF: alma.ProcessHolding, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding, NZPF: alma.LinkToNetwork }
-  alma.ProcessBib(args, oclc_marc, rjson, tcmap, fs)
+  alma.ProcessBib(args, marc_clean, rjson, tcmap, fs)
 
   base_url := os.Getenv("HOME_URL")
   return c.HTML(http.StatusOK, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, args.Filename, args.Filename))

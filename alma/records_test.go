@@ -62,7 +62,7 @@ func TestParseHoldingItem( t *testing.T){
 func TestStringify(t *testing.T){
   fstring := bibstring_fixture4
   expected := bibstring_fixture5
-  bib := ConstructBib(fstring, false)
+  bib := ConstructBib("", fstring, false)
   bib_string,err := bib.Stringify()
   if err != nil { t.Errorf("incorrect response") }
   if compareXML(bib_string, expected) != true { t.Errorf("incorrect rec") }

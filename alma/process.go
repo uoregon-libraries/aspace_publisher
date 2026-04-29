@@ -55,7 +55,7 @@ type FunMap struct {
 
 func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
   // assemble record
-  bib := ConstructBib(marc_string, false)
+  bib := ConstructBib(args.Mms_id, marc_string, false)
   bib_str, err := bib.Stringify()
   if err != nil { file.WriteReport(args.Filename, []string{ "Unable to construct bib: " + err.Error() }); return }
   path := []string{"bibs", args.Mms_id}
