@@ -132,17 +132,20 @@ type Value struct {
 }
 
 type Record struct{
+  XMLName xml.Name `xml:"record"`
   Leader string `xml:"leader"`
   Controlfield []Controlfield `xml:"controlfield"`
   Datafield []Datafield `xml:"datafield"`
 }
 
 type Controlfield struct{
+  XMLName xml.Name `xml:"controlfield"`
   Tag string `xml:"tag,attr"`
   Value string `xml:",chardata"`
 }
 
 type Datafield struct{
+  XMLName xml.Name `xml:"datafield"`
   Tag string `xml:"tag,attr"`
   Ind1 string `xml:"ind1,attr"`
   Ind2 string `xml:"ind2,attr"`
