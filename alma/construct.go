@@ -9,12 +9,14 @@ import (
   "errors"
   "strings"
 )
-
+// create should include the bib.suppress fields
+// update includes ONLY the record field
 func ConstructBib(mms_id string, marc_string string, suppress bool)(Bib){
   var bib = Bib{}
-  if mms_id != "" { bib.Mms_id = mms_id }
-  bib.SuppressPublish = suppress
-  bib.SuppressExternal = true
+  if mms_id == "" {
+    bib.SuppressPublish = suppress
+    bib.SuppressExternal = true
+  }
   var rec = Record{}
   xml.Unmarshal([]byte(marc_string), &rec)
   bib.Rec = rec
@@ -41,25 +43,25 @@ func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mms
   return bwbib, nil
 }
 
-func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error){
+// create and update should both only include suppress_from_publishing and record fields
+func ConstructHolding(marc_string string, hold Holding, id_0 string)(Holding, error){
   marc_xml, err := ParseMarc(marc_string)
-  if err != nil { return h, err }
+  if err != nil { return hold, err }
   link, err := BuildFindingLink(marc_xml)
-  if err != nil { return h, err }
-  var df852 Datafield
-  if h.HoldingId == "" {
-    fixed, err := ExtractFixed(marc_xml)
-    if err != nil { return h, err }
-    h.Suppress = false
-    h.Rec.Leader, err = ExtractLeader(marc_xml)
-    if err != nil { return h, err }
-    h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
-    sfb := Subfield{Code:"b", Value:"SpecColl"}
-    sfc := Subfield{Code:"c", Value: "spmanus"}
-    sfh := Subfield{Code:"h", Value: id_0}
-    df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
-    df852.Subfield = []Subfield{sfb, sfc, sfh}
-  }
+  if err != nil { return hold, err }
+  //construct holding from scratch even on updates
+  var h = Holding{}
+  fixed, err := ExtractFixed(marc_xml)
+  if err != nil { return hold, err }
+  h.Suppress = false
+  h.Rec.Leader, err = ExtractLeader(marc_xml)
+  if err != nil { return hold, err }
+  h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
+  sfb := Subfield{Code:"b", Value:"SpecColl"}
+  sfc := Subfield{Code:"c", Value: "spmanus"}
+  sfh := Subfield{Code:"h", Value: id_0}
+  df852 := Datafield{Ind1:"8", Ind2:" ", Tag:"852"}
+  df852.Subfield = []Subfield{sfb, sfc, sfh}
   sfz := Subfield{Code: "z", Value: link }
   df866 := Datafield{Ind1:"4", Ind2:"1", Tag:"866"}
   df866.Subfield = []Subfield{ sfz }
@@ -68,6 +70,7 @@ func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error
   return h, nil
 }
 
+//expects holding_data, item_data
 func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item, error){
   if item.Item_data.Item_pid == "" {
     item.Holding_data.Holding_id = holding_id
@@ -77,7 +80,7 @@ func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item
     item.Item_data.Location = Value{ Val: "spmanus"}
     item.Item_data.Base_status = Value{ Val: "1" }
     item.Item_data.Physical_material_type = Value{ Val: "MANUSCRIPT" }
-  }
+  }//note that the item pid SHOULD be left in the item_data
   item.Item_data.Policy = Value{ Val: policy(tc_data["type"]) }
   item.Item_data.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
 
