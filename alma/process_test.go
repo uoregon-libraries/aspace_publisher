@@ -7,10 +7,10 @@ import (
   "net/http/httptest"
   "io/ioutil"
   "fmt"
-  "log"
   "strings"
   "reflect"
   "encoding/json"
+  "encoding/xml"
 )
 
 func TestBuildUrl(t *testing.T){
@@ -22,6 +22,22 @@ func TestBuildUrl(t *testing.T){
   path = []string{"one", "two", "", "three"}
   url = BuildUrl(path)
   if url != "http://blah.org/one/two/three" { t.Errorf("incorrect url") }
+}
+
+func compareBibs(b1 []byte, b2 []byte)bool{
+  var bib1 Bib
+  var bib2 Bib
+  xml.Unmarshal(b1, &bib1)
+  xml.Unmarshal(b2, &bib2)
+  return reflect.DeepEqual(bib1, bib2)
+}
+
+func compareHolds(h1 []byte, h2 []byte)bool{
+  var hold1 Holding
+  var hold2 Holding
+  xml.Unmarshal(h1, &hold1)
+  xml.Unmarshal(h2, &hold2)
+  return reflect.DeepEqual(hold1, hold2)
 }
 
 //will call ConstructBib, Post/Put, ExtractBibID
@@ -43,12 +59,12 @@ func TestProcessBib(t *testing.T){
 
     if r.Method == "POST" {
       if r.URL.Path != path1 { t.Errorf("incorrect request url") }
-      if compareXML(string(body), expected1) != true { t.Errorf("incorrect record posted") }
+      if compareBibs(body, []byte(expected1)) != true { t.Errorf("incorrect record posted") }
       fmt.Fprint(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>654365436543</mms_id></bib>")
     }
     if r.Method == "PUT" {
       if r.URL.Path != path2 { t.Errorf("incorrect request url") }
-      if compareXML(string(body), expected2) != true { t.Errorf("incorrect record posted") }
+      if compareBibs(body, []byte(expected2)) != true { t.Errorf("incorrect record posted") }
       fmt.Fprint(w, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>654365436543</mms_id></bib>")
     }
   }))
@@ -110,11 +126,11 @@ func TestProcessHolding(t *testing.T){
     if err != nil { t.Errorf("error reading request body") }
     if r.Method == "POST" {
       if r.URL.Path != path1 { t.Errorf("incorrect alma path") }
-      if compareXML(string(body), expected1) != true { t.Errorf("incorrect record posted") }
+      if compareHolds(body, []byte(expected1)) != true { t.Errorf("incorrect record posted") }
       fmt.Fprint(w, "fiddledeedee")
     } else if r.Method == "PUT" {
       if r.URL.Path != path2 { t.Errorf("incorrect alma path") }
-      if compareXML(string(body), expected2) != true { t.Errorf("incorrect record posted") }
+      if compareHolds(body, []byte(expected2)) != true { t.Errorf("incorrect record posted") }
       fmt.Fprint(w, "arglebarglesnickersnack")
     } else { fmt.Fprint(w, holdingstring_fixture2) }// only happens on an update
   }))
@@ -229,29 +245,3 @@ func TestCheckTCMap(t *testing.T){
   if err6 != nil { t.Errorf("there should not be any errors") }
   if !reflect.DeepEqual(tcmapR6,tcmap) { t.Errorf("the map should not have changed") }
 }
-
-func DummyBoundwithPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){ return }
-func DummyHoldingPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
-  if args.Holding_id != "" { log.Fatal("incorrect holding set") }
-  return
-}
-func DummyItemsPF(args ProcessArgs, tcmap []map[string]string, fs FunMap){ return }
-func DummyItemPF(args ProcessArgs, item Item, tcmap map[string]string)(string, error){
-  return "456745674567", nil
-}
-func DummyNZPF(list []string, filename string){ return }
-func DummyAfterBib(rjson []byte, args_map map[string]string)error{
-  if args_map["mms_id"] != "654365436543" { log.Fatal("incorrect mms_id") }
-  return nil
- }
-func DummyFetchBibID(barcode string)string{
-  if barcode != "123412341234" { log.Fatal("incorrect barcode sent") }
-  return "234523452345"
-}
-func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
-
-  if item_id != "456745674567" { log.Fatal("incorrect value sent to DummyUpdateTC") }
-  return nil
-}
-func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
-

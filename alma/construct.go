@@ -11,11 +11,11 @@ import (
 )
 // create should include the bib.suppress fields
 // update includes ONLY the record field
-func ConstructBib(mms_id string, marc_string string, suppress bool)(Bib){
+func ConstructBib(mms_id string, marc_string string, suppress string)(Bib){
   var bib = Bib{}
   if mms_id == "" {
     bib.SuppressPublish = suppress
-    bib.SuppressExternal = true
+    bib.SuppressExternal = "true"
   }
   var rec = Record{}
   xml.Unmarshal([]byte(marc_string), &rec)
@@ -28,7 +28,7 @@ func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mms
   xml.Unmarshal(boundwith_bib, &bwbib)
   bw_xml, err := ParseMarc(string(boundwith_bib))
   if err != nil { return bwbib, err }
-  if df774Exists(bw_xml, resource_mmsid) { return bwbib, nil }
+  if df774Exists(bw_xml, resource_mmsid) { return bwbib, errors.New("skip") }
 
   bib_xml, err := ParseMarc(resource_marc)
   if err != nil { return bwbib, err }
@@ -39,8 +39,10 @@ func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mms
   sfw := Subfield{Code: "w", Value: resource_mmsid }//mms_id of the new coll/bib
   d774 := Datafield{Ind1:"1", Ind2:" ", Tag:"774"}
   d774.Subfield = []Subfield{sft, sfw}
-  bwbib.Rec.Datafield = append(bwbib.Rec.Datafield, d774)
-  return bwbib, nil
+  var newbwbib = Bib{}
+  newbwbib.Rec = bwbib.Rec
+  newbwbib.Rec.Datafield = append(newbwbib.Rec.Datafield, d774)
+  return newbwbib, nil
 }
 
 // create and update should both only include suppress_from_publishing and record fields

@@ -20,8 +20,8 @@ func ExtractBibID(data []byte)string{
 type Bib struct {
   XMLName xml.Name 	`xml:"bib"`	
   Mms_id string 	`xml:"mms_id,omitempty"`
-  SuppressPublish bool	`xml:"suppress_from_publishing"`
-  SuppressExternal bool	`xml:"suppress_from_external_search"`
+  SuppressPublish string	`xml:"suppress_from_publishing,omitempty"`
+  SuppressExternal string	`xml:"suppress_from_external_search,omitempty"`
   Rec Record `xml:"record"`
 }
 
