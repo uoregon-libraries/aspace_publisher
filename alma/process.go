@@ -8,6 +8,7 @@ import(
   "slices"
   "errors"
   "fmt"
+  "log"
   "encoding/json"
   "encoding/xml"
   "aspace_publisher/file"
@@ -55,7 +56,7 @@ type FunMap struct {
 
 func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
   // assemble record
-  bib := ConstructBib(args.Mms_id, marc_string, false)
+  bib := ConstructBib(args.Mms_id, marc_string, "false")
   bib_str, err := bib.Stringify()
   if err != nil { file.WriteReport(args.Filename, []string{ "Unable to construct bib: " + err.Error() }); return }
   path := []string{"bibs", args.Mms_id}
@@ -109,7 +110,10 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
       bwbib_byte, err := Get(_url, params, "application/xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
       bwbib, err := ConstructBoundwith(bwbib_byte, marc_string, args.Mms_id, tc)
-      if err != nil { msgs = append(msgs, err.Error()); continue }
+      if err != nil {
+        if err.Error() == "skip" { log.Println("skipping " + tc["mms_id"]); continue }
+        msgs = append(msgs, err.Error()); continue
+      }
       bwbib_str, err := bwbib.Stringify()
       if err != nil { msgs = append(msgs, err.Error()); continue }
       _, err = Put(_url, params, bwbib_str, "xml")
@@ -231,7 +235,7 @@ func CheckTCMap(tcmap []map[string]string)([]map[string]string, error){
     if tc["ils_holding"] == "" {
       tc["ils_holding"], tc["ils_item"] = ParseHoldingItem(item)
       tc["update_refs"] = "true"
-    }
+    } else { tc["update_refs"] = "false" }
   }
   return tcmap, nil
 }

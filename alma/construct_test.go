@@ -10,16 +10,6 @@ import (
   "reflect"
 )
 
-type XMLObject map[string]any
-
-func compareXML(stringA string, stringB string) bool{
-  var objA XMLObject
-  var objB XMLObject
-  xml.Unmarshal([]byte(stringA), &objA)
-  xml.Unmarshal([]byte(stringB), &objB)
-  return reflect.DeepEqual(objA, objB)
-}
-
 type JSONObject map[string]any
 func compareJSON(stringA string, stringB string) bool{
   var objA JSONObject
@@ -32,9 +22,9 @@ func compareJSON(stringA string, stringB string) bool{
 func TestConstructBib( t *testing.T){
   fstring := bibstring_fixture4
   expected := bibstring_fixture5
-  bib := ConstructBib("", fstring, false)
+  bib := ConstructBib("", fstring, "false")
   bibstr,_ := bib.Stringify()
-  if compareXML(bibstr, expected) != true { t.Errorf("incorrect bib rec") }
+  if compareBibs([]byte(bibstr), []byte(expected)) != true { t.Errorf("incorrect bib rec") }
 }
 
 func TestConstructBoundwith(t *testing.T){
@@ -42,12 +32,12 @@ func TestConstructBoundwith(t *testing.T){
   bwmmsid := "9999123456456"
   expected := bibstring_fixture2
   bibmarc := bibstring_fixture3
-  bibmmsid := "999954325432"
+  bibmmsid := "345634563456"
   tcmap :=  map[string]string{ "mms_id": bwmmsid }
   bib, err := ConstructBoundwith([]byte(bwmarc),bibmarc,bibmmsid,tcmap)
   bibstr, err := bib.Stringify()
   if err != nil { t.Errorf("error in stringify") }
-  if compareXML(bibstr, expected) != true { t.Errorf("incorrect boundwith rec") }
+  if compareBibs([]byte(bibstr), []byte(expected)) != true { t.Errorf("incorrect boundwith rec") }
 }
 
 // case where df774exists == true
@@ -56,12 +46,12 @@ func TestConstructBoundwith2(t *testing.T){
   bwmmsid := "9999123456456"
   expected := bibstring_fixture2
   bibmarc := bibstring_fixture3
-  bibmmsid := "999954325432"
+  bibmmsid := "345634563456"
   tcmap :=  map[string]string{ "mms_id": bwmmsid }
   bib, err := ConstructBoundwith([]byte(bwmarc),bibmarc,bibmmsid,tcmap)
   bibstr, err := bib.Stringify()
   if err != nil { t.Errorf("error in stringify") }
-  if compareXML(bibstr, expected) != true { t.Errorf("incorrect boundwith rec") }
+  if compareBibs([]byte(bibstr), []byte(expected)) != true { t.Errorf("incorrect boundwith rec") }
 }
 
 func TestConstructHolding(t *testing.T){
@@ -74,7 +64,7 @@ func TestConstructHolding(t *testing.T){
   result, _ := ConstructHolding(string(hold), h, "Coll 408")
   holdstr, err := result.Stringify()
   if err != nil { t.Errorf("stringify error") }
-  if compareXML(holdstr, expected) != true { t.Errorf("incorrect holding rec") }
+  if compareHolds([]byte(holdstr), []byte(expected)) != true { t.Errorf("incorrect holding rec") }
 }
 
 func TestConstructItem(t *testing.T){
@@ -96,7 +86,7 @@ func TestConstructItem(t *testing.T){
 func TestDf774Exists(t *testing.T){
   bwbibstr := bibstring_fixture2
   bwbib_xml,_ := ParseMarc(bwbibstr)
-  res := df774Exists(bwbib_xml, "999954325432")
+  res := df774Exists(bwbib_xml, "9999123456123")
   if res != true { t.Errorf("incorrect result") }
   res2 := df774Exists(bwbib_xml, "999912341234")
   if res2 != false { t.Errorf("incorrect result") }
