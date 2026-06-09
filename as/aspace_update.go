@@ -110,7 +110,7 @@ func Update(sessionid string, _url string, json_record string)(string, error){
 
   return string(body), nil
 }
-// takes AO json and inserts instance
+// takes AO/resource json and inserts instance
 func UpdateWithInstance(record []byte, instance string)([]byte, error){
   instance_json := gjson.Parse(instance)
   modified, err := sjson.SetBytes(record, "instances.-1", instance_json.Value())

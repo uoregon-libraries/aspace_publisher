@@ -3,6 +3,7 @@ package as
 import (
   "testing"
   "os"
+  "github.com/tidwall/gjson"
 )
 
 func TestUpdateUserDefined2(t *testing.T){
@@ -25,4 +26,14 @@ func TestAssembleUrl(t *testing.T){
   result,err := AssembleUrl(parts)
   if err != nil { t.Errorf("incorrect resposne") }
   if result != "http://example.org/abc/def/ghi" { t.Errorf("incorrect result") }
+}
+
+func TestUpdateWithInstance(t *testing.T){
+  ao_string := `{"jsonmodel_type":"archival_object","instances":[{"instance_type":"mixed_materials","jsonmodel_type":"instance"}]}`
+  ao_modified,_ := UpdateWithInstance([]byte(ao_string), Instance("/repositories/2/digital_objects/123"))
+  do_instances := gjson.Get(string(ao_modified), "instances")
+  arr := do_instances.Array()
+  if len(arr) != 2 { t.Fatalf("adding to instances fail") }
+  inst_type := gjson.Get(arr[1].String(), "instance_type")
+  if inst_type.String() != "digital_object" { t.Fatalf("adding to instances fail") }
 }
