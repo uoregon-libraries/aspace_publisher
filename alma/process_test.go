@@ -92,7 +92,7 @@ func TestProcessBoundwith(t *testing.T){
     if r.Method == "PUT" {
       body, err := ioutil.ReadAll(r.Body)
       if err != nil { t.Errorf("error reading request body") }
-      if compareXML(string(body), expected) != true { t.Errorf("incorrect record posted") }
+      if compareBibs(body, []byte(expected)) != true { t.Errorf("incorrect record posted") }
       fmt.Fprint(w, expected)
     } else if r.Method == "GET" {
       if r.URL.Path != path { t.Errorf("incorrect alma path") }
@@ -126,11 +126,11 @@ func TestProcessHolding(t *testing.T){
     if err != nil { t.Errorf("error reading request body") }
     if r.Method == "POST" {
       if r.URL.Path != path1 { t.Errorf("incorrect alma path") }
-      if compareHolds(body, []byte(expected1)) != true { t.Errorf("incorrect record posted") }
+      if compareHolds(body, []byte(expected1)) != true { t.Errorf("incorrect record posted for POST") }
       fmt.Fprint(w, "fiddledeedee")
     } else if r.Method == "PUT" {
       if r.URL.Path != path2 { t.Errorf("incorrect alma path") }
-      if compareHolds(body, []byte(expected2)) != true { t.Errorf("incorrect record posted") }
+      if compareHolds(body, []byte(expected2)) != true { t.Errorf("incorrect record posted for PUT") }
       fmt.Fprint(w, "arglebarglesnickersnack")
     } else { fmt.Fprint(w, holdingstring_fixture2) }// only happens on an update
   }))

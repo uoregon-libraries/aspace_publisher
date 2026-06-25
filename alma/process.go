@@ -10,7 +10,6 @@ import(
   "fmt"
   "log"
   "encoding/json"
-  "encoding/xml"
   "aspace_publisher/file"
   "aspace_publisher/as"
   "aspace_publisher/oclc"
@@ -52,24 +51,24 @@ type FunMap struct {
   AfterBib as.AfterBibFun
   UpdateTC as.UpdateTCFun
   SetHolding oclc.SetHoldingFun
+//  ProcessBWHoldingPF ProcessBWHoldingFun
 }
 
+// only run creates
+// updates are handled magically via oclc
 func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
   // assemble record
-  bib := ConstructBib(args.Mms_id, marc_string, "false")
-  bib_str, err := bib.Stringify()
-  if err != nil { file.WriteReport(args.Filename, []string{ "Unable to construct bib: " + err.Error() }); return }
-  path := []string{"bibs", args.Mms_id}
-  _url := BuildUrl(path)
-  params := []string{ ApiKey() }
-  var result []byte
-  // push to alma
   if args.Create {
-    result, err = Post(_url, params, bib_str, "xml") } else {
-    result, err = Put(_url, params, bib_str, "xml")
-  }
-  if err != nil { file.WriteReport(args.Filename, []string{"Unable to publish bib" + err.Error()}); return }
-  if args.Create {
+    bib := ConstructBib(args.Mms_id, marc_string, "false")
+    bib_str, err := bib.Stringify()
+    if err != nil { file.WriteReport(args.Filename, []string{ "Unable to construct bib: " + err.Error() }); return }
+    path := []string{"bibs", args.Mms_id}
+    _url := BuildUrl(path)
+    params := []string{ ApiKey() }
+
+    // push to alma
+    result, err := Post(_url, params, bib_str, "xml")
+    if err != nil { file.WriteReport(args.Filename, []string{"Unable to publish bib" + err.Error()}); return }
     args.Mms_id = ExtractBibID(result)
     //update the aspace resource
     err = fs.AfterBib(rjson, args.Mapify())
@@ -79,7 +78,7 @@ func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[
     res,err := fs.SetHolding(args.Oclc_id, args.Oclc_token)
     if err != nil {
       file.WriteReport(args.Filename, []string{ err.Error() }) } else {
-      file.WriteReport(args.Filename, []string{ res }) 
+      file.WriteReport(args.Filename, []string{ res })
     }
   }
   fs.BoundwithPF(args, marc_string, tcmap, fs)
@@ -95,9 +94,10 @@ func BuildUrl(path []string)string{
   return _url.String()
 }
 
+// only handles updates
 type ProcessBoundwithFun func(ProcessArgs, string, []map[string]string, FunMap)
-// if a given top container is not a multi-collection box, 
-// the only action sets the args.Holding_id to tc["ils_holding"]
+// if not boundwith, set the args.Holding_id to tc["ils_holding"]
+// will only call ProcessHolding if finds non-boundwith tc
 // if boundwith true and error occurs, write report and stop once loop is complete
 func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]string, fs FunMap){
   var process_holding = false
@@ -109,7 +109,7 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
       params := []string{ ApiKey() }
       bwbib_byte, err := Get(_url, params, "application/xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
-      bwbib, err := ConstructBoundwith(bwbib_byte, marc_string, args.Mms_id, tc)
+      bwbib, err := UpdateBoundwith(bwbib_byte, marc_string, args.Mms_id, tc)
       if err != nil {
         if err.Error() == "skip" { log.Println("skipping " + tc["mms_id"]); continue }
         msgs = append(msgs, err.Error()); continue
@@ -121,39 +121,35 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
     } else { args.Holding_id = tc["ils_holding"]; process_holding = true }
   }
   if len(msgs) != 0 { file.WriteReport(args.Filename, msgs); return }
-  if process_holding { fs.HoldingPF(args, marc_string, tcmap, fs) } else {
-    fs.ItemsPF(args, tcmap, fs)
-  }
+  if process_holding { fs.HoldingPF(args, marc_string, tcmap, fs) }
 }
 
 type ProcessHoldingFun func(ProcessArgs, string, []map[string]string, FunMap)
-// does not need tcmap, passes it to items processing which does
+// does not use tcmap, passes it to items processing which does
 func ProcessHolding(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   //assemble holding record
-  var holding = Holding{}
+
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
-
+  var result []byte
+  var holdingstr string
   if args.Holding_id != "" {
     holdxml, err := Get(_url, params, "application/xml")
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
-    xml.Unmarshal(holdxml, &holding)
-  }
-  holding, err := ConstructHolding(marc_string, holding, args.Id_0)
-  if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-  holdingstr, err := holding.Stringify()
-  if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-  var result []byte
-  // push record to alma
-  if args.Create {
-    result, err = Post(_url, params, holdingstr, "xml") } else {
+    holdingstr, err = UpdateHolding(marc_string, string(holdxml))
+    if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
     result, err = Put(_url, params, holdingstr, "xml")
+  } else {
+    var holding Holding
+    holding, err := ConstructHolding(marc_string, args.Id_0)
+    if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
+    holdingstr, err = holding.Stringify()
+    if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
+    result, err = Post(_url, params, holdingstr, "xml")
+    if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
   }
-  if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
-  if args.Create {
-    args.Holding_id = ExtractHoldingID(result)
-  }
+  if args.Create { args.Holding_id = ExtractHoldingID(result) }
   fs.ItemsPF(args, tcmap, fs)
 }
 
@@ -182,7 +178,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
       if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue }
     }
   }
-  msgs = append(msgs, "items created: " + strings.Join(itemlist, ", "))
+  msgs = append(msgs, "items processed: " + strings.Join(itemlist, ", "))
   file.WriteReport(args.Filename, msgs)
 }
 
@@ -194,7 +190,8 @@ func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, e
   if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
   itemstr, err := item.Stringify()
   if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
-  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items", tcmap["ils_item"]}
+
+  path := []string{ "bibs", args.Mms_id, "holdings", args.Holding_id, "items", tcmap["ils_item"]}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte

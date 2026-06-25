@@ -10,29 +10,25 @@ import (
   "strings"
 )
 // create should include the bib.suppress fields
-// update includes ONLY the record field
+// no updates
 func ConstructBib(mms_id string, marc_string string, suppress string)(Bib){
   var bib = Bib{}
-  if mms_id == "" {
-    bib.SuppressPublish = suppress
-    bib.SuppressExternal = "true"
-  }
+  bib.SuppressPublish = suppress
+  bib.SuppressExternal = "true"
   var rec = Record{}
   xml.Unmarshal([]byte(marc_string), &rec)
   bib.Rec = rec
   return bib
 }
-
-func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
+// only used in the regular bib workflow!
+// updates the boundwith when folders with mms_ids are added to the associated top container
+func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
   var bwbib = Bib{}
   xml.Unmarshal(boundwith_bib, &bwbib)
-  bw_xml, err := ParseMarc(string(boundwith_bib))
-  if err != nil { return bwbib, err }
-  if df774Exists(bw_xml, resource_mmsid) { return bwbib, errors.New("skip") }
+  if df774Exists(bwbib, resource_mmsid) { return bwbib, errors.New("skip") }
 
   bib_xml, err := ParseMarc(resource_marc)
   if err != nil { return bwbib, err }
-
   title, err := ExtractTitle(bib_xml)
   if err != nil { return bwbib, err }
   sft := Subfield{Code: "t", Value: title}//title from the new coll/bib
@@ -45,19 +41,33 @@ func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mms
   return newbwbib, nil
 }
 
-// create and update should both only include suppress_from_publishing and record fields
-func ConstructHolding(marc_string string, hold Holding, id_0 string)(Holding, error){
+func UpdateHolding(marc_string string, hold string)(string, error){
   marc_xml, err := ParseMarc(marc_string)
-  if err != nil { return hold, err }
+  if err != nil { return "", err }
   link, err := BuildFindingLink(marc_xml)
   if err != nil { return hold, err }
-  //construct holding from scratch even on updates
+  holding, err := ParseXML(hold)
+  if err != nil { return "", err }
+  // acc to the API docs, remove the holdingId
+  id_ptr := holding.FindElement("//holding_id")
+  parent := id_ptr.Parent()
+  parent.RemoveChild(id_ptr)
+  holding.FindElement("//subfield[@code='z']").SetText(link)
+  str, err := holding.WriteToString()
+  return str, err
+}
+// create and update should both only include suppress_from_publishing and record fields
+func ConstructHolding(marc_string string, id_0 string)(Holding, error){
   var h = Holding{}
+  marc_xml, err := ParseMarc(marc_string)
+  if err != nil { return h, err }
+  link, err := BuildFindingLink(marc_xml)
+  if err != nil { return h, err }
   fixed, err := ExtractFixed(marc_xml)
-  if err != nil { return hold, err }
+  if err != nil { return h, err }
   h.Suppress = false
   h.Rec.Leader, err = ExtractLeader(marc_xml)
-  if err != nil { return hold, err }
+  if err != nil { return h, err }
   h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
   sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
@@ -104,6 +114,14 @@ func ParseMarc(marc_string string)(*etree.Document, error){
   return marc_xml, nil
 }
 
+// This does not strip out <xml>, however holding xml doesn't appear to have xml tags
+func ParseXML(xml_string string)(*etree.Document, error){
+  xml_doc := etree.NewDocument()
+  err := xml_doc.ReadFromString(xml_string)
+  if err != nil { log.Println(err); return xml_doc, errors.New("Unable to read XML") }
+  return xml_doc, nil
+}
+
 //856->866 which is not on the LOC reference
 //marc uses z for the display message, u for the url
 //866 is a mashup, z, value is a link
@@ -148,8 +166,11 @@ func ExtractTitle(marc_xml *etree.Document)(string, error){
   return title.Text(), nil
 }
 
-func df774Exists(marc_xml *etree.Document, resource_mmsid string) bool{
-  df774 := marc_xml.FindElements(fmt.Sprintf("//datafield[@tag='774']/[subfield='%s']", resource_mmsid))
-  if len(df774) == 0 { return false }
-  return true
+func df774Exists(bw Bib, mms_id string) bool {
+  for _, d := range bw.Rec.Datafield{
+    for _, s := range d.Subfield {
+      if s.Value == mms_id { return true }
+    }
+  }
+  return false
 }
