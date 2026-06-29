@@ -29,8 +29,9 @@ func OclcCrupHandler(c echo.Context) error {
   if err != nil { return echo.NewHTTPError(400, err) }
 
   //is it a new record?
-  oclc_id := as.GetOclcId(json)
-  
+  oclc_id, err := as.GetOclcId(json)
+  if err != nil { return c.String(http.StatusInternalServerError, err.Error())}
+
   //get MARC
   marc_rec, err := as.AcquireMarc(session_id, repo_id, id, published)
   if err != nil {

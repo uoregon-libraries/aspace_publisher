@@ -4,6 +4,7 @@ import (
   "github.com/tidwall/gjson"
   "errors"
   "strings"
+  "regexp"
 )
 
 func IsPublished(resource []byte)(string, error){
@@ -12,14 +13,16 @@ func IsPublished(resource []byte)(string, error){
   return result.String(), nil
 }
 
-func GetOclcId(resource []byte)(string){
+func GetOclcId(resource []byte)(string, error){
   result := gjson.GetBytes(resource, "user_defined.string_1")
-  return result.String()
+  err := ValidID(result.String())
+  return result.String(), err
 }
 
-func GetMmsId(resource []byte)(string,bool){
+func GetMmsId(resource []byte)(string,bool,error){
   result := gjson.GetBytes(resource, "user_defined.string_2")
-  return result.String(), result.String() == ""
+  err := ValidID(result.String())
+  return result.String(), result.String() == "", err
   }
 
 func ExtractID(_url string)string{
@@ -30,4 +33,12 @@ func ExtractID(_url string)string{
 func ExtractID0(resource []byte) string {
   result := gjson.GetBytes(resource, "id_0")
   return result.String()
+}
+
+// for use with mms_id, oclc
+func ValidID(id string) error {
+  re1 := regexp.MustCompile(`[0-9]+`)
+  matched1 := re1.Find([]byte(id))
+  if string(matched1) == id { return nil }
+  return errors.New("not a valid ID")
 }

@@ -25,10 +25,12 @@ func AlmaCrupHandler(c echo.Context) error {
   rjson, err := as.AcquireJson(args.Session_id, args.Repo_id, "resources/" + args.Resource_id)
   if err != nil { file.WriteReport(args.Filename, []string{ "Could not aquire JSON from aspace: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
 
-  args.Oclc_id = as.GetOclcId(rjson)
+  args.Oclc_id, err = as.GetOclcId(rjson)
+  if err != nil { file.WriteReport(args.Filename, []string{ "Problem retrieving OCLC id: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
   if args.Oclc_id == "" { file.WriteReport(args.Filename, []string{ "Could not acquire OCLC id from resource" }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
   //try for mms_id and create based on presence in resource json
-  args.Mms_id, args.Create = as.GetMmsId(rjson)
+  args.Mms_id, args.Create, err = as.GetMmsId(rjson)
+  if err != nil { file.WriteReport(args.Filename, []string{ "Problem retrieving mms id: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.")}
   //needed for holding record, appears as 099 in the aspace MARC but not OCLC's
   args.Id_0 = as.ExtractID0(rjson)
 

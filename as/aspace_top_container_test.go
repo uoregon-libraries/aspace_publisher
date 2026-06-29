@@ -88,3 +88,13 @@ func TestIsBoundwith(t *testing.T){
   result2 := IsBoundwith([]byte(data2))
   if result2 != false { t.Errorf("incorrect result") }
 }
+
+func TestValidateTCData(t *testing.T){
+  tcdata := TopContainer{ Barcode: "RONCO3200" }
+  if ValidateTCData(tcdata) != true { t.Errorf("incorrect validation") }
+}
+
+func TestValidateBarcode(t *testing.T){
+  if validateBarcode("ronco3200") != true { t.Errorf("incorrect validation") }
+  if validateBarcode("ronco 3200") != false { t.Errorf("incorrect validation") }
+}
