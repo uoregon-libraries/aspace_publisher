@@ -20,8 +20,8 @@ func ExtractBibID(data []byte)string{
 type Bib struct {
   XMLName xml.Name 	`xml:"bib"`	
   Mms_id string 	`xml:"mms_id,omitempty"`
-  SuppressPublish bool	`xml:"suppress_from_publishing"`
-  SuppressExternal bool	`xml:"suppress_from_external_search"`
+  SuppressPublish string	`xml:"suppress_from_publishing,omitempty"`
+  SuppressExternal string	`xml:"suppress_from_external_search,omitempty"`
   Rec Record `xml:"record"`
 }
 
@@ -31,25 +31,36 @@ func(b Bib)Stringify()(string, error){
   return string(output), nil
 }
 
-type FetchBibIDFun func(string)string
-// retrieves bib id by doing GET on item barcode
-// for use with boundwith process
-func FetchBibID(barcode string)string{
-  path := []string{ "items" }
-  _url := BuildUrl(path)
-  params := []string{ ApiKey(), "item_barcode=" + barcode }
-  item,err := Get(_url, params, "application/json")
-  if err != nil { log.Println(err); return ""}
+func ParseBibID(item []byte)string{
   mms_id := gjson.GetBytes(item, "bib_data.mms_id")
   return mms_id.String()
 }
 
-// pulls holding list for a existing bib from alma api
+func ParseItemID(item []byte)string{
+  item_id := gjson.GetBytes(item, "item_data.pid")
+  return item_id.String()
+}
+
+func ParseHoldingItem(item []byte)(string,string){
+  item_id := gjson.GetBytes(item, "item_data.pid")
+  holding_id := gjson.GetBytes(item, "holding_data.holding_id")
+  return holding_id.String(), item_id.String()
+}
+
+func FetchByBarcode(barcode string)([]byte,error){
+  path := []string{ "items" }
+  _url := BuildUrl(path)
+  params := []string{ ApiKey(), "item_barcode=" + barcode }
+  item,err := Get(_url, params, "application/json")
+  if err != nil { log.Println(err) }
+  return item, err
+}
+// pulls holding list using mms_id
 // expects only one holding per bib
 func GetHoldingId(mms_id string)string{
   _url := BuildUrl( []string{"bibs", mms_id, "holdings"} )
   params := []string { ApiKey() }
-  body,err := Get(_url, params, "application/xml")
+  body,err := Get(_url, params, "application/json")
   if err != nil { log.Println(err); return "" }
   holding_id := gjson.GetBytes(body, "holding.0.holding_id")
   return holding_id.String()
@@ -121,17 +132,20 @@ type Value struct {
 }
 
 type Record struct{
+  XMLName xml.Name `xml:"record"`
   Leader string `xml:"leader"`
   Controlfield []Controlfield `xml:"controlfield"`
   Datafield []Datafield `xml:"datafield"`
 }
 
 type Controlfield struct{
+  XMLName xml.Name `xml:"controlfield"`
   Tag string `xml:"tag,attr"`
   Value string `xml:",chardata"`
 }
 
 type Datafield struct{
+  XMLName xml.Name `xml:"datafield"`
   Tag string `xml:"tag,attr"`
   Ind1 string `xml:"ind1,attr"`
   Ind2 string `xml:"ind2,attr"`

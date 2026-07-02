@@ -7,6 +7,7 @@ import (
   "encoding/json"
   "log"
   "strconv"
+  "regexp"
 )
 
 type TopContainer struct{
@@ -17,6 +18,7 @@ type TopContainer struct{
   Ils_holding string `json:"ils_holding_id"`
   Ils_item string `json:"ils_item_id"`
   Boundwith bool
+  UpdateRefs bool
 }
 
 // helper to avoid including the as package in alma construct
@@ -29,6 +31,7 @@ func (t TopContainer)Mapify()map[string]string{
   tc_map["uri"] = t.Uri
   tc_map["ils_holding"] = t.Ils_holding
   tc_map["ils_item"] = t.Ils_item
+  tc_map["update_refs"] = strconv.FormatBool(t.UpdateRefs)
   return tc_map
 }
 
@@ -93,6 +96,7 @@ func ExtractTCData(session string, repo_id string, resource_id string)([]map[str
     err = json.Unmarshal(jsonTC, &tc)
     if err != nil { msgs = append(msgs, "Unable to process TC json: " + err.Error()); continue }
     tc.Boundwith = IsBoundwith(jsonTC)
+    if ValidateTCData(tc) != true { msgs = append(msgs, "TopContainer contains invalid value: " + tc_id); continue }
     top_containers = append(top_containers, tc.Mapify())
   }
   return top_containers, msgs
@@ -102,4 +106,17 @@ func IsBoundwith(jsontc []byte)bool{
   result := gjson.GetBytes(jsontc, "collection")
   if len(result.Array()) > 1 { return true }
   return false
+}
+
+// for now, the only field that gets validation is the barcode
+func ValidateTCData(tc TopContainer) bool{
+  if !validateBarcode(tc.Barcode) { return false }
+  //more validations here
+  return true
+}
+
+func validateBarcode(barcode string) bool{
+  re1 := regexp.MustCompile(`[A-Za-z0-9]+`)
+  matched1 := re1.Find([]byte(barcode))
+  return string(matched1) == barcode
 }

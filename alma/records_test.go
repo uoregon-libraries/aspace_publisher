@@ -6,8 +6,15 @@ import (
   "net/http/httptest"
   "net/http"
   "os"
-  "strings"
+  "encoding/json"
+
 )
+func TestItem( t *testing.T){
+  itemjson := itemstring_fixture4
+  var item Item
+  json.Unmarshal([]byte(itemjson), &item)
+  if item.Item_data.Item_pid != "23329204380001852" { t.Errorf("did not unmarshal correctly") }
+}
 
 func TestExtractBibID( t *testing.T){
   fstring := "<?xml version=\"1.0\" encoding=\"UTF-8\"?><bib><mms_id>123456789111</mms_id></bib>"
@@ -45,31 +52,18 @@ func TestExtractItemID( t *testing.T){
   if id != "123456789" { t.Errorf("incorrect item id") }
 }
 
-func TestFetchBibID(t *testing.T){
-  data := `{ "bib_data": {"mms_id":"123456789123"} }`
-  barcode := "123123123123123"
-  path := "/almaws/v1/items"
-   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    if strings.Contains(r.URL.String(), "item_barcode=" + barcode) != true { t.Errorf("incorrect params") }
-    if r.URL.Path == path {
-      fmt.Fprint(w, data)
-    } else {
-      t.Errorf("incorrect request url")
-    }
-  }))
-  defer ts.Close()
-  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
-  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  id := FetchBibID(barcode)
-  if id != "123456789123" { t.Errorf("incorrect mms id") }
-
+func TestParseHoldingItem( t *testing.T){
+  data := itemstring_fixture3
+  holding,item := ParseHoldingItem([]byte(data))
+  if holding != "98765432987" { t.Errorf("incorrect holding id") }
+  if item != "456745674567" { t.Errorf("incorrect item id") }
 }
 
 func TestStringify(t *testing.T){
   fstring := bibstring_fixture4
   expected := bibstring_fixture5
-  bib := ConstructBib(fstring, false)
+  bib := ConstructBib("", fstring, "false")
   bib_string,err := bib.Stringify()
   if err != nil { t.Errorf("incorrect response") }
-  if compareXML(bib_string, expected) != true { t.Errorf("incorrect rec") }
+  if compareBibs([]byte(bib_string), []byte(expected)) != true { t.Errorf("incorrect rec") }
 }

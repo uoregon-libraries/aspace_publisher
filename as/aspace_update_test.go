@@ -10,7 +10,7 @@ func TestUpdateUserDefined2(t *testing.T){
   resource := `{ "user_defined": { "string_1": "98765" } }` 
   result,err := UpdateUserDefined2([]byte(resource), "123456")
   if err != nil { t.Errorf("incorrect response") }
-  user_defined_str_2,_ := GetMmsId(result)
+  user_defined_str_2,_,_ := GetMmsId(result)
   if user_defined_str_2 != "123456" { t.Errorf("incorrect result") }
 }
 

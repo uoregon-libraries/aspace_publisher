@@ -9,38 +9,56 @@ import (
   "errors"
   "strings"
 )
-
-func ConstructBib(marc_string string, suppress bool)(Bib){
+// create should include the bib.suppress fields
+// no updates
+func ConstructBib(mms_id string, marc_string string, suppress string)(Bib){
   var bib = Bib{}
   bib.SuppressPublish = suppress
-  bib.SuppressExternal = true
+  bib.SuppressExternal = "true"
   var rec = Record{}
   xml.Unmarshal([]byte(marc_string), &rec)
   bib.Rec = rec
   return bib
 }
-
-func ConstructBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
+// only used in the regular bib workflow!
+// updates the boundwith when folders with mms_ids are added to the associated top container
+func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
   var bwbib = Bib{}
   xml.Unmarshal(boundwith_bib, &bwbib)
-  bw_xml, err := ParseMarc(string(boundwith_bib))
-  if err != nil { return bwbib, err }
-  if df774Exists(bw_xml, resource_mmsid) { return bwbib, nil }
+  if df774Exists(bwbib, resource_mmsid) { return bwbib, errors.New("skip") }
 
   bib_xml, err := ParseMarc(resource_marc)
   if err != nil { return bwbib, err }
-
   title, err := ExtractTitle(bib_xml)
   if err != nil { return bwbib, err }
   sft := Subfield{Code: "t", Value: title}//title from the new coll/bib
   sfw := Subfield{Code: "w", Value: resource_mmsid }//mms_id of the new coll/bib
   d774 := Datafield{Ind1:"1", Ind2:" ", Tag:"774"}
   d774.Subfield = []Subfield{sft, sfw}
-  bwbib.Rec.Datafield = append(bwbib.Rec.Datafield, d774)
-  return bwbib, nil
+  var newbwbib = Bib{}
+  newbwbib.Rec = bwbib.Rec
+  newbwbib.Rec.Datafield = append(newbwbib.Rec.Datafield, d774)
+  return newbwbib, nil
 }
 
-func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error){
+func UpdateHolding(marc_string string, hold string)(string, error){
+  marc_xml, err := ParseMarc(marc_string)
+  if err != nil { return "", err }
+  link, err := BuildFindingLink(marc_xml)
+  if err != nil { return hold, err }
+  holding, err := ParseXML(hold)
+  if err != nil { return "", err }
+  // acc to the API docs, remove the holdingId
+  id_ptr := holding.FindElement("//holding_id")
+  parent := id_ptr.Parent()
+  parent.RemoveChild(id_ptr)
+  holding.FindElement("//subfield[@code='z']").SetText(link)
+  str, err := holding.WriteToString()
+  return str, err
+}
+// create and update should both only include suppress_from_publishing and record fields
+func ConstructHolding(marc_string string, id_0 string)(Holding, error){
+  var h = Holding{}
   marc_xml, err := ParseMarc(marc_string)
   if err != nil { return h, err }
   link, err := BuildFindingLink(marc_xml)
@@ -48,11 +66,9 @@ func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error
   fixed, err := ExtractFixed(marc_xml)
   if err != nil { return h, err }
   h.Suppress = false
-  var rec Record
-  rec.Leader, err = ExtractLeader(marc_xml)
+  h.Rec.Leader, err = ExtractLeader(marc_xml)
   if err != nil { return h, err }
-
-  rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
+  h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
   sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
   sfh := Subfield{Code:"h", Value: id_0}
@@ -61,22 +77,25 @@ func ConstructHolding(marc_string string, h Holding, id_0 string)(Holding, error
   sfz := Subfield{Code: "z", Value: link }
   df866 := Datafield{Ind1:"4", Ind2:"1", Tag:"866"}
   df866.Subfield = []Subfield{ sfz }
-  rec.Datafield = []Datafield{ df852, df866 }
-  h.Rec = rec
+  h.Rec.Datafield = []Datafield{ df852, df866 }
+
   return h, nil
 }
 
+//expects holding_data, item_data
 func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item, error){
-  item.Holding_data = HoldingData{ Holding_id: holding_id, Copy_id: "1" }
-  var idata = ItemData{}
-  idata.Barcode = tc_data["barcode"]
-  idata.Policy = Value{ Val: policy(tc_data["type"]) }
-  idata.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
-  idata.Library = Value{ Val: "SpecColl"}
-  idata.Location = Value{ Val: "spmanus"}
-  idata.Base_status = Value{ Val: "1" }
-  idata.Physical_material_type = Value{ Val: "MANUSCRIPT" }
-  item.Item_data = idata
+  if item.Item_data.Item_pid == "" {
+    item.Holding_data.Holding_id = holding_id
+    item.Holding_data.Copy_id = "1"
+    item.Item_data.Barcode = tc_data["barcode"]
+    item.Item_data.Library = Value{ Val: "SpecColl"}
+    item.Item_data.Location = Value{ Val: "spmanus"}
+    item.Item_data.Base_status = Value{ Val: "1" }
+    item.Item_data.Physical_material_type = Value{ Val: "MANUSCRIPT" }
+  }//note that the item pid SHOULD be left in the item_data
+  item.Item_data.Policy = Value{ Val: policy(tc_data["type"]) }
+  item.Item_data.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
+
   return item, nil
 }
 
@@ -93,6 +112,14 @@ func ParseMarc(marc_string string)(*etree.Document, error){
   err = marc_xml.ReadFromString(marc_stripped)
   if err != nil { log.Println(err); return marc_xml, errors.New("Unable to read XML response from OCLC.") }
   return marc_xml, nil
+}
+
+// This does not strip out <xml>, however holding xml doesn't appear to have xml tags
+func ParseXML(xml_string string)(*etree.Document, error){
+  xml_doc := etree.NewDocument()
+  err := xml_doc.ReadFromString(xml_string)
+  if err != nil { log.Println(err); return xml_doc, errors.New("Unable to read XML") }
+  return xml_doc, nil
 }
 
 //856->866 which is not on the LOC reference
@@ -139,8 +166,11 @@ func ExtractTitle(marc_xml *etree.Document)(string, error){
   return title.Text(), nil
 }
 
-func df774Exists(marc_xml *etree.Document, resource_mmsid string) bool{
-  df774 := marc_xml.FindElements(fmt.Sprintf("//datafield[@tag='774']/[subfield='%s']", resource_mmsid))
-  if len(df774) == 0 { return false }
-  return true
+func df774Exists(bw Bib, mms_id string) bool {
+  for _, d := range bw.Rec.Datafield{
+    for _, s := range d.Subfield {
+      if s.Value == mms_id { return true }
+    }
+  }
+  return false
 }

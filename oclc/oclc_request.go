@@ -11,6 +11,7 @@ import(
   "strings"
   "slices"
   "net/http/httputil"
+  "regexp"
 )
 
 func Request(token string, method string, marc string, path string, id string, accept string) (string, error){
@@ -91,4 +92,9 @@ func Record(token string, id string)(string, error){
   if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }
 
   return string(body), nil
+}
+func UnformatXML(xmlString string) string {
+  var unformatXMLRegEx = regexp.MustCompile(`>\s+<`)
+  unformatBetweenTags := unformatXMLRegEx.ReplaceAllString(xmlString, "><")
+  return strings.TrimSpace(unformatBetweenTags)
 }

@@ -22,17 +22,17 @@ func TestIsPublished(t *testing.T){
 
 func TestGetOclcId(t *testing.T){
   resource := loadfile("9730.json")
-  oclc_id := GetOclcId(resource)
+  oclc_id,_ := GetOclcId(resource)
   if oclc_id != "1535209600" { t.Errorf("incorrect result") }
 }
 
 func TestGetMmsId(t *testing.T){
   resource := loadfile("9730.json")
-  id,is_empty := GetMmsId(resource)
+  id,is_empty,_ := GetMmsId(resource)
   if  id != "" { t.Errorf("incorrect result")}
   if is_empty != true { t.Errorf("incorrect result") }
   resource = loadfile("2023.json")
-  id, is_empty = GetMmsId(resource)
+  id, is_empty,_ = GetMmsId(resource)
   if id != "99107164901852" { t.Errorf("incorrect result") }
   if is_empty != false { t.Errorf("incorrect result") }
 }
@@ -47,4 +47,10 @@ func TestExtractID0(t *testing.T){
   resource := loadfile("2023.json")
   result := ExtractID0(resource)
   if result != "Coll 100" { t.Errorf("incorrect result") }
+}
+
+func TestValidID(t *testing.T){
+  if ValidID(" 12345") == nil { t.Errorf("incorrect validation") }
+  if ValidID("on12345") == nil { t.Errorf("incorrect validation") }
+  if ValidID("12345") != nil { t.Errorf("incorrect validation") }
 }
