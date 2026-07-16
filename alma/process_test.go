@@ -82,7 +82,7 @@ func TestProcessBoundwith(t *testing.T){
     map[string]string{ "mms_id": "561235612355", "boundwith": "true", "barcode":"123412341234", "ils_holding": "234567234567", "ils_item": "765476547654" },
     map[string]string{ "mms_id": "345634563456","boundwith": "false", "barcode":"234562345623", "ils_holding": "", "ils_item": ""},
   }
-  fs := FunMap{ HoldingPF: DummyHoldingPF, ItemsPF: DummyItemsPF }
+  fs := FunMap{ HoldingAPF: DummyHoldingAPF, ItemsPF: DummyItemsPF, CheckForMissingPF: DummyCheckForMissing }
   path := "/almaws/v1/bibs/561235612355" //test Get/Put
   initialbw := bibstring_fixture1
   expected := bibstring_fixture2
@@ -105,22 +105,16 @@ func TestProcessBoundwith(t *testing.T){
   ProcessBoundwith(args, marc, tcmap, fs)
 }
 
-func TestProcessHolding(t *testing.T){
+func TestProcessHoldingA(t *testing.T){
   path1 := "/almaws/v1/bibs/345634563456/holdings"
-  path2 := "/almaws/v1/bibs/345634563456/holdings/456745674567"
   args1 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true, Id_0: "Coll 408"}
-  args2 := ProcessArgs{ Mms_id: "345634563456", Holding_id:"456745674567", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false, Id_0: "Coll 408"}
-  fs := FunMap{ ItemsPF: DummyItemsPF }
+  fs := FunMap{ HoldingBPF: DummyHoldingBPF, ItemsPF: DummyItemsPF }
   tcmap1 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "", "ils_item": "" } }
-  tcmap2 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "456745674567", "ils_item": "234523452345" } }
   home := os.Getenv("HOME_DIR")
   marc1, err := ioutil.ReadFile(home + "fixtures/marc_3464.xml")
   if err != nil { t.Errorf("error reading file") }
-  marc2, err := ioutil.ReadFile(home + "fixtures/marc_3464b.xml")
-  if err != nil { t.Errorf("error reading file") }
   expected1 := holdingstring_fixture1
-  expected2 := holdingstring_fixture3
-  if err != nil { t.Errorf("error reading file") }
+
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     body, err := ioutil.ReadAll(r.Body)
     if err != nil { t.Errorf("error reading request body") }
@@ -128,7 +122,27 @@ func TestProcessHolding(t *testing.T){
       if r.URL.Path != path1 { t.Errorf("incorrect alma path") }
       if compareHolds(body, []byte(expected1)) != true { t.Errorf("incorrect record posted for POST") }
       fmt.Fprint(w, "fiddledeedee")
-    } else if r.Method == "PUT" {
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
+  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
+  ProcessHoldingA(args1, string(marc1), tcmap1, fs)
+}
+
+func TestProcessHoldingB(t *testing.T){
+  args2 := ProcessArgs{ Mms_id: "345634563456", Holding_id:"456745674567", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false, Id_0: "Coll 408"}
+  path2 := "/almaws/v1/bibs/345634563456/holdings/456745674567"
+  fs := FunMap{ ItemsPF: DummyItemsPF }
+  tcmap2 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "456745674567", "ils_item": "234523452345" } }
+  home := os.Getenv("HOME_DIR")
+  marc2, err := ioutil.ReadFile(home + "fixtures/marc_3464b.xml")
+  if err != nil { t.Errorf("error reading file") }
+  expected2 := holdingstring_fixture3
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    body, err := ioutil.ReadAll(r.Body)
+    if err != nil { t.Errorf("error reading request body") }
+    if r.Method == "PUT" {
       if r.URL.Path != path2 { t.Errorf("incorrect alma path") }
       if compareHolds(body, []byte(expected2)) != true { t.Errorf("incorrect record posted for PUT") }
       fmt.Fprint(w, "arglebarglesnickersnack")
@@ -137,15 +151,17 @@ func TestProcessHolding(t *testing.T){
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  ProcessHolding(args1, string(marc1), tcmap1, fs)
-  ProcessHolding(args2, string(marc2), tcmap2, fs)
+  ProcessHoldingB(args2, string(marc2), tcmap2, fs)
 }
 
 func TestProcessItems(t *testing.T){
   tcmap1 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "", "mms_id": "345634563456" } }
   tcmap2 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "456745674567", "mms_id": "345634563456" } }
+  tcmap3 := []map[string]string{ map[string]string{ "boundwith": "true", "ils_holding": "98765432988", "ils_item": "456745674568", "mms_id": "345634563457" } }
+
   args1 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
   args2 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false }
+  args3 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: false }
 
   fs := FunMap{ UpdateTC: DummyUpdateTC, ItemPF: DummyItemPF }
   path := "/almaws/v1/bibs/345634563456/holdings/98765432987/items/456745674567"
@@ -158,6 +174,7 @@ func TestProcessItems(t *testing.T){
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
   ProcessItems(args1, tcmap1, fs)
   ProcessItems(args2, tcmap2, fs)
+  ProcessItems(args3, tcmap3, fs)
 }
 
 func TestProcessItem(t *testing.T){
@@ -230,18 +247,73 @@ func TestCheckTCMap(t *testing.T){
   tcmapR2, err2 := CheckTCMap(tcmap)
   if err2 != nil { t.Errorf("there should be no errors raised") }
   if tcmapR2[0]["mms_id"] != "1231231234" { t.Errorf("mms_id is incorrect")}
-  if tcmapR2[0]["ils_holding"] != "98765432987" { t.Errorf("holding is incorrect")}
-  if tcmapR2[0]["ils_item"] != "456745674567" { t.Errorf("pid is incorrect")}
 
   //case barcode, boundwith true¸ unsuccessful fetch
   tcmap[0] = map[string]string{ "barcode":barcodes[1], "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
   tcmapR3, err3 := CheckTCMap(tcmap)
   if err3 == nil { t.Errorf("error should be populated for failure to fetch") }
   if !reflect.DeepEqual(tcmapR3,tcmap) { t.Errorf("there should be no change in returned map") }
+}
 
-  // case barcode boundwith false, unsuccessful fetch
-  tcmap[0]["boundwith"] = "false"
-  tcmapR6, err6 := CheckTCMap(tcmap)
-  if err6 != nil { t.Errorf("there should not be any errors") }
-  if !reflect.DeepEqual(tcmapR6,tcmap) { t.Errorf("the map should not have changed") }
+func TestGetBarcodes(t *testing.T){
+  tcdata0 := map[string]string{ "barcode":"ronco3000", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcdata1 := map[string]string{ "barcode":"ronco3001", "boundwith": "false", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcdata2 := map[string]string{ "barcode":"ronco3002", "boundwith": "false", "ils_holding": "", "ils_item": "", "mms_id": "" }
+
+  tcmap := []map[string]string{tcdata0, tcdata1, tcdata2}
+  bc := GetBarcodes(tcmap)
+  if !reflect.DeepEqual(bc, []string{"ronco3001", "ronco3002"}) { t.Errorf("incorrect result") }
+}
+
+func TestParseShortItem(t *testing.T){
+  item := `{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3000","description":"unarranged basket"}}`
+  si := ParseShortItem(item)
+  expected := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  if !reflect.DeepEqual(si, expected) { t.Errorf("incorrect result") }
+  fmt.Println(si)
+  fmt.Println(expected)
+}
+
+func TestSIStringify(t *testing.T){
+  si := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  if si.Stringify() != "alma3000,Fruit1223,Rotten banana,unarranged basket" { t.Errorf("incorrect reponse") }
+}
+
+func TestBuildMessageFromMissing(t *testing.T){
+  si1 := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  si2 := ShortItem{Barcode:"alma3001", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten apple"}
+  items := []ShortItem{si1, si2}
+  msg_arr := BuildMessageFromMissing(items)
+  expected := []string{"alma3000,Fruit1223,Rotten banana,unarranged basket","alma3001,Fruit1223,Rotten apple,unarranged basket"}
+  if !reflect.DeepEqual(msg_arr, expected) { t.Errorf("incorrect result") }
+}
+
+func TestCompileMissing(t *testing.T){
+  jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3001","description":"unarranged basket"}}]`
+  si1 := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  si2 := ShortItem{Barcode:"alma3001", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten apple"}
+
+  barcodes := []string{"ronco3100", "ronco3101"}
+  expected := []ShortItem{si1, si2}
+  response := CompileMissing([]byte(jsonstr), barcodes)
+  if !reflect.DeepEqual(response, expected) { t.Errorf("incorrect response") }
+}
+
+func TestCheckItemsForMissing(t *testing.T){
+  path1 := "/almaws/v1/bibs/345634563456/holdings/98765432987/items"
+  jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3001","description":"unarranged basket"}}]`
+
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path != path1 { t.Errorf("incorrect request url") }
+    fmt.Fprint(w, jsonstr)
+  }))
+  defer ts.Close()
+  os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
+  os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
+
+  args := ProcessArgs{ Mms_id: "345634563456", Holding_id: "98765432987", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
+  tcdata0 := map[string]string{ "barcode":"ronco3100", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcdata1 := map[string]string{ "barcode":"ronco3101", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcmap := []map[string]string{tcdata0, tcdata1}
+  CheckItemsForMissing(args, tcmap)
 }

@@ -41,18 +41,24 @@ func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid 
   return newbwbib, nil
 }
 
+// note that this returns a string
+// using an etree to do the edits, does not easily convert to a Holding
 func UpdateHolding(marc_string string, hold string)(string, error){
+  holding, err := ParseXML(hold)
+  if err != nil { return "", err }
+  sfz := holding.FindElement("//subfield[@code='z']")
+  if strings.Contains(sfz.Text(), "CONNECT TO THE ONLINE") {
+    return "", errors.New("skip update")
+  }
   marc_xml, err := ParseMarc(marc_string)
   if err != nil { return "", err }
   link, err := BuildFindingLink(marc_xml)
   if err != nil { return hold, err }
-  holding, err := ParseXML(hold)
-  if err != nil { return "", err }
+  sfz.SetText(link)
   // acc to the API docs, remove the holdingId
   id_ptr := holding.FindElement("//holding_id")
   parent := id_ptr.Parent()
   parent.RemoveChild(id_ptr)
-  holding.FindElement("//subfield[@code='z']").SetText(link)
   str, err := holding.WriteToString()
   return str, err
 }

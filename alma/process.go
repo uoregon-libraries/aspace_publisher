@@ -13,6 +13,7 @@ import(
   "aspace_publisher/file"
   "aspace_publisher/as"
   "aspace_publisher/oclc"
+  "github.com/tidwall/gjson"
 )
 
 type ProcessArgs struct {
@@ -44,14 +45,15 @@ func (p ProcessArgs)Mapify()map[string]string{
 
 type FunMap struct {
   BoundwithPF ProcessBoundwithFun
-  HoldingPF ProcessHoldingFun
+  HoldingAPF ProcessHoldingAFun
+  HoldingBPF ProcessHoldingBFun
   ItemsPF ProcessItemsFun
   ItemPF ProcessItemFun
   NZPF LinkToNetworkFun
   AfterBib as.AfterBibFun
   UpdateTC as.UpdateTCFun
   SetHolding oclc.SetHoldingFun
-//  ProcessBWHoldingPF ProcessBWHoldingFun
+  CheckForMissingPF CheckItemsForMissingFun
 }
 
 // only run creates
@@ -120,48 +122,65 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
       if err != nil { msgs = append(msgs, err.Error()); continue }
     } else { args.Holding_id = tc["ils_holding"]; process_holding = true }
   }
-  if len(msgs) != 0 { file.WriteReport(args.Filename, msgs); return }
-  if process_holding { fs.HoldingPF(args, marc_string, tcmap, fs) }
+  //check for potential alma items that no longer exist in aspace
+  fs.CheckForMissingPF(args, tcmap)
+  if !process_holding { msgs = append(msgs, "no items to update") }
+  if len(msgs) != 0 { file.WriteReport(args.Filename, msgs) }
+  if process_holding { fs.HoldingAPF(args, marc_string, tcmap, fs) }
 }
 
-type ProcessHoldingFun func(ProcessArgs, string, []map[string]string, FunMap)
+type ProcessHoldingAFun func(ProcessArgs, string, []map[string]string, FunMap)
 // does not use tcmap, passes it to items processing which does
-func ProcessHolding(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
-  //assemble holding record
-
-  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
-  _url := BuildUrl(path)
-  params := []string{ ApiKey() }
-  var result []byte
-  var holdingstr string
+func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   if args.Holding_id != "" {
-    holdxml, err := Get(_url, params, "application/xml")
-    if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
-    holdingstr, err = UpdateHolding(marc_string, string(holdxml))
-    if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-    result, err = Put(_url, params, holdingstr, "xml")
+    fs.HoldingBPF(args, marc_string, tcmap, fs)
   } else {
-    var holding Holding
+    path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
+    _url := BuildUrl(path)
+    params := []string{ ApiKey() }
+    var result []byte
     holding, err := ConstructHolding(marc_string, args.Id_0)
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-    holdingstr, err = holding.Stringify()
+    holdingstr, err := holding.Stringify()
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
     result, err = Post(_url, params, holdingstr, "xml")
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
+    if args.Create { args.Holding_id = ExtractHoldingID(result) }
+    fs.ItemsPF(args, tcmap, fs)
   }
-  if args.Create { args.Holding_id = ExtractHoldingID(result) }
+}
+
+type ProcessHoldingBFun func(ProcessArgs, string, []map[string]string, FunMap)
+func ProcessHoldingB(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
+  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
+  _url := BuildUrl(path)
+  params := []string{ ApiKey() }
+  holdxml, err := Get(_url, params, "application/xml")
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to obstain current holding: " + err.Error()}); return }
+  holdingstr, err := UpdateHolding(marc_string, string(holdxml))
+  if err != nil {
+    if err.Error() == "skip update" {
+      fs.ItemsPF(args, tcmap, fs)
+    } else {
+      file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return
+    }
+  } else {
+  _, err = Put(_url, params, holdingstr, "xml")
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
   fs.ItemsPF(args, tcmap, fs)
+  }
 }
 
 type ProcessItemsFun func(ProcessArgs, []map[string]string, FunMap)
 func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
-  itemlist := []string{}
-  msgs := []string{}
+  itemlist := []string{} //for reporting
+  msgs := []string{} //also for reporting
 
   // iterate through the top containers
   // if an error occurs during the loop, report and continue
   for _,tc := range tcmap{
     var item = Item{}
+    if tc["boundwith"] == "true" { continue } // skip boundwith containers
     if tc["ils_item"] != "" { //this is an update
       path := []string{"bibs", tc["mms_id"], "holdings", tc["ils_holding"], "items", tc["ils_item"]}
       _url := BuildUrl(path)
@@ -173,7 +192,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
     item_id, err := fs.ItemPF(args, item, tc)
     if err != nil { msgs = append(msgs, "Unable to process Alma item: " + err.Error()); continue }
     itemlist = append(itemlist, item_id)
-    if tc["ils_item"] == "" || tc["update_refs"] == "true" {
+    if tc["ils_item"] == "" {
       err = fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc)
       if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue }
     }
@@ -211,28 +230,20 @@ func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, e
 // to be run at the start of the alma workflow.
 // necessary to acquire boundwith bib ids
 // currently assumes that if boundwith is true, bwbib exists
-// possible to do:
-//   avoid fetches in non-boundwith cases, but this increases complexity
+// if barcode on boundwith has changed, failed lookup is a fatal error here
+// barcode must be fixed using the boundwith endpoint
+
 func CheckTCMap(tcmap []map[string]string)([]map[string]string, error){
   for _,tc := range tcmap{
     if tc["barcode"] == "" {
       return tcmap, errors.New(fmt.Sprintf("error: item does not have barcode"))
     }
-    item := []byte{}
-    var err error
-    item, err = FetchByBarcode(tc["barcode"])
-    if err != nil {
-      if tc["boundwith"] == "true" {
-        return tcmap, err
-      } else {
-        continue //this is a create
-      }
+    if tc["boundwith"] != "true" { // skip unless bw
+      continue
     }
+    item, err := FetchByBarcode(tc["barcode"])
+    if err != nil { return tcmap, err }
     tc["mms_id"] = ParseBibID(item)
-    if tc["ils_holding"] == "" {
-      tc["ils_holding"], tc["ils_item"] = ParseHoldingItem(item)
-      tc["update_refs"] = "true"
-    } else { tc["update_refs"] = "false" }
   }
   return tcmap, nil
 }
@@ -266,4 +277,77 @@ func LinkToNetwork(list []string, filename string){
 
 func BaseUrl()string{
   return os.Getenv("ALMA_URL")
+}
+
+func CompileMissing(itemlist []byte, tc_barcodes []string) []ShortItem{
+  items := gjson.GetBytes(itemlist, "item")
+  result := []ShortItem{}
+  for _, item :=  range items.Array(){
+    p := ParseShortItem(item.String())
+    if InRange(p.Barcode, tc_barcodes) == false { result = append(result, p) }
+  }
+  return result
+}
+
+func InRange(str string, arr []string) bool{
+  for _, val := range arr {
+    if str == val { return true }
+  }
+  return false
+}
+
+func BuildMessageFromMissing(missing []ShortItem) []string{
+  messagelist := []string{}
+  for _, item := range missing {
+    messagelist = append(messagelist, item.Stringify())
+  }
+  return messagelist
+}
+
+func (s ShortItem) Stringify() string{
+  return fmt.Sprintf("%s,%s,%s,%s", s.Barcode, s.CallNumber, s.Title, s.Description)
+}
+
+func ParseShortItem(item string) ShortItem{
+  b := gjson.Get(item, "item_data.barcode").String()
+  d := gjson.Get(item, "item_data.description").String()
+  c := gjson.Get(item, "holding_data.call_number").String()
+  t := gjson.Get(item, "bib_data.title").String()
+  return ShortItem{ Barcode: b, Description: d, CallNumber: c, Title: t }
+}
+
+type ShortItem struct{
+  Barcode string
+  Description string
+  CallNumber string
+  Title string
+}
+
+// exclude barcdoes that are for boundwith items
+func GetBarcodes(tcmap []map[string]string) []string{
+  barcodes := []string{}
+  for _,item := range tcmap{
+    if item["boundwith"] == "true" { continue }
+    barcodes = append(barcodes, item["barcode"])
+  }
+  return barcodes
+}
+
+type CheckItemsForMissingFun func(ProcessArgs, []map[string]string)
+func CheckItemsForMissing(args ProcessArgs, tcmap []map[string]string){
+  tc_barcodes := GetBarcodes(tcmap)
+  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items"}
+  _url := BuildUrl(path)
+  params := []string{ ApiKey() }
+  itemsjson, err := Get(_url, params, "application/json")
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to request Alma item: " + err.Error()}); return }
+  missing := CompileMissing(itemsjson, tc_barcodes)
+  if len(missing) != 0 {
+    export_name := fmt.Sprintf("Resource%s_ItemsForDelete.csv", args.Resource_id)
+    messages := []string{ "Barcode,CallNumber,Title,Description" }
+    messages = append(messages, BuildMessageFromMissing(missing)...)
+    file.WriteReport(export_name, messages)
+    base_url := os.Getenv("HOME_URL")
+    file.WriteReport(args.Filename, []string{fmt.Sprintf("see items for removal at <a href=\"%s/reports/%s\">%s</a></p>", base_url, export_name, export_name)})
+  }
 }

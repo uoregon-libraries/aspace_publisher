@@ -6,6 +6,8 @@ import (
   "encoding/json"
   "log"
   "errors"
+  "regexp"
+  "net/url"
 )
 
 func ExtractBibID(data []byte)string{
@@ -54,6 +56,22 @@ func FetchByBarcode(barcode string)([]byte,error){
   item,err := Get(_url, params, "application/json")
   if err != nil { log.Println(err) }
   return item, err
+}
+func FetchByItemID(tc map[string]string)([]byte,error){
+  path := []string{"bibs", tc["mmsid"], "holdings", tc["holdingid"], "items", tc["itemid"] }
+  _url := BuildUrl(path)
+  if !ValidUrl(_url) { return nil, errors.New("could not build url for item") }
+  params := []string{ ApiKey() }
+  item,err := Get(_url, params, "application/json")
+  if err != nil { log.Println(err) }
+  return item, err
+}
+
+func ValidUrl(_url string) bool{
+  parsed, _ := url.Parse(_url)
+  re1 := regexp.MustCompile(`/almaws/v1/bibs/[0-9]+/holdings/[0-9]+/items/[0-9]+`)
+  matched1 := re1.Find([]byte(parsed.Path))
+  return string(matched1) == parsed.Path
 }
 // pulls holding list using mms_id
 // expects only one holding per bib

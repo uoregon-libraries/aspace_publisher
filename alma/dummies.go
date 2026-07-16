@@ -11,7 +11,12 @@ func DummyLinkToNetwork(list []string, filename string){
 }
 
 func DummyBoundwithPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){ return }
-func DummyHoldingPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
+
+func DummyHoldingAPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
+  if args.Holding_id != "" { log.Fatal("incorrect holding set") }
+  return
+}
+func DummyHoldingBPF(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   if args.Holding_id != "" { log.Fatal("incorrect holding set") }
   return
 }
@@ -35,3 +40,4 @@ func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id
 }
 func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
 
+func DummyCheckForMissing(args ProcessArgs, tcmap []map[string]string){}
