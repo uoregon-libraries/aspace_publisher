@@ -8,7 +8,6 @@ import(
   "slices"
   "errors"
   "fmt"
-  "log"
   "encoding/json"
   "aspace_publisher/file"
   "aspace_publisher/as"
