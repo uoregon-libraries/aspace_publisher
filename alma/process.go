@@ -112,10 +112,7 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
       bwbib_byte, err := Get(_url, params, "application/xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
       bwbib, err := UpdateBoundwith(bwbib_byte, marc_string, args.Mms_id, tc)
-      if err != nil {
-        if err.Error() == "skip" { log.Println("skipping " + tc["mms_id"]); continue }
-        msgs = append(msgs, err.Error()); continue
-      }
+      if err != nil { msgs = append(msgs, err.Error()); continue }
       bwbib_str, err := bwbib.Stringify()
       if err != nil { msgs = append(msgs, err.Error()); continue }
       _, err = Put(_url, params, bwbib_str, "xml")
@@ -123,7 +120,9 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
     } else { args.Holding_id = tc["ils_holding"]; process_holding = true }
   }
   //check for potential alma items that no longer exist in aspace
-  fs.CheckForMissingPF(args, tcmap)
+  //do this here bc we need the holding id which has just been set
+  if !args.Create { fs.CheckForMissingPF(args, tcmap) }
+
   if !process_holding { msgs = append(msgs, "no items to update") }
   if len(msgs) != 0 { file.WriteReport(args.Filename, msgs) }
   if process_holding { fs.HoldingAPF(args, marc_string, tcmap, fs) }
@@ -131,26 +130,28 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
 
 type ProcessHoldingAFun func(ProcessArgs, string, []map[string]string, FunMap)
 // does not use tcmap, passes it to items processing which does
+// "A" method handles creates
 func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   if args.Holding_id != "" {
     fs.HoldingBPF(args, marc_string, tcmap, fs)
-  } else {
-    path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
-    _url := BuildUrl(path)
-    params := []string{ ApiKey() }
-    var result []byte
-    holding, err := ConstructHolding(marc_string, args.Id_0)
-    if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-    holdingstr, err := holding.Stringify()
-    if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
-    result, err = Post(_url, params, holdingstr, "xml")
-    if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
-    if args.Create { args.Holding_id = ExtractHoldingID(result) }
-    fs.ItemsPF(args, tcmap, fs)
+    return
   }
+  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
+  _url := BuildUrl(path)
+  params := []string{ ApiKey() }
+  var result []byte
+  holding, err := ConstructHolding(marc_string, args.Id_0)
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
+  holdingstr, err := holding.Stringify()
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
+  result, err = Post(_url, params, holdingstr, "xml")
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
+  if args.Create { args.Holding_id = ExtractHoldingID(result) }
+  fs.ItemsPF(args, tcmap, fs)
 }
 
 type ProcessHoldingBFun func(ProcessArgs, string, []map[string]string, FunMap)
+// "B" method handles updates
 func ProcessHoldingB(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
   _url := BuildUrl(path)
@@ -161,14 +162,14 @@ func ProcessHoldingB(args ProcessArgs, marc_string string, tcmap []map[string]st
   if err != nil {
     if err.Error() == "skip update" {
       fs.ItemsPF(args, tcmap, fs)
+      return
     } else {
       file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return
     }
-  } else {
+  }
   _, err = Put(_url, params, holdingstr, "xml")
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
   fs.ItemsPF(args, tcmap, fs)
-  }
 }
 
 type ProcessItemsFun func(ProcessArgs, []map[string]string, FunMap)

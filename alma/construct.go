@@ -25,8 +25,7 @@ func ConstructBib(mms_id string, marc_string string, suppress string)(Bib){
 func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
   var bwbib = Bib{}
   xml.Unmarshal(boundwith_bib, &bwbib)
-  if df774Exists(bwbib, resource_mmsid) { return bwbib, errors.New("skip") }
-
+  if df774Exists(bwbib, resource_mmsid) { return bwbib, errors.New("skip bw update " + tcmap["uri"]) }
   bib_xml, err := ParseMarc(resource_marc)
   if err != nil { return bwbib, err }
   title, err := ExtractTitle(bib_xml)
@@ -93,12 +92,12 @@ func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item
   if item.Item_data.Item_pid == "" {
     item.Holding_data.Holding_id = holding_id
     item.Holding_data.Copy_id = "1"
-    item.Item_data.Barcode = tc_data["barcode"]
     item.Item_data.Library = Value{ Val: "SpecColl"}
     item.Item_data.Location = Value{ Val: "spmanus"}
     item.Item_data.Base_status = Value{ Val: "1" }
     item.Item_data.Physical_material_type = Value{ Val: "MANUSCRIPT" }
   }//note that the item pid SHOULD be left in the item_data
+  item.Item_data.Barcode = tc_data["barcode"] //may change, eg falls off
   item.Item_data.Policy = Value{ Val: policy(tc_data["type"]) }
   item.Item_data.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
 
