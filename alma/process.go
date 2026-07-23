@@ -224,7 +224,7 @@ func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, e
   }
   if err != nil { return "", errors.New("problem posting to alma: " + err.Error()) }
   var item_id string
-  if args.Create {
+  if tcmap["ils_item"] == "" {
     item_id = ExtractItemID(result) } else {
     item_id = tcmap["ils_item"]
   }
