@@ -12,9 +12,11 @@ import (
 
 func TestTCList(t *testing.T){
   data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345"},{"id":"/repositories/2/top_containers/67890"}]}}`
-  path := "/api/repositories/2/top_containers/search?type[]=resource&q=/resources/987"
+  path := "/api/repositories/2/top_containers/search"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
+      if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
+      if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
       fmt.Fprintf(w, data)
     } else {
       t.Errorf("incorrect request url: " + r.URL.Path)
@@ -52,12 +54,14 @@ func TestMapify(t *testing.T){
 
 func TestExtractTCData(t *testing.T){
   listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345"},{"id":"/repositories/2/top_containers/67890"}]}}`
-  listpath := "/api/repositories/2/top_containers/search?type[]=resource&q=/resources/987"
+  listpath := "/api/repositories/2/top_containers/search"
   tcdata2 := topcontainer_fixture1
   tcpath1 := "/api/repositories/2/top_containers/12345"
   tcpath2 := "/api/repositories/2/top_containers/67890"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == listpath {
+      if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
+      if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
       fmt.Fprintf(w, listdata)
     } else if r.URL.Path == tcpath1 {
       w.WriteHeader(http.StatusNotFound)

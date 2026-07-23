@@ -51,7 +51,7 @@ func TCListPublished(session_id, repo_id, id string)([]string, error){
 }
 
 func TCList(session_id, repo_id, id string)([]string, error){
-  json_list, err := AcquireJson(session_id, repo_id, "top_containers/search%3Ftype[]=resource&q=/resources/" + id)
+  json_list, err := AcquireJson(session_id, repo_id, "top_containers/search?type[]=resource&q=/resources/" + id)
   if err != nil { return nil, err }
   tclist := gjson.GetBytes(json_list, "response.docs.#.id")
   cleanlist := []string{}
