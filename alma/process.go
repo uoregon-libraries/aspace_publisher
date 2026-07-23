@@ -145,7 +145,7 @@ func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]st
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
   result, err = Post(_url, params, holdingstr, "xml")
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to push to alma: " + err.Error()}); return }
-  if args.Create { args.Holding_id = ExtractHoldingID(result) }
+  args.Holding_id = ExtractHoldingID(result)
   fs.ItemsPF(args, tcmap, fs)
 }
 
