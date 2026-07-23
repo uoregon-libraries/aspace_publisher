@@ -116,7 +116,10 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
       if err != nil { msgs = append(msgs, err.Error()); continue }
       _, err = Put(_url, params, bwbib_str, "xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
-    } else { args.Holding_id = tc["ils_holding"]; process_holding = true }
+    } else {
+      if args.Holding_id == "" { args.Holding_id = tc["ils_holding"] }
+      process_holding = true
+    }
   }
   //check for potential alma items that no longer exist in aspace
   //do this here bc we need the holding id which has just been set
