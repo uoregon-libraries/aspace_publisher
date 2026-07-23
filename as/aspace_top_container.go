@@ -37,7 +37,7 @@ func (t TopContainer)Mapify()map[string]string{
 
 //returns array of top container ids (paths)
 //json_list example: [{"ref":"/repositories/2/top_containers/59527"}]
-func TCList(session_id, repo_id, id string)([]string, error){
+func TCListPublished(session_id, repo_id, id string)([]string, error){
   json_list, err := AcquireJson(session_id, repo_id, "resources/" + id + "/top_containers")
   if err != nil { return nil, err }
   pathlist := gjson.GetBytes(json_list, "#.ref")
@@ -48,6 +48,20 @@ func TCList(session_id, repo_id, id string)([]string, error){
     }
   }
   return idlist, nil
+}
+
+func TCList(session_id, repo_id, id string)([]string, error){
+  json_list, err := AcquireJson(session_id, repo_id, "top_containers/search%3Ftype[]=resource&q=/resources/" + id)
+  if err != nil { return nil, err }
+  tclist := gjson.GetBytes(json_list, "response.docs.#.id")
+  cleanlist := []string{}
+  // ensure list content unique
+  for _, tc := range tclist.Array() {
+    if slices.Contains(cleanlist, tc.String()) == false {
+      cleanlist = append(cleanlist, tc.String())
+    }
+  }
+  return cleanlist, nil
 }
 
 //pulls ils ids out of top container json

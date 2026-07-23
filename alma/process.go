@@ -336,6 +336,7 @@ func GetBarcodes(tcmap []map[string]string) []string{
 type CheckItemsForMissingFun func(ProcessArgs, []map[string]string)
 func CheckItemsForMissing(args ProcessArgs, tcmap []map[string]string){
   tc_barcodes := GetBarcodes(tcmap)
+  if args.Holding_id == "" { file.WriteReport(args.Filename, []string{"Skipping barcode comparison, no holding available for lookup."}); return }
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items"}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }

@@ -11,13 +11,13 @@ import (
 )
 
 func TestTCList(t *testing.T){
-  data := "[{\"ref\":\"/repositories/2/top_containers/12345\"},{\"ref\":\"/repositories/2/top_containers/67890\"}]"
-  path := "/api/repositories/2/resources/987/top_containers"
+  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345"},{"id":"/repositories/2/top_containers/67890"}]}}`
+  path := "/api/repositories/2/top_containers/search?type[]=resource&q=/resources/987"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
       fmt.Fprintf(w, data)
     } else {
-      t.Errorf("incorrect request url")
+      t.Errorf("incorrect request url: " + r.URL.Path)
     }
   }))
   defer ts.Close()
