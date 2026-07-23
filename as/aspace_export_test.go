@@ -37,7 +37,7 @@ func TestAcquireJson(t *testing.T){
   if err.Error() != "aspace error exporting record" { t.Errorf(err.Error()) }
   if string(response) != "mayday" { t.Errorf("wrong response") }
 
-  ts.Close()
+  ts.Close() // force an error
 
   response, err = AcquireJson(str_session, "2", str_rec2)
   if err == nil {
@@ -76,7 +76,7 @@ func TestAcquireMarc(t *testing.T){
   if err.Error() != "aspace error exporting MARC" { t.Errorf(err.Error()) }
   if string(response) != "mayday" { t.Errorf("wrong response") }
 
-  ts.Close()
+  ts.Close() //force an error
 
   response, err = AcquireMarc(str_session, "2", str_rec2, "false")
   if err == nil {

@@ -51,8 +51,8 @@ func TestMapify(t *testing.T){
 }
 
 func TestExtractTCData(t *testing.T){
-  listdata := "[{\"ref\":\"/repositories/2/top_containers/12345\"},{\"ref\":\"/repositories/2/top_containers/67890\"}]"
-  listpath := "/api/repositories/2/resources/987/top_containers"
+  listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345"},{"id":"/repositories/2/top_containers/67890"}]}}`
+  listpath := "/api/repositories/2/top_containers/search?type[]=resource&q=/resources/987"
   tcdata2 := topcontainer_fixture1
   tcpath1 := "/api/repositories/2/top_containers/12345"
   tcpath2 := "/api/repositories/2/top_containers/67890"
