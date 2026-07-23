@@ -10,11 +10,13 @@ import (
   "net/http"
   "os"
   "fmt"
+  "regexp"
 )
 
 func AlmaCrupHandler(c echo.Context) error {
   var args alma.ProcessArgs
   args.Resource_id = c.Param("id")
+  args.Holding_id = validHolding(c)
   args.Repo_id = "2"
   args.Filename = file.Filename()
   var err error
@@ -54,4 +56,19 @@ func AlmaCrupHandler(c echo.Context) error {
 
   base_url := os.Getenv("HOME_URL")
   return c.HTML(http.StatusOK, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, args.Filename, args.Filename))
+}
+
+// hopefully unlikely case for this to be useful:
+// processing has borked after the holding was created but NO items were created
+// thus the holding id has not been added to any top containers
+func validHolding(c echo.Context) string{
+  h := c.QueryParam("holding")
+  if h == "" { return "" }
+  re1 := regexp.MustCompile(`[0-9]+`)
+  matched1 := re1.Find([]byte(h))
+  if string(matched1) == h {
+    return h
+  } else {
+    return ""
+  }
 }
