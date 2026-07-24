@@ -11,7 +11,7 @@ import (
 )
 
 func TestTCList(t *testing.T){
-  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345"},{"id":"/repositories/2/top_containers/67890"}]}}`
+  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345", "collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/444","collection_uri_u_sstr":"/repositories/2/resources/986"}]}}`
   path := "/api/repositories/2/top_containers/search"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
@@ -28,6 +28,8 @@ func TestTCList(t *testing.T){
   if err != nil { log.Println(err) }
   if slices.Contains(list, "/repositories/2/top_containers/12345") != true { t.Errorf("incorrect top container list") }
   if slices.Contains(list, "/repositories/2/top_containers/67890") != true { t.Errorf("incorrect top container list") }
+  if slices.Contains(list, "/repositories/2/top_containers/444") == true { t.Errorf("incorrect top container list") }
+  fmt.Println(list)
 }
 
 func TestGetTCRefs(t *testing.T){
