@@ -66,6 +66,20 @@ func TestConstructHolding(t *testing.T){
   if compareHolds([]byte(holdstr), []byte(expected)) != true { t.Errorf("incorrect holding rec") }
 }
 
+func TestUpdateHolding(t *testing.T){
+  home := os.Getenv("HOME_DIR")
+  marc, err := ioutil.ReadFile(home + "fixtures/marc_3464b.xml")
+  if err != nil { t.Errorf("error reading file") }
+  hold := holdingstring_fixture2
+  expected := holdingstring_fixture3
+  holdstr, _ := UpdateHolding(string(marc), hold)
+    if compareHolds([]byte(holdstr), []byte(expected)) != true { t.Errorf("incorrect holding rec") }
+
+  hold2 := holdingstring_fixture3
+  holdstr,err = UpdateHolding(string(marc), hold2)
+  if err.Error() != "skip update" { t.Errorf("error should be skip") }
+}
+
 func TestConstructItem(t *testing.T){
   home := os.Getenv("HOME_DIR")
   tcdata, err := ioutil.ReadFile(home + "fixtures/top_container.json")

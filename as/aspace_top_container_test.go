@@ -11,13 +11,15 @@ import (
 )
 
 func TestTCList(t *testing.T){
-  data := "[{\"ref\":\"/repositories/2/top_containers/12345\"},{\"ref\":\"/repositories/2/top_containers/67890\"}]"
-  path := "/api/repositories/2/resources/987/top_containers"
+  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345", "collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/444","collection_uri_u_sstr":"/repositories/2/resources/986"}]}}`
+  path := "/api/repositories/2/top_containers/search"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
+      if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
+      if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
       fmt.Fprintf(w, data)
     } else {
-      t.Errorf("incorrect request url")
+      t.Errorf("incorrect request url: " + r.URL.Path)
     }
   }))
   defer ts.Close()
@@ -26,6 +28,8 @@ func TestTCList(t *testing.T){
   if err != nil { log.Println(err) }
   if slices.Contains(list, "/repositories/2/top_containers/12345") != true { t.Errorf("incorrect top container list") }
   if slices.Contains(list, "/repositories/2/top_containers/67890") != true { t.Errorf("incorrect top container list") }
+  if slices.Contains(list, "/repositories/2/top_containers/444") == true { t.Errorf("incorrect top container list") }
+  fmt.Println(list)
 }
 
 func TestGetTCRefs(t *testing.T){
@@ -51,13 +55,15 @@ func TestMapify(t *testing.T){
 }
 
 func TestExtractTCData(t *testing.T){
-  listdata := "[{\"ref\":\"/repositories/2/top_containers/12345\"},{\"ref\":\"/repositories/2/top_containers/67890\"}]"
-  listpath := "/api/repositories/2/resources/987/top_containers"
+  listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345"},{"id":"/repositories/2/top_containers/67890"}]}}`
+  listpath := "/api/repositories/2/top_containers/search"
   tcdata2 := topcontainer_fixture1
   tcpath1 := "/api/repositories/2/top_containers/12345"
   tcpath2 := "/api/repositories/2/top_containers/67890"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == listpath {
+      if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
+      if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
       fmt.Fprintf(w, listdata)
     } else if r.URL.Path == tcpath1 {
       w.WriteHeader(http.StatusNotFound)

@@ -4,11 +4,11 @@ import(
   "fmt"
   "time"
   "net/http"
-  "net/http/httputil"
   "log"
   "errors"
   "io"
   "os"
+  "aspace_publisher/connect"
 )
 
 func AcquireMarc(sessionid string, repo_id string, resource_id string, published string) (string, error){
@@ -24,10 +24,7 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
+  connect.RequestDump(verbose, req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -35,11 +32,7 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
   response, err := client.Do(req)
   if err != nil { log.Println(err); return "", errors.New("unable to complete request to archivesspace") }
   defer response.Body.Close()
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else { log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
-
+  connect.ResponseDump(verbose, response) //check response only after err check
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return "", errors.New("unable to read response from archivesspace") }
   if response.StatusCode != 200 { return string(body), errors.New("aspace error exporting MARC") }
@@ -48,6 +41,7 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
 
 func AcquireJson(sessionid string, repo_id string, record_id string) ([]byte, error){
   base_url := os.Getenv( "ASPACE_URL")
+  verbose := os.Getenv("VERBOSE")
   url := base_url + fmt.Sprintf("repositories/%s/%s", repo_id, record_id)
   req, err := http.NewRequest("GET", url, nil)
   if err != nil { log.Println(err); return nil, errors.New("unable to create http request") }
@@ -55,13 +49,14 @@ func AcquireJson(sessionid string, repo_id string, record_id string) ([]byte, er
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
-
+  connect.RequestDump(verbose, req)
   client := &http.Client{
     Timeout: time.Second * 60,
   }
   response, err := client.Do(req)
   if err != nil { log.Println(err); return nil, errors.New("unable to complete request to archivesspace.") }
   defer response.Body.Close()
+  connect.ResponseDump(verbose, response) //check response only after err check
   body, err := io.ReadAll(response.Body)
   if err != nil { log.Println(err); return nil, errors.New("unable to read response from archivesspace") }
   if response.StatusCode != 200 { return body, errors.New("aspace error exporting record") }
