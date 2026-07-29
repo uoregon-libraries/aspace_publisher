@@ -13,6 +13,7 @@ import(
   "aspace_publisher/as"
   "aspace_publisher/oclc"
   "github.com/tidwall/gjson"
+  "log/slog"
 )
 
 type ProcessArgs struct {
@@ -60,6 +61,7 @@ type FunMap struct {
 func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[string]string, fs FunMap){
   // assemble record
   if args.Create {
+    slog.Info(fmt.Sprintf("Creating bib %+v", args))
     bib := ConstructBib(args.Mms_id, marc_string, "false")
     bib_str, err := bib.Stringify()
     if err != nil { file.WriteReport(args.Filename, []string{ "Unable to construct bib: " + err.Error() }); return }
@@ -102,6 +104,7 @@ type ProcessBoundwithFun func(ProcessArgs, string, []map[string]string, FunMap)
 // if boundwith true and error occurs, write report and stop once loop is complete
 func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]string, fs FunMap){
   var process_holding = false
+  slog.Info(fmt.Sprintf("Looking for boundwith to process %+v", args))
   msgs := []string{}
   for _,tc := range tcmap{
     if tc["boundwith"] == "true" {
@@ -123,6 +126,7 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
   }
   //check for potential alma items that no longer exist in aspace
   //do this here bc we need the holding id which has just been set
+  //currently takes no action
   if !args.Create { fs.CheckForMissingPF(args, tcmap) }
 
   if !process_holding { msgs = append(msgs, "no items to update") }
@@ -138,6 +142,7 @@ func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]st
     fs.HoldingBPF(args, marc_string, tcmap, fs)
     return
   }
+  slog.Info(fmt.Sprintf("Creating holding %+v", args))
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
@@ -155,6 +160,7 @@ func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]st
 type ProcessHoldingBFun func(ProcessArgs, string, []map[string]string, FunMap)
 // "B" method handles updates
 func ProcessHoldingB(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
+  slog.Info(fmt.Sprintf("Updating holding %+v", args))
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
@@ -178,7 +184,7 @@ type ProcessItemsFun func(ProcessArgs, []map[string]string, FunMap)
 func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
   itemlist := []string{} //for reporting
   msgs := []string{} //also for reporting
-
+  slog.Info(fmt.Sprintf("Processing items %+v", args))
   // iterate through the top containers
   // if an error occurs during the loop, report and continue
   for _,tc := range tcmap{

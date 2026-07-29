@@ -4,7 +4,7 @@ import (
   "encoding/xml"
   "github.com/tidwall/gjson"
   "encoding/json"
-  "log"
+  "log/slog"
   "errors"
   "regexp"
   "net/url"
@@ -13,7 +13,7 @@ import (
 func ExtractBibID(data []byte)string{
   var b Bib
   err := xml.Unmarshal(data, &b)
-  if err != nil { log.Println(err); return "" }
+  if err != nil { slog.Error(err.Error()); return "" }
   return b.Mms_id
 }
 
@@ -29,7 +29,7 @@ type Bib struct {
 
 func(b Bib)Stringify()(string, error){
   output, err := xml.Marshal(b)
-  if err != nil { log.Println(err); return "", errors.New("unable to construct bib xml") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to construct bib xml") }
   return string(output), nil
 }
 
@@ -54,7 +54,7 @@ func FetchByBarcode(barcode string)([]byte,error){
   _url := BuildUrl(path)
   params := []string{ ApiKey(), "item_barcode=" + barcode }
   item,err := Get(_url, params, "application/json")
-  if err != nil { log.Println(err) }
+  if err != nil { slog.Error(err.Error()) }
   return item, err
 }
 func FetchByItemID(tc map[string]string)([]byte,error){
@@ -63,7 +63,7 @@ func FetchByItemID(tc map[string]string)([]byte,error){
   if !ValidUrl(_url) { return nil, errors.New("could not build url for item") }
   params := []string{ ApiKey() }
   item,err := Get(_url, params, "application/json")
-  if err != nil { log.Println(err) }
+  if err != nil { slog.Error(err.Error()) }
   return item, err
 }
 
@@ -79,7 +79,7 @@ func GetHoldingId(mms_id string)string{
   _url := BuildUrl( []string{"bibs", mms_id, "holdings"} )
   params := []string { ApiKey() }
   body,err := Get(_url, params, "application/json")
-  if err != nil { log.Println(err); return "" }
+  if err != nil { slog.Error(err.Error()); return "" }
   holding_id := gjson.GetBytes(body, "holding.0.holding_id")
   return holding_id.String()
 }
@@ -93,7 +93,7 @@ func ExtractHoldingID(data []byte)string{
 }
 func(h Holding)Stringify()(string, error){
   output, err := xml.Marshal(h)
-  if err != nil { log.Println(err); return "", errors.New("unable to construct holding xml") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to construct holding xml") }
   return string(output), nil
 }
 
@@ -115,7 +115,7 @@ func ExtractItemID(data []byte)string{
 
 func (i Item)Stringify()(string, error){
   output, err := json.Marshal(i)
-  if err != nil { log.Println(err); return "", errors.New("unable to construct item json") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to construct item json") }
   return string(output), nil
 
 }

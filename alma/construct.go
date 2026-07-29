@@ -4,7 +4,7 @@ import (
   "aspace_publisher/marc"
   "github.com/beevik/etree"
   "encoding/xml"
-  "log"
+  "log/slog"
   "fmt"
   "errors"
   "strings"
@@ -115,7 +115,7 @@ func ParseMarc(marc_string string)(*etree.Document, error){
   marc_stripped, err := marc.StripOuterTags(marc_string)
   marc_xml := etree.NewDocument()
   err = marc_xml.ReadFromString(marc_stripped)
-  if err != nil { log.Println(err); return marc_xml, errors.New("Unable to read XML response from OCLC.") }
+  if err != nil { slog.Error(err.Error()); return marc_xml, errors.New("Unable to read XML response from OCLC.") }
   return marc_xml, nil
 }
 
@@ -123,7 +123,7 @@ func ParseMarc(marc_string string)(*etree.Document, error){
 func ParseXML(xml_string string)(*etree.Document, error){
   xml_doc := etree.NewDocument()
   err := xml_doc.ReadFromString(xml_string)
-  if err != nil { log.Println(err); return xml_doc, errors.New("Unable to read XML") }
+  if err != nil { slog.Error(err.Error()); return xml_doc, errors.New("Unable to read XML") }
   return xml_doc, nil
 }
 

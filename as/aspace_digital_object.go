@@ -1,7 +1,7 @@
 package as
 
 import(
-  "log"
+  "log/slog"
   "strings"
   "github.com/tidwall/gjson"
   "github.com/tidwall/sjson"
@@ -30,7 +30,7 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
     // if ref does not exist, request will 404, skip and go on
     json, err := AcquireJson(sessionid, "2", short_ref)
     if err != nil {
-      log.Println(err)
+      slog.Error(err.Error())
       r.responses = append(r.responses, Response{ short_ref, BuildErrorMessage(err.Error()) } )
       return true
     }
@@ -40,7 +40,7 @@ func CreateDigitalObjects(digital_obj_list string, sessionid string) (Responses)
     if strings.Contains(result.ResponseToString(), "error"){ return true }
     doid := extractIdFromResponse(result.ResponseToString())
     if doid == "" {
-      log.Println("failed to extract doid from aspace response for " + short_ref)
+      slog.Warn("failed to extract doid from aspace response for " + short_ref)
       return true }
     inst := Instance("/repositories/2/digital_objects/" + doid)
     modified, err := UpdateWithInstance(json, inst)

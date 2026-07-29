@@ -4,13 +4,18 @@ import (
   "aspace_publisher/handlers"
   "github.com/labstack/echo/v4"
   "github.com/labstack/echo/v4/middleware"
+  slogecho "github.com/samber/slog-echo"
   "os"
+  "log"
+  "log/slog"
 )
 
 func main(){
   e := echo.New()
-  // Middleware
-  e.Use(middleware.Logger())
+
+  logging := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+  slog.SetDefault(logging)
+  e.Use(slogecho.New(logging))
   e.Use(middleware.Recover())
 
   path := os.Getenv("HOME_DIR")
@@ -26,7 +31,7 @@ func main(){
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
   e.Static("/reports", "views/reports")
   e.GET("/alma/crup/:id", handlers.AlmaCrupHandler)
-  e.Logger.Fatal(e.Start(os.Getenv("PORT")))
+  log.Fatal(e.Start(os.Getenv("PORT")))
 
 }
 

@@ -5,7 +5,7 @@ import (
   "github.com/tidwall/sjson"
   "slices"
   "encoding/json"
-  "log"
+  "log/slog"
   "strconv"
   "regexp"
   "fmt"
@@ -76,9 +76,9 @@ func GetTCRefs(record []byte)(string, string){
 //modifies top container json to add ils ids
 func UpdateIlsIds(record []byte, holding_id, item_id string)([]byte, error){
   modified1, err := sjson.SetBytes(record, "ils_holding_id", holding_id)
-  if err != nil { log.Println(err); return nil, err }
+  if err != nil { slog.Error(err.Error()); return nil, err }
   modified2, err := sjson.SetBytes(modified1, "ils_item_id", item_id)
-  if err != nil { log.Println(err); return nil, err }
+  if err != nil { slog.Error(err.Error()); return nil, err }
   return modified2, nil
 }
 

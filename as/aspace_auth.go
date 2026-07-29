@@ -3,17 +3,17 @@ package as
 import(
   "fmt"
   "net/http"
-  "net/http/httputil"
   "net/url"
   "io"
   "os"
-  "log"
+  "log/slog"
   "time"
   "strings"
   "strconv"
   "encoding/json"
   "errors"
   "aspace_publisher/utils"
+  "aspace_publisher/connect"
   "github.com/labstack/echo/v4"
 )
 type AuthResp struct {
@@ -43,23 +43,18 @@ func AuthenticateAS(uname string, pass string) (string, error){
   request.Header.Set("Accept", "*/*")
   request.Header.Set("User-Agent", "curl/7.61.1")
 
-  if debug == "true" {
-    reqdump, err := httputil.DumpRequestOut(request, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
-  if err != nil { log.Println(err); return "", errors.New("Unable to create login request") }
+  connect.RequestDump(debug, request)
+
+  if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to create login request") }
   client := http.Client{
 	 Timeout: 60 * time.Second,
   }
   response, err := client.Do(request)
-  if debug == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
-  if err != nil { log.Println(err); return "", errors.New("Unable to complete login to aspace") }
-  if response.StatusCode != 200 { log.Println("unable to log into Aspace"); return "", errors.New("Unable to complete login to aspace") }
+
+  connect.ResponseDump(debug, response)
+
+  if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to complete login to aspace") }
+  if response.StatusCode != 200 { slog.Warn("unable to log into Aspace"); return "", errors.New("Unable to complete login to aspace") }
   defer response.Body.Close()
   byteVal, _ := io.ReadAll(response.Body)
   err = json.Unmarshal(byteVal, &authresp)

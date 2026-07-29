@@ -5,7 +5,7 @@ import(
   "math/rand"
   "os"
   "fmt"
-  "log"
+  "log/slog"
   "strings"
   "time"
 )
@@ -42,10 +42,10 @@ func WriteReport(filename string, messages []string){
   path := report_dir + "/" + filename
   f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
   defer f.Close()
-  if err != nil { log.Println(err) }
+  if err != nil { slog.Error(err.Error()) }
   for _,v := range messages{
     _, err = fmt.Fprintln(f, v)
-    if err != nil { log.Println(err) }
+    if err != nil { slog.Error(err.Error()) }
   }
 }
 func TimeNow()time.Time{

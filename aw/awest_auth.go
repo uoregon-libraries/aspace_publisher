@@ -5,7 +5,8 @@ import(
   "strings"
   "net/http"
   "errors"
-  "log"
+  "log/slog"
+  "fmt"
   "net/url"
   "strconv"
   "net/http/cookiejar"
@@ -30,7 +31,7 @@ func authenticate(verbose string)(string, error){
   data.Set("username", os.Getenv("AWEST_NAME"))
   data.Set("password", os.Getenv("AWEST_PASS"))
   jar, err := cookiejar.New(nil)
-  if err != nil { log.Println(err); return "", errors.New("could not create cookie jar") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("could not create cookie jar") }
   client := &http.Client{
     Jar: jar,
   }
@@ -41,17 +42,17 @@ func authenticate(verbose string)(string, error){
 
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(request, true)
-    if err != nil { log.Println(err) } else {
-    log.Printf("REQUEST:\n%s", string(reqdump)) }
+    if err != nil { slog.Error(err.Error()) } else {
+    slog.Info(fmt.Sprintf("REQUEST:\n%s", string(reqdump))) }
   }
-  if err != nil { log.Println(err); return "", errors.New("Unable to create login request") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to create login request") }
   response, err := client.Do(request)
-  if err != nil { log.Println(err); return "", errors.New("Unable to complete login to awest") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to complete login to awest") }
 
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-    log.Printf("RESPONSE:\n%s", string(respdump)) }
+    if err != nil { slog.Error(err.Error()) } else {
+    slog.Info(fmt.Sprintf("RESPONSE:\n%s", string(respdump))) }
   }
   defer response.Body.Close()
 
@@ -67,6 +68,6 @@ func parse_session(jar *cookiejar.Jar, url *url.URL) (string, error){
       return cookie.Value, nil
     }
   }
-  log.Println("awest_auth error: could not find session")
+  slog.Error("awest_auth error: could not find session")
   return "", errors.New("could not find session in cookies")
 }

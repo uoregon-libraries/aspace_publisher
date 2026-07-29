@@ -2,7 +2,7 @@ package alma
 
 import(
   "net/http"
-  "log"
+  "log/slog"
   "time"
   "errors"
   "io"
@@ -24,7 +24,7 @@ func Get(url string, params []string, accept string)([]byte, error){
   final_url := url + "?" + param_str
 
   req, err := http.NewRequest("GET", final_url, nil)
-  if err != nil { log.Println(err); return nil, errors.New("unable to create http request") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to create http request") }
   req.Header.Set("accept", accept)
   connect.RequestDump(verbose, req)
   client := &http.Client{
@@ -33,10 +33,10 @@ func Get(url string, params []string, accept string)([]byte, error){
 
   response, err := client.Do(req)
   connect.ResponseDump(verbose, response)
-  if err != nil { log.Println(err); return nil, errors.New("unable to complete http request") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to complete http request") }
   defer response.Body.Close()
   body, err := io.ReadAll(response.Body)
-  if err != nil { log.Println(err); return nil, errors.New("unable to read response from alma") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to read response from alma") }
   if response.StatusCode != 200 {
     if accept == "application/json" {
       return body, errors.New(ExtractJsonError(body))
