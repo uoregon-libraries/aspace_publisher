@@ -2,17 +2,17 @@ package marc
 
 import (
   "errors"
-  "log"
+  "log/slog"
   "github.com/beevik/etree"
 )
 
 func EditMarcForOCLC(oclc_marc string, as_marc string)(string,error){
   oclc := etree.NewDocument()
   err := oclc.ReadFromString(oclc_marc)
-  if err != nil { log.Println(err); return "", errors.New("unable to read oclc marc") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read oclc marc") }
   as := etree.NewDocument()
   err = as.ReadFromString(as_marc)
-  if err != nil { log.Println(err); return "", errors.New("unable to read as marc") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read as marc") }
 
   //fix 040
   as_040 := as.FindElement("//datafield[@tag='040']")
@@ -36,7 +36,7 @@ func EditMarcForOCLC(oclc_marc string, as_marc string)(string,error){
   as_008.SetText(new_008)
 
   s, err := as.WriteToString()
-  if err != nil { log.Println(err); return "", errors.New("unable to write marc to string") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to write marc to string") }
   return s, nil
 }
 

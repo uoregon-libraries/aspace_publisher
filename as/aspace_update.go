@@ -4,28 +4,28 @@ import (
   "github.com/tidwall/sjson"
   "github.com/tidwall/gjson"
   "errors"
-  "log"
+  "log/slog"
   "os"
   "strings"
   "net/http"
-  "net/http/httputil"
   "fmt"
   "time"
   "io"
   "net/url"
   "slices"
+  "aspace_publisher/connect"
 )
 
 func UpdateUserDefined1(record []byte, oclc string)([]byte, error){
   modified, err := sjson.SetBytes(record, "user_defined.string_1", oclc)
-  if err != nil { log.Println(err); return nil, err }
+  if err != nil { slog.Error(err.Error()); return nil, err }
   return modified, nil
 }
 
 // refactor
 func UpdateUserDefined2(record []byte, mms_id string)([]byte, error){
   modified, err := sjson.SetBytes(record, "user_defined.string_2", mms_id)
-  if err != nil { log.Println(err); return nil, err }
+  if err != nil { slog.Error(err.Error()); return nil, err }
   return modified, nil
 }
 
@@ -42,11 +42,7 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
+  connect.RequestDump(verbose, req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -55,14 +51,10 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   if err != nil { return "", err }
   defer response.Body.Close()
 
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
+  connect.ResponseDump(verbose, response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
-  if err != nil { log.Println(err); return "", errors.New("unable to read response") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response") }
 
   if response.StatusCode != 200 {
     return "", errors.New(fmt.Sprintf("Unable to update aspace resource: %s", string(body)))
@@ -82,11 +74,7 @@ func Update(sessionid string, _url string, json_record string)(string, error){
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
+  connect.RequestDump(verbose, req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -95,14 +83,10 @@ func Update(sessionid string, _url string, json_record string)(string, error){
   if err != nil { return "", err }
   defer response.Body.Close()
 
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
+  connect.ResponseDump(verbose, response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
-  if err != nil { log.Println(err); return "", errors.New("unable to read response") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response") }
 
   if response.StatusCode != 200 {
     return "", errors.New(fmt.Sprintf("Unable to update aspace record: %s", string(body)))
@@ -114,7 +98,7 @@ func Update(sessionid string, _url string, json_record string)(string, error){
 func UpdateWithInstance(record []byte, instance string)([]byte, error){
   instance_json := gjson.Parse(instance)
   modified, err := sjson.SetBytes(record, "instances.-1", instance_json.Value())
-  if err != nil { log.Println(err); return nil, err }
+  if err != nil { slog.Error(err.Error()); return nil, err }
   return modified, nil
 }
 
@@ -132,7 +116,7 @@ func AssembleUrl(path []string)(string, error){
   base_url := os.Getenv("ASPACE_URL")
   path_string := AssemblePath(path)
   _url, err := url.JoinPath(base_url, path_string)
-  if err != nil { log.Println(err); return "", err }
+  if err != nil { slog.Error(err.Error()); return "", err }
   return _url, nil
 }
 

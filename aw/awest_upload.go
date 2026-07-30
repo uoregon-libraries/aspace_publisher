@@ -8,7 +8,7 @@ import(
   "net/http"
   "net/http/httputil"
   "golang.org/x/net/html"
-  "log"
+  "log/slog"
   "os"
   "strings"
   "time"
@@ -44,13 +44,13 @@ func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffe
   }
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
+    if err != nil { slog.Error(err.Error()) } else { slog.Info(fmt.Sprintf("REQUEST:\n%s", string(reqdump))) }
   }
   response, err := client.Do(req); if err != nil { return nil, err }
   defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {  log.Printf("RESPONSE:\n%s", string(respdump)) }
+    if err != nil { slog.Error(err.Error()) } else {  slog.Info(fmt.Sprintf("RESPONSE:\n%s", string(respdump))) }
   }
   return response.Body, nil
 }
@@ -91,13 +91,13 @@ func Validate(sessionid string, boundary string, verbose string, form *bytes.Buf
   }
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else { log.Printf("REQUEST:\n%s", string(reqdump)) }
+    if err != nil { slog.Error(err.Error()) } else { slog.Info(fmt.Sprintf("REQUEST:\n%s", string(reqdump))) }
   }
   response, err := client.Do(req); if err != nil { return nil, err }
   defer response.Body.Close()
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else { log.Printf("RESPONSE:\n%s", string(respdump)) }
+    if err != nil { slog.Error(err.Error()) } else { slog.Info(fmt.Sprintf("RESPONSE:\n%s", string(respdump))) }
   }
   return response.Body, nil
 }
@@ -105,17 +105,17 @@ func Validate(sessionid string, boundary string, verbose string, form *bytes.Buf
 func ParseResult(r io.Reader)(string, error){
   var b bytes.Buffer
   doc, err := goquery.NewDocumentFromReader(r)
-  if err != nil { log.Println(err); return "", err }
+  if err != nil { slog.Error(err.Error()); return "", err }
   success := doc.Find(".success")
   if success.Length() > 0 {
     err := html.Render(&b, success.Nodes[0])
-    if err != nil { log.Println(err); return "", err }
+    if err != nil { slog.Error(err.Error()); return "", err }
     return b.String(), nil
   } else {
     err_nodes := doc.Find(".errors")
     if err_nodes.Length() > 0 {
       err := html.Render(&b, err_nodes.Nodes[0])
-      if err != nil { log.Println(err); return "", err }
+      if err != nil { slog.Error(err.Error()); return "", err }
       return b.String(), nil
     }
   }

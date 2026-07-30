@@ -4,7 +4,7 @@ import (
 
   "os"
   "net/http"
-  "log"
+  "log/slog"
   "time"
   "errors"
   "io"
@@ -30,12 +30,12 @@ func push(method string, _url string, params []string, _data string, format stri
   param_str := strings.Join(params[:], "&")
   final_url := _url + "?" + param_str
   if debug == "true" {
-    log.Println("Swapping " + final_url + "for test url")
+    slog.Info("Swapping " + final_url + "for test url")
     final_url = os.Getenv("TEST_URL")
   }
   data := strings.NewReader(_data)
   req, err := http.NewRequest(method, final_url, data)
-  if err != nil { log.Println(err); return nil, errors.New("unable to create http request") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to create http request") }
   req.Header.Set("Content-Type", "application/" + format)
   req.Header.Set("accept", "application/" + format)
   connect.RequestDump(verbose, req)
@@ -44,10 +44,10 @@ func push(method string, _url string, params []string, _data string, format stri
   }
   response, err := client.Do(req)
   connect.ResponseDump(verbose, response)
-  if err != nil { log.Println(err); return nil, errors.New("unable to complete http request") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to complete http request") }
   defer response.Body.Close()
   body, err := io.ReadAll(response.Body)
-  if err != nil { log.Println(err); return nil, errors.New("unable to read response from alma") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to read response from alma") }
   if response.StatusCode != 200 { return body, errors.New("alma errors") }
 
   return body, nil

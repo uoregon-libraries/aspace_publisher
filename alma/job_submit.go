@@ -4,7 +4,7 @@ import(
   "github.com/tidwall/gjson"
   "time"
   "encoding/json"
-  "log"
+  "log/slog"
   "strings"
   "os"
   "strconv"
@@ -25,7 +25,7 @@ func CheckJob(joblink string, nextFun ProcessFunc, filename string, list []strin
   for i < MAX {
     resp,err := Get(joblink, params, "application/json")
     if err != nil { 
-      log.Println(err)
+      slog.Error(err.Error())
       /*** count this as one try ****/
       i += 1
       time.Sleep(span)
@@ -49,9 +49,9 @@ func CheckJob(joblink string, nextFun ProcessFunc, filename string, list []strin
 }
 
 func DummyFunc(word string, list map[string][]bool){
-  log.Println("word is " + word)
+  slog.Info("word is " + word)
   for k, v := range list{
-    log.Println(fmt.Sprintf("%s, %t", k, v[0]))
+    slog.Info(fmt.Sprintf("%s, %t", k, v[0]))
   }
 }
 
@@ -75,7 +75,7 @@ func SubmitJob(jobid string, job_params []Param)(string, error){
   json,_ := json.Marshal(job)
   resp,err := Post(_url.String(), params, string(json), "json")
   if err != nil { 
-    log.Println(err)
+    slog.Error(err.Error())
     return "", err
   }
   link := ExtractJobInstance(resp)

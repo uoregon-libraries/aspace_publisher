@@ -1,15 +1,15 @@
 package as
 
 import (
-  "log"
+  "log/slog"
   "os"
   "strings"
   "net/http"
-  "net/http/httputil"
   "fmt"
   "time"
   "io"
   "encoding/json"
+  "aspace_publisher/connect"
 )
 type Responses struct {
   responses []Response
@@ -26,7 +26,7 @@ func (r Response) ResponseToString() string{
   var output []byte
   var err error
   output, err = json.Marshal(r.message)
-  if err != nil { log.Println(err); return `{"id":` + r.id + `", "error": "unable to marshal message" }` }
+  if err != nil { slog.Error(err.Error()); return `{"id":` + r.id + `", "error": "unable to marshal message" }` }
   return `{"id":"` + r.id + `", "message":` + string(output) + "}"
 }
 
@@ -41,7 +41,7 @@ func (r Responses) ResponsesToString() string {
 func BuildMessage(message string) Message{
   var m Message
   err := json.Unmarshal([]byte(message), &m)
-  if err != nil { log.Println(err); return BuildErrorMessage("unable to unmarshal message") }
+  if err != nil { slog.Error(err.Error()); return BuildErrorMessage("unable to unmarshal message") }
   return m
 }
 
@@ -59,39 +59,31 @@ func Post(sessionid string, identifier string, repo_id string, record_id string,
   url := base_url + fmt.Sprintf("repositories/%s/%s", repo_id, record_id)
   data := strings.NewReader(json_record)
   req, err := http.NewRequest("POST", url, data)
-if err != nil { log.Println(err); return Response{identifier, BuildErrorMessage("unable to create http request")} }
+if err != nil { slog.Error(err.Error()); return Response{identifier, BuildErrorMessage("unable to create http request")} }
 
   req.Header.Set("X-ArchivesSpace-Session", sessionid)
   req.Header.Set("Content-Type", "text/json")
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
+  connect.RequestDump(verbose, req)
   if test == "true" { return Response { identifier, BuildErrorMessage("test mode") } }
 
   client := &http.Client{
     Timeout: time.Second * 60,
   }
   response, err := client.Do(req)
-  if err != nil { log.Println(err); return Response{ identifier, BuildErrorMessage("unable to make request to aspace") } }
+  if err != nil { slog.Error(err.Error()); return Response{ identifier, BuildErrorMessage("unable to make request to aspace") } }
   defer response.Body.Close()
 
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
+  connect.ResponseDump(verbose, response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
-  if err != nil { log.Println(err); return Response{ identifier, BuildErrorMessage("unable to read response") } }
+  if err != nil { slog.Error(err.Error()); return Response{ identifier, BuildErrorMessage("unable to read response") } }
 
   var r Response
   err = json.Unmarshal(body, &r)
-  if err != nil { log.Println(err); return Response{ identifier, BuildErrorMessage("unable to unmarshal response") } }
+  if err != nil { slog.Error(err.Error()); return Response{ identifier, BuildErrorMessage("unable to unmarshal response") } }
 
   return Response{ identifier, BuildMessage(string(body)) }
 }

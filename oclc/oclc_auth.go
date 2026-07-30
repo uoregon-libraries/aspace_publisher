@@ -4,12 +4,12 @@ import(
   "net/http"
   "encoding/json"
   "os"
-  "log"
+  "log/slog"
   "time"
   "io/ioutil"
   "github.com/labstack/echo/v4"
   "aspace_publisher/utils"
-  "net/http/httputil"
+  "aspace_publisher/connect"
   "errors"
 )
 
@@ -26,30 +26,24 @@ func OclcAuth() (string, error) {
   verbose := os.Getenv("VERBOSE")
 
   req, err := http.NewRequest("POST", url, nil)
-  if err != nil { log.Println(err); return "", errors.New("unable to create request") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to create request") }
   req.SetBasicAuth(name, pass)
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequestOut(req, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("REQUEST:\n%s", string(reqdump)) }
-  }
+
+  connect.RequestDump(verbose, req)
 
   client := &http.Client{
     Timeout: time.Second * 10,
   }
   response, err := client.Do(req)
-  if err != nil { log.Println(err); return "", errors.New("unable to complete http request") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to complete http request") }
   defer response.Body.Close()
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { log.Println(err) } else {
-      log.Printf("RESPONSE:\n%s", string(respdump)) }
-  }
+
+  connect.ResponseDump(verbose, response) //check response only after err check
 
   byteVal, _ := ioutil.ReadAll(response.Body)
   var ot OclcToken
   err = json.Unmarshal(byteVal, &ot)
-  if err != nil { log.Println(err); return "", errors.New("unable to extract token") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to extract token") }
   return ot.AccessToken, nil
 }
 
@@ -58,7 +52,7 @@ func GetToken(c echo.Context) (string, error){
   token, err := utils.FetchCookieVal(c, "oclc_token")
   if token == "" || err != nil {
     token, err = OclcAuth()
-    if err != nil { log.Println(err); return "", err }
+    if err != nil { slog.Error(err.Error()); return "", err }
     utils.WriteCookie(c, 20, "oclc_token", token)
   }
   return token, nil

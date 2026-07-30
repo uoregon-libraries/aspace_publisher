@@ -4,7 +4,7 @@ import(
   "github.com/labstack/echo/v4"
   "net/http"
   "io/ioutil"
-  "log"
+  "log/slog"
   "os"
 )
 
@@ -15,6 +15,6 @@ func VersionHandler(c echo.Context) error {
 func read_version() string{
   path := os.Getenv("HOME_DIR")
   content, err := ioutil.ReadFile(path + "version.txt")
-  if err != nil { log.Println(err); return "could not read version" }
+  if err != nil { slog.Error(err.Error()); return "could not read version" }
   return string(content)
 }

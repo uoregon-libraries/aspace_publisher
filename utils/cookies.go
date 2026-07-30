@@ -4,7 +4,7 @@ import(
   "net/http"
   "time"
   "github.com/labstack/echo/v4"
-  "log"
+  "log/slog"
   "errors"
 )
 
@@ -20,7 +20,7 @@ func WriteCookie(c echo.Context, expires int, name string, value string) {
 
 func FetchCookieVal(c echo.Context, name string) (string, error) {
   cookie, err := c.Cookie(name)
-  if err != nil { log.Println(err); return "", errors.New("unable to fetch cookie") }
+  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to fetch cookie") }
 
   return cookie.Value, nil
 }

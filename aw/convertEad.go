@@ -8,7 +8,7 @@ import (
   "os"
   "path/filepath"
   "github.com/beevik/etree"
-  "log"
+  "log/slog"
 )
 
 // needs refactoring, but for now...
@@ -16,7 +16,7 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
   aw_xml := etree.NewElement("ead")
   as_xml := etree.NewDocument()
   err := as_xml.ReadFromString(xml)
-  if err != nil { log.Println(err); return "","", "", errors.New("could not read EAD") }
+  if err != nil { slog.Error(err.Error()); return "","", "", errors.New("could not read EAD") }
 
   eadheader_copy := as_xml.FindElement("//eadheader").Copy()
   eadheader_copy.RemoveAttr("findaidstatus")
@@ -100,7 +100,7 @@ func PrepareEad(repo_id string, resource_id string, xml string)(string, string, 
 
   d := etree.NewDocumentWithRoot(aw_xml)
   s, err := d.WriteToString()
-  if err != nil { log.Println(err); return "", "", "", errors.New("could not write EAD to string") }
+  if err != nil { slog.Error(err.Error()); return "", "", "", errors.New("could not write EAD to string") }
 return s, eadid.Text(), ark_id, nil
 }
 
@@ -112,7 +112,7 @@ func CallConversion(xml string)(string, error){
   cmd.Stdout = &out
   cmd.Run()
   if strings.Contains(out.String(), "error"){
-    log.Println(out.String()); return "", errors.New("unable to complete the awest conversion")
+    slog.Error(out.String()); return "", errors.New("unable to complete the awest conversion")
   }
   return out.String(), nil
 }
