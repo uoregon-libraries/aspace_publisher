@@ -213,6 +213,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
 type ProcessItemFun func(ProcessArgs, Item, map[string]string)(string, error)
 // does not log or write reports
 func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, error){
+  slog.Info(fmt.Sprintf("Starting item...args %+v, tcmap %+v", args, tcmap))
   //assemble item record
   item, err := ConstructItem(args.Holding_id, item, tcmap)
   if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
