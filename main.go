@@ -5,6 +5,7 @@ import (
   "github.com/labstack/echo/v4"
   "github.com/labstack/echo/v4/middleware"
   slogecho "github.com/samber/slog-echo"
+  "github.com/DeRuina/timberjack"
   "os"
   "log"
   "log/slog"
@@ -12,9 +13,22 @@ import (
 
 func main(){
   e := echo.New()
-
-  logging := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+  logmode := os.Getenv("LOGMODE")
+  var logging *slog.Logger
+  if logmode == "file" {
+    logr := &timberjack.Logger{
+    Filename:   "app.log", // path of log file
+    MaxSize:    50, // file size in MB
+    MaxBackups: 7, // number of files to retain
+    MaxAge:     8, // how long (in days) to retain files
+    Compression: "gzip", // archive files?
+    LocalTime:  true, // re timestamps
+    RotateAt: []string{"00:00"},
+}
+    logging = slog.New(slog.NewJSONHandler(logr, nil))
+  } else { logging = slog.New(slog.NewJSONHandler(os.Stdout, nil)) }
   slog.SetDefault(logging)
+
   e.Use(slogecho.New(logging))
   e.Use(middleware.Recover())
 
