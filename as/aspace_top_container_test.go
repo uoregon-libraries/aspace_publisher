@@ -11,7 +11,7 @@ import (
 )
 
 func TestTCList(t *testing.T){
-  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345", "collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/444","collection_uri_u_sstr":"/repositories/2/resources/986"}]}}`
+  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345", "collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/444","collection_uri_u_sstr":["/repositories/2/resources/986"]}]}}`
   path := "/api/repositories/2/top_containers/search"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
@@ -55,7 +55,7 @@ func TestMapify(t *testing.T){
 }
 
 func TestExtractTCData(t *testing.T){
-  listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345","collection_uri_u_sstr":"/repositories/2/resources/987"},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":"/repositories/2/resources/987"}]}}`
+  listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345","collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":["/repositories/2/resources/987"]}]}}`
   listpath := "/api/repositories/2/top_containers/search"
   tcdata2 := topcontainer_fixture1
   tcpath1 := "/api/repositories/2/top_containers/12345"

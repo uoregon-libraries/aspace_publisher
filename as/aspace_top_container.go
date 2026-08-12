@@ -55,7 +55,7 @@ func TCList(session_id, repo_id, id string)([]string, error){
   json_list, err := AcquireJson(session_id, repo_id, "top_containers/search?type[]=resource&q=/resources/" + id)
   if err != nil { return nil, err }
   r_uri := fmt.Sprintf("/repositories/%s/resources/%s", repo_id, id)
-  tclist := gjson.GetBytes(json_list, fmt.Sprintf("response.docs.#(collection_uri_u_sstr == %s)#.id", r_uri))
+  tclist := gjson.GetBytes(json_list, fmt.Sprintf("response.docs.#(collection_uri_u_sstr.#(== %s))#.id", r_uri))
   cleanlist := []string{}
   // ensure list content unique
   for _, tc := range tclist.Array() {
