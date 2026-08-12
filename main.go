@@ -17,7 +17,7 @@ func main(){
   var logging *slog.Logger
   if logmode == "file" {
     logr := &timberjack.Logger{
-    Filename:   "app.log", // path of log file
+    Filename:   "logs/app.log", // path of log file
     MaxSize:    50, // file size in MB
     MaxBackups: 7, // number of files to retain
     MaxAge:     8, // how long (in days) to retain files
