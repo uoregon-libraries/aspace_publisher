@@ -22,7 +22,7 @@ type LTNWorker struct {
 }
 
 func (w *LTNWorker) Work(ctx context.Context, job *river.Job[LinkToNetwork]) error {
-    alma.DummyLinkToNetwork([]string{job.Args.MmsID}, job.Args.Filename)
+    alma.LinkToNetwork([]string{job.Args.MmsID}, job.Args.Filename)
     return nil
 }
 

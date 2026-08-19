@@ -323,7 +323,7 @@ func TestCallWorker(t *testing.T){
   args := map[string]string{ "id": "banana", "value": "yellow" }
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != "/" + worker_path { t.Errorf("incorrect request path: %v", r.URL.Path) }
-    if r.URL.RawQuery != "id%3Dbanana%26value%3Dyellow" { t.Errorf("incorrect param: ") }
+    if r.URL.RawQuery != "id=banana&value=yellow" { t.Errorf("incorrect param: ") }
     fmt.Fprint(w, "ok")
   }))
   defer ts.Close()
@@ -334,7 +334,7 @@ func TestBuildWorkerUrl( t *testing.T){
   worker_path := "startJob"
   os.Setenv("WORKER_URL", "http://riverservice.org")
   args := map[string]string{ "id": "banana", "value": "yellow" }
-  expected := "http://riverservice.org/startJob?id%3Dbanana%26value%3Dyellow"
+  expected := "http://riverservice.org/startJob?id=banana&value=yellow"
   _url := BuildWorkerUrl(worker_path, args)
   if _url != expected { t.Errorf("incorrect response") }
 }
