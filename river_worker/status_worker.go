@@ -29,6 +29,7 @@ func (w *StatusWorker) Work(ctx context.Context, job *river.Job[ServiceStatus]) 
 
 func StartStatusJob(riverClient *river.Client[pgx.Tx], ctx context.Context, dbPool *pgxpool.Pool) http.HandlerFunc{
   return func(w http.ResponseWriter, r *http.Request) {
+    defer HandlerPanic()
     tx, err := dbPool.Begin(ctx)
     if err != nil {
         panic(err)
@@ -37,13 +38,14 @@ func StartStatusJob(riverClient *river.Client[pgx.Tx], ctx context.Context, dbPo
     sta := r.URL.Query().Get("status")
     oth := r.URL.Query().Get("other")
     _, err = riverClient.InsertTx(ctx, tx, ServiceStatus{ Status: sta, Other: oth }, nil)
-    if err != nil {
-        panic(err)
-    }
+    if err != nil { panic(err) }
 
-    if err := tx.Commit(ctx); err != nil {
-        panic(err)
-    }
+    if err := tx.Commit(ctx); err != nil { panic(err) }
     w.Write([]byte("ok"))
   }
+}
+
+func HandlerPanic() {
+  p := recover()
+  if p != nil { log.Println(p) }
 }

@@ -2,7 +2,6 @@ package river_worker
 
 import (
     "context"
-    "net/url"
     "github.com/jackc/pgx/v5/pgxpool"
     "github.com/jackc/pgx/v5"
     "github.com/riverqueue/river"
@@ -28,21 +27,16 @@ func (w *LTNWorker) Work(ctx context.Context, job *river.Job[LinkToNetwork]) err
 
 func StartLTNJob(riverClient *river.Client[pgx.Tx], ctx context.Context, dbPool *pgxpool.Pool) http.HandlerFunc{
   return func(w http.ResponseWriter, r *http.Request) {
+    defer HandlerPanic()
     tx, err := dbPool.Begin(ctx)
-    if err != nil {
-        panic(err)
-    }
+    if err != nil { panic(err) }
     defer tx.Rollback(ctx)
     id := r.URL.Query().Get("id")
     filename := r.URL.Query().Get("filename")
     _, err = riverClient.InsertTx(ctx, tx, LinkToNetwork{ MmsID: id, Filename: filename }, nil)
-    if err != nil {
-        panic(err)
-    }
+    if err != nil { panic(err) }
 
-    if err := tx.Commit(ctx); err != nil {
-        panic(err)
-    }
+    if err := tx.Commit(ctx); err != nil { panic(err) }
     w.Write([]byte("ok"))
   }
 }
