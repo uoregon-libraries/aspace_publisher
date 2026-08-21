@@ -33,11 +33,9 @@ func StartLTNJob(riverClient *river.Client[pgx.Tx], ctx context.Context, dbPool 
         panic(err)
     }
     defer tx.Rollback(ctx)
-    _unescaped, err := url.QueryUnescape(r.URL.String())
-    if err != nil { panic(err) }
-    _url,_ := url.Parse(_unescaped)
-    q := _url.Query()
-    _, err = riverClient.InsertTx(ctx, tx, LinkToNetwork{ MmsID: q.Get("id"), Filename: q.Get("filename") }, nil)
+    id := r.URL.Query().Get("id")
+    filename := r.URL.Query().Get("filename")
+    _, err = riverClient.InsertTx(ctx, tx, LinkToNetwork{ MmsID: id, Filename: filename }, nil)
     if err != nil {
         panic(err)
     }

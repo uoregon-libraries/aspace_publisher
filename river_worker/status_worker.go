@@ -2,7 +2,7 @@ package river_worker
 
 import (
     "context"
-    "fmt"
+    "log"
 
     "github.com/jackc/pgx/v5/pgxpool"
     "github.com/jackc/pgx/v5"
@@ -12,6 +12,7 @@ import (
 )
 type ServiceStatus struct {
     Status string `json:"status"`
+    Other string `json:"other"`
 }
 
 func (ServiceStatus) Kind() string { return "indicate_status" }
@@ -21,7 +22,8 @@ type StatusWorker struct {
 }
 
 func (w *StatusWorker) Work(ctx context.Context, job *river.Job[ServiceStatus]) error {
-    fmt.Println("status: " + job.Args.Status)
+    log.Println("status: " + job.Args.Status)
+    log.Println("other: " + job.Args.Other)
     return nil
 }
 
@@ -32,9 +34,9 @@ func StartStatusJob(riverClient *river.Client[pgx.Tx], ctx context.Context, dbPo
         panic(err)
     }
     defer tx.Rollback(ctx)
-    str := r.URL.Query().Get("status")
-
-    _, err = riverClient.InsertTx(ctx, tx, ServiceStatus{ Status: str }, nil)
+    sta := r.URL.Query().Get("status")
+    oth := r.URL.Query().Get("other")
+    _, err = riverClient.InsertTx(ctx, tx, ServiceStatus{ Status: sta, Other: oth }, nil)
     if err != nil {
         panic(err)
     }

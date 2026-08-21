@@ -45,6 +45,7 @@ func main(){
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
   e.Static("/reports", "views/reports")
   e.GET("/alma/crup/:id", handlers.AlmaCrupHandler)
+  e.GET("/test/status/:status", handlers.StatusHandler)
   log.Fatal(e.Start(os.Getenv("PORT")))
 
 }

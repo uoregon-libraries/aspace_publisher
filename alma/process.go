@@ -305,8 +305,7 @@ func BuildWorkerUrl(worker_path string, args map[string]string) string{
     query.Set(k, v)
   }
   params := query.Encode()
-  // don't use url.QueryEscape(params), the river_service listener doesn't
-  // seem to parse it correctly
+  // url.QueryEscape(params) not needed
   _url.RawQuery = params
   return _url.String()
 }
