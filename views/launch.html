@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Aspace Publisher Launcher</title>
+</head>
+<body>
+<h1></h1>
+
+<form action="/launcher" method="post" enctype="multipart/form-data">
+    <label for="resource_id">Resource ID:</label><br>
+    <input type="text" id="resource_id" name="resource_id"><br>
+    <p>Choose a workflow:</p>
+    <input type="radio" id="validate_ead" name="workflow">
+    <label for="validate_ead">Validate EAD for Archives West</label><br>
+
+    <input type="radio" id="upload_ead" name="workflow">
+    <label for="upload_ead">Create/update EAD on Archives West</label><br>
+
+    <input type="radio" id="validate_marc" name="workflow">
+    <label for="validate_marc">Validate MARC in WorldCat</label><br>
+
+    <input type="radio" id="publish_marc" name="workflow">
+    <label for="publish_marc">Create/update WorldCat bib</label><br>
+
+    <input type="radio" id="publish_alma" name="workflow">
+    <label for="publish_alma">Create/update Alma bib/holding/items</label><br>
+
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>
