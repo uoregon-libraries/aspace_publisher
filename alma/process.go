@@ -193,7 +193,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
     var item = Item{}
     if tc["boundwith"] == "true" { continue } // skip boundwith containers
     if tc["ils_item"] != "" { //this is an update
-      path := []string{"bibs", tc["mms_id"], "holdings", tc["ils_holding"], "items", tc["ils_item"]}
+      path := []string{"bibs", args.Mms_id, "holdings", tc["ils_holding"], "items", tc["ils_item"]}
       _url := BuildUrl(path)
       params := []string{ ApiKey() }
       itemjson, err := Get(_url, params, "application/json")
