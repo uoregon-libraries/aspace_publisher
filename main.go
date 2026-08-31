@@ -36,11 +36,11 @@ func main(){
   e.GET("/version", handlers.VersionHandler)
   e.File("/as/login.html", path + "views/as/login.html") // as/login.html
   e.POST("login", handlers.AspaceLoginHandler)
-  e.POST("/ead/validate/:id", handlers.ValidateEadHandler)
-  e.POST("/ead/convert/:id", handlers.ConvertEadHandler)
-  e.POST("/ead/upload/:id", handlers.UploadEadHandler)
-  e.POST("/oclc/crup/:id", handlers.OclcCrupHandler)
-  e.POST("/oclc/validate/:id", handlers.OclcValidateHandler)
+  e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
+  e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
+  e.GET("/ead/upload/:id", handlers.UploadEadHandler)
+  e.GET("/oclc/crup/:id", handlers.OclcCrupHandler)
+  e.GET("/oclc/validate/:id", handlers.OclcValidateHandler)
   e.File("/as/do.html", path + "views/as/do.html") //urlpath,directorypath, uploads/do.html
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
   e.Static("/reports", "views/reports")
