@@ -39,8 +39,8 @@ func main(){
   e.GET("/ead/validate/:id", handlers.ValidateEadHandler)
   e.GET("/ead/convert/:id", handlers.ConvertEadHandler)
   e.GET("/ead/upload/:id", handlers.UploadEadHandler)
-  e.GET("/oclc/crup/:id", handlers.OclcCrupHandler)
-  e.GET("/oclc/validate/:id", handlers.OclcValidateHandler)
+  e.POST("/oclc/crup/:id", handlers.OclcCrupHandler)
+  e.POST("/oclc/validate/:id", handlers.OclcValidateHandler)
   e.File("/as/do.html", path + "views/as/do.html") //urlpath,directorypath, uploads/do.html
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
   e.Static("/reports", "views/reports")
