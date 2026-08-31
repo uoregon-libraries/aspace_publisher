@@ -7,13 +7,27 @@ import (
   "regexp"
 )
 
+func CheckIsPublished(resource_id string, repo_id string, session_id string)(string, error){
+  json, err := AcquireJson(session_id, repo_id, "resources/" + resource_id)
+  if err != nil { return string(json), err }
+
+  //is it published?
+  return IsPublished(json)
+}
+
 func IsPublished(resource []byte)(string, error){
   result := gjson.GetBytes(resource, "publish")
   if !result.Exists() { return "", errors.New("unable to determine published?") }
   return result.String(), nil
 }
 
-func GetOclcId(resource []byte)(string, error){
+func GetOclcId(resource_id string, repo_id string, session_id string)(string, error){
+  json, err := AcquireJson(session_id, repo_id, "resources/" + resource_id)
+  if err != nil { return string(json), err }
+
+  return ExtractOclcId(json)
+}
+func ExtractOclcId(resource []byte)(string, error){
   result := gjson.GetBytes(resource, "user_defined.string_1")
   err := ValidID(result.String())
   return result.String(), err
