@@ -5,6 +5,7 @@ import (
   "aspace_publisher/oclc"
   "aspace_publisher/alma"
   "aspace_publisher/file"
+  "errors"
 )
 
 func almaCrup(resource_id string, holding_id string, session_id string, oclc_token string) (string, error) {
@@ -36,7 +37,7 @@ func almaCrup(resource_id string, holding_id string, session_id string, oclc_tok
   if err != nil { file.WriteReport(args.Filename, []string{ "Could not acquire OCLC MARC " + err.Error() }); return args.Filename, err }
   marc_clean := oclc.UnformatXML(oclc_marc)
   tcmap, errmsgs := as.ExtractTCData(args.Session_id, args.Repo_id, args.Resource_id)
-  if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return args.Filename, err }
+  if len(errmsgs) != 0 { file.WriteReport(args.Filename, errmsgs); return args.Filename, errors.New("errors occurred obtaining TC data") }
 
   tcmap, err = alma.CheckTCMap(tcmap)
   if err != nil { file.WriteReport(args.Filename, []string{ "Error attempting to acquire ids: " + err.Error() }); return args.Filename, err }
