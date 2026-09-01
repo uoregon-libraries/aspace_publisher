@@ -23,24 +23,24 @@ func LauncherHandler(c echo.Context) error {
   workflow := c.FormValue("workflow")
   switch workflow {
   case "validate_ead":
-    fname,err = validateEad(c.Param("id"), session_id)
+    fname,err = validateEad(resource_id, session_id)
   case "upload_ead":
-    fname,err = uploadEad(c.Param("id"), session_id)
+    fname,err = uploadEad(resource_id, session_id)
   case "validate_marc":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = validateMarc(c.Param("id"), session_id, oclc_token)
+    fname,err = validateMarc(resource_id, session_id, oclc_token)
   case "publish_marc":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = oclcCrup(c.Param("id"), session_id, oclc_token)
+    fname,err = oclcCrup(resource_id, session_id, oclc_token)
   case "publish_alma":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = almaCrup(c.Param("id"), validHolding(c), session_id, oclc_token)
+    fname,err = almaCrup(resource_id, validHolding(c), session_id, oclc_token)
   default:
     return c.String(500, "No workflow submitted")
   }
