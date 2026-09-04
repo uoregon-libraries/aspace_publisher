@@ -5,6 +5,7 @@ import(
   "aspace_publisher/as"
   "aspace_publisher/utils"
   "aspace_publisher/oclc"
+  "aspace_publisher/aw"
   "net/http"
   "os"
   "fmt"
@@ -20,13 +21,19 @@ func LauncherHandler(c echo.Context) error {
 
   err = as.ValidID(resource_id)
   fname := ""
-  if err != nil { return c.String(400, "bad resource id") }
+  if err != nil { return c.String(500, "bad resource id") }
   workflow := c.FormValue("workflow")
   switch workflow {
   case "validate_ead":
-    fname,err = validateEad(resource_id, session_id)
+    //get session for aw
+    aw_session, err := aw.GetSession(c)
+    if err != nil { return c.String(400, "could not authenticate with AWest") }
+    fname,err = processEad(resource_id, session_id, repo_id, aw_session, "validate")
   case "upload_ead":
-    fname,err = uploadEad(resource_id, session_id)
+    //get session for aw
+    aw_session, err := aw.GetSession(c)
+    if err != nil { return c.String(400, "could not authenticate with AWest") }
+    fname,err = processEad(resource_id, session_id, repo_id, aw_session, "upload")
   case "validate_marc":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)

@@ -1,60 +1,26 @@
 package handlers
 
 import(
-  "log/slog"
   "github.com/labstack/echo/v4"
   "os"
-  "net/http"
   "aspace_publisher/utils"
   "aspace_publisher/aw"
-  "aspace_publisher/as"
+  "fmt"
 )
 
 
 func ValidateEadHandler(c echo.Context) error {
-  ead_id := c.Param("id")
+  resource_id := c.Param("id")
   repo_id := "2"
-  verbose := os.Getenv("VERBOSE")
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session, try redoing login.") }
 
-  ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id, verbose)
-  if err != nil {
-    if ead_orig != "" {
-      return echo.NewHTTPError(400, ead_orig) } else {
-      return echo.NewHTTPError(400, err)
-    }
-  }
-
-  ead_prepped, _, ark, err := aw.PrepareEad(repo_id, ead_id, ead_orig)
-  if err != nil { slog.Error(err.Error()); return echo.NewHTTPError(400, "unable to prep ead") }
-
-  ead_converted, err := aw.CallConversion(ead_prepped)
-  if err != nil { slog.Error(err.Error()); return echo.NewHTTPError(400, "unable to convert ead") }
-
-  f, err := os.CreateTemp("", "ead-")
-  if err != nil { slog.Error(err.Error()); return echo.NewHTTPError(400, "unable to create temp dir") }
-  defer f.Close()
-  defer os.Remove(f.Name())
-  _, err = f.Write([]byte(ead_converted))
-  if err != nil { slog.Error(err.Error()); return echo.NewHTTPError(400, "unable to write file") }
-
   //get session for aw
-  aw_session, err := aw.GetSession(c, verbose)
+  aw_session, err := aw.GetSession(c)
   if err != nil { return echo.NewHTTPError(403, "Unable to complete ArchivesWest auth.") }
-  vals, err := aw.MakeUploadMap(ark, "ead", f.Name())
-  if err != nil { return echo.NewHTTPError(400, "Unable to create upload map.") }
-  // create form
-  form, boundary, err := utils.CreateMultipartFormData(vals)
-  if err != nil { return echo.NewHTTPError(400, "Unable to create form.") }
-  //validate
-  response, err := aw.Validate(aw_session, boundary, verbose, form)
-  if err != nil { return echo.NewHTTPError(400, "Unable to complete request.") }
+  fname,err := processEad(resource_id, session_id, repo_id, aw_session, "validate")
 
-  parsed, err := aw.ParseResult(response)
-  if err != nil { return echo.NewHTTPError(400, "Unable to parse response.") }
-  return c.HTML(http.StatusOK, parsed)
+  base_url := os.Getenv("HOME_URL")
+  return c.HTML(200, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
 
-  //Use Inline or Attachment
-  //return c.Inline(f.Name(), filename)
 }
