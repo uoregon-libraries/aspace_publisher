@@ -5,9 +5,12 @@ import(
   "net/http/httputil"
   "log/slog"
   "fmt"
+  "os"
 )
 
-func RequestDump(verbose string, req *http.Request){
+func RequestDump(req *http.Request, gate ...string){
+  verbose := os.Getenv("VERBOSE")
+  if len(gate) > 0 { verbose = os.Getenv(gate[0]) }
   if verbose == "true" {
     reqdump, err := httputil.DumpRequest(req, true)
     if err != nil { slog.Error(err.Error()) } else {
@@ -15,7 +18,9 @@ func RequestDump(verbose string, req *http.Request){
   }
 }
 
-func ResponseDump(verbose string, response *http.Response){
+func ResponseDump(response *http.Response, gate ...string){
+  verbose := os.Getenv("VERBOSE")
+  if len(gate) > 0 { verbose = os.Getenv(gate[0]) }
   if verbose == "true" {
     respdump, err := httputil.DumpResponse(response, true)
     if err != nil { slog.Error(err.Error()) } else {

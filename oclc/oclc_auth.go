@@ -23,13 +23,12 @@ func OclcAuth() (string, error) {
   url := os.Getenv("OCLC_AUTH_URL")
   name := os.Getenv("OCLC_NAME")
   pass := os.Getenv("OCLC_PASS")
-  verbose := os.Getenv("VERBOSE")
 
   req, err := http.NewRequest("POST", url, nil)
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to create request") }
   req.SetBasicAuth(name, pass)
 
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req, "DEBUG")
 
   client := &http.Client{
     Timeout: time.Second * 10,
@@ -38,7 +37,7 @@ func OclcAuth() (string, error) {
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to complete http request") }
   defer response.Body.Close()
 
-  connect.ResponseDump(verbose, response) //check response only after err check
+  connect.ResponseDump(response, "DEBUG") //check response only after err check
 
   byteVal, _ := ioutil.ReadAll(response.Body)
   var ot OclcToken
