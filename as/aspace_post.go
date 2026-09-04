@@ -16,8 +16,8 @@ type Responses struct {
 }
 
 type Response struct {
-  id string
-  message Message
+  Id string
+  Mess Message
 }
 
 type Message map[string]any
@@ -25,9 +25,9 @@ type Message map[string]any
 func (r Response) ResponseToString() string{
   var output []byte
   var err error
-  output, err = json.Marshal(r.message)
-  if err != nil { slog.Error(err.Error()); return `{"id":` + r.id + `", "error": "unable to marshal message" }` }
-  return `{"id":"` + r.id + `", "message":` + string(output) + "}"
+  output, err = json.Marshal(r.Mess)
+  if err != nil { slog.Error(err.Error()); return `{"id":` + r.Id + `", "error": "unable to marshal message" }` }
+  return `{"id":"` + r.Id + `", "message":` + string(output) + "}"
 }
 
 func (r Responses) ResponsesToString() string {

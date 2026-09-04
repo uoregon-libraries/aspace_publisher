@@ -30,7 +30,11 @@ func DummyAsCheckIsPublished(resource_id string, repo_id string, session_id stri
   return "true", nil
 }
 
-func DummyAsAcquireJson(sessionid string, repo_id string, resource_id string){}
+func DummyAsAcquireJson(sessionid string, repo_id string, resource_id string)(string, error){
+ fmt.Sprintf("sessionid: %v, repo_id: %v, resource_id: %v", sessionid, repo_id, resource_id)
+  return `{}`, nil
+
+}
 //could also return fixtures/marc_1867.xml
 func DummyAsAcquireMarc(sessionid string, repo_id string, resource_id string, published string) (string, error){
   fmt.Sprintf("sessionid: %v, repo_id: %v, resource_id: %v, published: %v", sessionid, repo_id, resource_id, published)
