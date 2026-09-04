@@ -3,7 +3,9 @@ package alma
 import(
   "strings"
   "os"
+  "log"
   "net/url"
+  "net/http"
   "time"
   "slices"
   "errors"
@@ -49,7 +51,7 @@ type FunMap struct {
   HoldingBPF ProcessHoldingBFun
   ItemsPF ProcessItemsFun
   ItemPF ProcessItemFun
-  NZPF LinkToNetworkFun
+  CallWorker CallWorkerFun
   AfterBib as.AfterBibFun
   UpdateTC as.UpdateTCFun
   SetHolding oclc.SetHoldingFun
@@ -77,7 +79,7 @@ func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[
     err = fs.AfterBib(rjson, args.Mapify())
     if err != nil { file.WriteReport(args.Filename, []string{ err.Error() }) }
     //todo: switch to worker.
-    fs.NZPF([]string{ args.Mms_id }, args.Filename)
+    fs.CallWorker("startLTNJob", map[string]string{ "id": args.Mms_id, "filename": args.Filename })
     res,err := fs.SetHolding(args.Oclc_id, args.Oclc_token)
     if err != nil {
       file.WriteReport(args.Filename, []string{ err.Error() }) } else {
@@ -191,7 +193,7 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
     var item = Item{}
     if tc["boundwith"] == "true" { continue } // skip boundwith containers
     if tc["ils_item"] != "" { //this is an update
-      path := []string{"bibs", tc["mms_id"], "holdings", tc["ils_holding"], "items", tc["ils_item"]}
+      path := []string{"bibs", args.Mms_id, "holdings", tc["ils_holding"], "items", tc["ils_item"]}
       _url := BuildUrl(path)
       params := []string{ ApiKey() }
       itemjson, err := Get(_url, params, "application/json")
@@ -283,6 +285,29 @@ func LinkToNetwork(list []string, filename string){
   span,_ := time.ParseDuration(os.Getenv("JOB_WAIT_TIME"))
   time.Sleep(span)
   CheckJob(instance, nil, filename, nil)
+}
+
+type CallWorkerFun func(string, map[string]string) error
+// worker_path eg startLTNJob
+// args must be passed as a query
+func CallWorker(worker_path string, args map[string]string) error{
+  _url := BuildWorkerUrl(worker_path, args)
+  _, err := http.Get(_url)
+  if err != nil { log.Println(err); return err }
+  return nil
+}
+
+func BuildWorkerUrl(worker_path string, args map[string]string) string{
+  _url, _ := url.Parse(os.Getenv("WORKER_URL"))
+  _url = _url.JoinPath(worker_path)
+  query := _url.Query()
+  for k,v := range args{
+    query.Set(k, v)
+  }
+  params := query.Encode()
+  // url.QueryEscape(params) not needed
+  _url.RawQuery = params
+  return _url.String()
 }
 
 func BaseUrl()string{

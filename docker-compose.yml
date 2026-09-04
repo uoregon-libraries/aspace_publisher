@@ -14,7 +14,37 @@ services:
       - AWEST_PASS=$AWEST_PASS
       - AWEST_URL=$AWEST_URL
       - VERBOSE=true
+      - WORKERS_URL="workers:3200"
 
     tty: true
     volumes:
       - .:/usr/local/src/aspace_publisher
+
+  database:
+    image: 'postgres:latest'
+    ports:
+    - 5432:5432
+    environment:
+      POSTGRES_USER: riverq
+      POSTGRES_PASSWORD: riverq
+      POSTGRES_DB: riverq
+    volumes:
+      - ${PWD}/db-data/:/var/lib/postgresql
+
+  workers:
+    image: river_worker:20260126
+    volumes:
+      - .:/usr/local/src/aspace_publisher
+    tty: true
+    environment:
+      POSTGRES_USER: riverq
+      POSTGRES_PASSWORD: riverq
+      POSTGRES_DB: riverq
+      DATABASE_URL: "database:5432"
+    ports:
+    - 3200:3200
+
+volumes:
+  database:
+  server:
+  river_worker:

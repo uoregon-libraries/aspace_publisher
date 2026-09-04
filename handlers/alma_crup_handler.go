@@ -51,7 +51,8 @@ func AlmaCrupHandler(c echo.Context) error {
   if err != nil { file.WriteReport(args.Filename, []string{ "Error attempting to acquire ids: " + err.Error() }); return c.String(http.StatusInternalServerError, "Error, please see report.") }
   //launch processing, starting with bib
   //eventually hand this off to a worker?
-  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingAPF: alma.ProcessHoldingA, HoldingBPF: alma.ProcessHoldingB, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding, NZPF: alma.LinkToNetwork, UpdateTC: as.UpdateTC, CheckForMissingPF: alma.CheckItemsForMissing }
+
+  fs := alma.FunMap{ BoundwithPF: alma.ProcessBoundwith, HoldingAPF: alma.ProcessHoldingA, HoldingBPF: alma.ProcessHoldingB, ItemsPF: alma.ProcessItems, ItemPF: alma.ProcessItem, AfterBib: as.AfterBibCreate, SetHolding: oclc.SetHolding, UpdateTC: as.UpdateTC, CheckForMissingPF: alma.CheckItemsForMissing, CallWorker: alma.CallWorker }
   alma.ProcessBib(args, marc_clean, rjson, tcmap, fs)
 
   base_url := os.Getenv("HOME_URL")

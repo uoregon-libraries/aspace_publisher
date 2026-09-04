@@ -45,3 +45,11 @@ func DummyUpdateTC2(repo_id string, holding_id string, item_id string, session_i
 func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
 
 func DummyCheckForMissing(args ProcessArgs, tcmap []map[string]string){}
+
+func DummyCallWorker(worker string, args map[string]string) error {
+  log.Println("worker: " + worker)
+  for k,v := range args {
+    log.Println(k + ": " + v )
+  }
+  return nil
+}

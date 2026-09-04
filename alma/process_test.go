@@ -48,7 +48,7 @@ func TestProcessBib(t *testing.T){
   expected1 := bibstring_fixture5
   expected2 := bibstring_fixture6
   tcmap := []map[string]string{ map[string]string{} }
-  fs := FunMap{ BoundwithPF: DummyBoundwithPF, NZPF: DummyNZPF, AfterBib: DummyAfterBib, SetHolding: DummySetHolding }
+  fs := FunMap{ BoundwithPF: DummyBoundwithPF, CallWorker: DummyCallWorker, AfterBib: DummyAfterBib, SetHolding: DummySetHolding }
   path1 := "/almaws/v1/bibs" //test post
   path2 := "/almaws/v1/bibs/654365436543"
   rjson := []byte{}
@@ -316,4 +316,25 @@ func TestCheckItemsForMissing(t *testing.T){
   tcdata1 := map[string]string{ "barcode":"ronco3101", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
   tcmap := []map[string]string{tcdata0, tcdata1}
   CheckItemsForMissing(args, tcmap)
+}
+
+func TestCallWorker(t *testing.T){
+  worker_path := "startJob"
+  args := map[string]string{ "id": "banana", "value": "yellow" }
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path != "/" + worker_path { t.Errorf("incorrect request path: %v", r.URL.Path) }
+    if r.URL.RawQuery != "id=banana&value=yellow" { t.Errorf("incorrect param: ") }
+    fmt.Fprint(w, "ok")
+  }))
+  defer ts.Close()
+  os.Setenv("WORKER_URL", ts.URL)
+  CallWorker(worker_path, args) 
+}
+func TestBuildWorkerUrl( t *testing.T){
+  worker_path := "startJob"
+  os.Setenv("WORKER_URL", "http://riverservice.org")
+  args := map[string]string{ "id": "banana", "value": "yellow" }
+  expected := "http://riverservice.org/startJob?id=banana&value=yellow"
+  _url := BuildWorkerUrl(worker_path, args)
+  if _url != expected { t.Errorf("incorrect response") }
 }
