@@ -11,6 +11,7 @@ import(
   "aspace_publisher/connect"
 )
 
+type AcquireMarcFun func(string, string, string, string) (string, error)
 func AcquireMarc(sessionid string, repo_id string, resource_id string, published string) (string, error){
   include := "false"
   if published == "false" { include = "true" }
@@ -38,6 +39,7 @@ func AcquireMarc(sessionid string, repo_id string, resource_id string, published
   return string(body), nil
 }
 
+type AcquireJsonFun func(string, string, string) ([]byte, error)
 func AcquireJson(sessionid string, repo_id string, record_id string) ([]byte, error){
   base_url := os.Getenv( "ASPACE_URL")
 

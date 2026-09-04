@@ -4,6 +4,7 @@ import(
   "github.com/labstack/echo/v4"
   "aspace_publisher/utils"
   "aspace_publisher/oclc"
+  "aspace_publisher/as"
   "os"
   "fmt"
 )
@@ -19,8 +20,8 @@ func OclcCrupHandler(c echo.Context) error {
   //authenticate with OCLC
   token, err := oclc.GetToken(c)
   if err != nil { return echo.NewHTTPError(520, err) }
-
-  fname, err := oclcCrup(id, repo_id, session_id, token)
+  fm := oclc.FunMap{AsAcquireMarc: as.AcquireMarc, AsGetOclcId: as.GetOclcId, OclcRequest: oclc.Request, OclcRecord: oclc.Record, AsPost: as.Post}
+  fname, err := oclcCrup(id, repo_id, session_id, token, fm)
 
   //print response to user
   base_url := os.Getenv("HOME_URL")
