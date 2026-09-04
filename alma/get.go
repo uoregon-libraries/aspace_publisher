@@ -7,7 +7,6 @@ import(
   "errors"
   "io"
   "strings"
-  "os"
   "aspace_publisher/connect"
   "github.com/tidwall/gjson"
   "encoding/xml"
@@ -19,20 +18,19 @@ import(
 //params: view=brief, apikey=abcde12341234
 
 func Get(url string, params []string, accept string)([]byte, error){
-  verbose := os.Getenv("VERBOSE")
   param_str := strings.Join(params[:], "&")
   final_url := url + "?" + param_str
 
   req, err := http.NewRequest("GET", final_url, nil)
   if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to create http request") }
   req.Header.Set("accept", accept)
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
   client := &http.Client{
     Timeout: time.Second * 60,
   }
 
   response, err := client.Do(req)
-  connect.ResponseDump(verbose, response)
+  connect.ResponseDump(response)
   if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to complete http request") }
   defer response.Body.Close()
   body, err := io.ReadAll(response.Body)

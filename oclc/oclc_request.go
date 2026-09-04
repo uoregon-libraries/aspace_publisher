@@ -15,7 +15,6 @@ import(
 )
 
 func Request(token string, method string, marc string, path string, id string, accept string) (string, error){
-  verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("OCLC_URL")
   test := os.Getenv("TEST")
   url := assembleUrl([]string{base_url,path,id})
@@ -28,7 +27,7 @@ func Request(token string, method string, marc string, path string, id string, a
   }
   req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -40,7 +39,7 @@ func Request(token string, method string, marc string, path string, id string, a
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to complete http request") }
   defer response.Body.Close()
 
-  connect.ResponseDump(verbose, response) //check response only after err check
+  connect.ResponseDump(response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response from oclc") }
@@ -57,7 +56,6 @@ func assembleUrl(parts []string) string{
 }
 
 func Record(token string, id string)(string, error){
-  verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("OCLC_URL")
   url := assembleUrl([]string{base_url,"manage/bibs", id})
   req, err := http.NewRequest("GET", url, nil)
@@ -66,7 +64,7 @@ func Record(token string, id string)(string, error){
   req.Header.Set("Content-Type", "application/marcxml+xml")
   req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -75,7 +73,7 @@ func Record(token string, id string)(string, error){
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to complete http request") }
   defer response.Body.Close()
 
-  connect.ResponseDump(verbose, response) //check response only after err check
+  connect.ResponseDump(response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response from oclc") }

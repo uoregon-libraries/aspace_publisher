@@ -6,13 +6,13 @@ import(
   "fmt"
   "errors"
   "net/http"
-  "net/http/httputil"
   "golang.org/x/net/html"
   "log/slog"
   "os"
   "strings"
   "time"
   "github.com/PuerkitoBio/goquery"
+  "aspace_publisher/connect"
 )
 
 // an ark_url looks like https://archiveswest.orbiscascade.org/ark:80444/xv205342
@@ -31,27 +31,29 @@ func MakeUploadMap(ark, filekey, filepath string)(map[string]string, error){
   return vals, nil
 }
 
-func Upload(sessionid string, boundary string, verbose string, form *bytes.Buffer)(io.Reader, error){
-  url := os.Getenv("AWEST_URL") + "upload-process.php"
+func Request(sessionid string, boundary string, form *bytes.Buffer, operation string)(io.Reader, error){
+  url := ""
+  if operation == "upload" {
+    url = os.Getenv("AWEST_URL") + "upload-process.php"
+  } else {
+    url = os.Getenv("AWEST_URL") + "validation-process.php"
+  }
   req, err := http.NewRequest("POST", url, form)
   if err != nil { return nil, errors.New("unable to create http request") }
 
   req.Header.Set("cookie", "PHPSESSID=" + sessionid)
   req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", boundary))
 
+  connect.RequestDump(req)
+
   client := &http.Client{
     Timeout: time.Second * 30,
   }
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { slog.Error(err.Error()) } else { slog.Info(fmt.Sprintf("REQUEST:\n%s", string(reqdump))) }
-  }
   response, err := client.Do(req); if err != nil { return nil, err }
   defer response.Body.Close()
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { slog.Error(err.Error()) } else {  slog.Info(fmt.Sprintf("RESPONSE:\n%s", string(respdump))) }
-  }
+
+  connect.ResponseDump(response) //check response only after err check
+
   return response.Body, nil
 }
 
