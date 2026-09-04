@@ -3,45 +3,26 @@ package handlers
 import(
   "github.com/labstack/echo/v4"
   "os"
-  "log/slog"
   "aspace_publisher/utils"
   "aspace_publisher/aw"
-  "aspace_publisher/as"
+  "fmt"
 )
 
 
 func ConvertEadHandler(c echo.Context) error {
-    ead_id := c.Param("id")
-    repo_id := "2"
+  resource_id := c.Param("id")
+  repo_id := "2"
 
-    verbose := os.Getenv("VERBOSE")
-    session_id, err := utils.FetchCookieVal(c, "as_session")
-    if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session. Try redoing login.") }
+  session_id, err := utils.FetchCookieVal(c, "as_session")
+  if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session. Try redoing login.") }
 
-    ead_orig, err := as.AcquireEad(session_id, repo_id, ead_id, verbose)
-    if err != nil { slog.Error(err.Error()); return echo.NewHTTPError(400, ead_orig) }
+    //get session for aw
+  aw_session, err := aw.GetSession(c)
+  if err != nil { return c.String(400, "could not authenticate with AWest") }
 
-    ead_prepped, filename, _, err := aw.PrepareEad(repo_id, ead_id, ead_orig)
-    if err != nil { slog.Error(err.Error()); return err }
+  fname,err := processEad(resource_id, session_id, repo_id, aw_session, "convert")
 
-    ead_converted, err := aw.CallConversion(ead_prepped)
-    if err != nil { slog.Error(err.Error()); return err }
+  base_url := os.Getenv("HOME_URL")
+  return c.HTML(200, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
 
-    f, err := os.CreateTemp("", "ead-")
-    if err != nil { slog.Error(err.Error()); return err }
-    defer f.Close()
-    defer os.Remove(f.Name())
-    _, err = f.Write([]byte(ead_converted))
-    if err != nil { slog.Error(err.Error()); return err }
-    //add temporary files for debugging
-    if verbose == "true" {
-      err = utils.WriteFile("ead_orig", ead_orig)
-      if err != nil { slog.Error(err.Error()) }
-      err = utils.WriteFile("ead_prepped", ead_prepped)
-      if err != nil { slog.Error(err.Error()) }
-    }
-    //Use Inline or Attachment
-    return c.Inline(f.Name(), filename)
-  }
-
-
+}

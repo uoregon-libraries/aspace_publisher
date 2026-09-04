@@ -65,43 +65,20 @@ func ark_url(ark string)(string){
 // returns true if there a record published at the ark url
 func TestArk(ark string)(bool, error){
   req, err := http.NewRequest("GET", ark_url(ark), nil)
-  if err != nil { return false, errors.New("unable to create http request") }
+  if err != nil { slog.Error(err.Error()); return false, errors.New("unable to create http request") }
   client := &http.Client{
     Timeout: time.Second * 30,
   }
   response, err := client.Do(req); if err != nil { return false, err }
-  body, err := io.ReadAll(response.Body); if err != nil { return false, err }
+  body, err := io.ReadAll(response.Body); if err != nil { slog.Error(err.Error()); return false, err }
   defer response.Body.Close()
   doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
-  if err != nil { return false, errors.New("unable to read response") }
+  if err != nil { slog.Error(err.Error()); return false, errors.New("unable to read response") }
   tag := doc.Find("#toc")
   if len(tag.Nodes) == 0 {
     return false, nil
   }
   return true, nil
-}
-
-func Validate(sessionid string, boundary string, verbose string, form *bytes.Buffer)(io.Reader, error){
-  url := os.Getenv("AWEST_URL") + "validation-process.php"
-  req, err := http.NewRequest("POST", url, form)
-  if err != nil { return nil, errors.New("unable to create http request") }
-
-  req.Header.Set("cookie", "PHPSESSID=" + sessionid)
-  req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", boundary))
-  client := &http.Client{
-    Timeout: time.Second * 30,
-  }
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(req, true)
-    if err != nil { slog.Error(err.Error()) } else { slog.Info(fmt.Sprintf("REQUEST:\n%s", string(reqdump))) }
-  }
-  response, err := client.Do(req); if err != nil { return nil, err }
-  defer response.Body.Close()
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { slog.Error(err.Error()) } else { slog.Info(fmt.Sprintf("RESPONSE:\n%s", string(respdump))) }
-  }
-  return response.Body, nil
 }
 
 func ParseResult(r io.Reader)(string, error){
