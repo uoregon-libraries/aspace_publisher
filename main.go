@@ -44,8 +44,12 @@ func main(){
   e.File("/as/do.html", path + "views/as/do.html") //urlpath,directorypath, uploads/do.html
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
   e.Static("/reports", "views/reports")
-  e.GET("/alma/crup/:id", handlers.AlmaCrupHandler)
+  e.POST("/alma/crup/:id", handlers.AlmaCrupHandler)
   e.GET("/test/status/:status", handlers.StatusHandler)
+
+  e.File("/launch.html", path + "views/launch.html")
+  e.POST("/launcher", handlers.LauncherHandler)
+
   log.Fatal(e.Start(os.Getenv("PORT")))
 
 }
