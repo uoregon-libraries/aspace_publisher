@@ -22,8 +22,10 @@ func validateMarc(resource_id string, repo_id, session_id string, oclc_token str
     file.WriteReport(fname, []string{ marc_stripped, err.Error() })
     return fname, err
   }
+  errstr := ""
   oclc_resp, err := oclc.Request(oclc_token, "POST", marc_stripped, "manage/bibs/validate/validateFull", "","json")
-  file.WriteReport(fname, []string{ oclc_resp, err.Error() })
+  if err != nil { errstr = err.Error() }
+  file.WriteReport(fname, []string{ oclc_resp, errstr })
   return fname, err
 }
 
@@ -87,7 +89,7 @@ func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token 
   //if updating, done
   if oclc_id != "" {
     file.WriteReport(fname, []string{ oclc_resp })
-    return fname, err
+    return fname, nil
   }
 
   oclc_id, err = marc.ExtractOclc(string(oclc_resp))
@@ -104,5 +106,5 @@ func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token 
   //post resource json back to aspace
   as_resp := as.Post(session_id, resource_id, repo_id, "resources/" + resource_id, string(modified))
   file.WriteReport(fname, []string{ as_resp.ResponseToString() })
-  return fname, err
+  return fname, nil
 }
