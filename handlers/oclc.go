@@ -7,7 +7,7 @@ import (
   "aspace_publisher/marc"
 )
 
-func validateMarc(resource_id string, repo_id, session_id string, oclc_token string) (string, error){
+func validateMarc(resource_id string, repo_id, session_id string, oclc_token string, fm oclc.FunMap) (string, error){
   fname := file.Filename()
   published, err := as.CheckIsPublished(resource_id, repo_id, session_id)
   if err != nil { return published, err}
@@ -29,7 +29,7 @@ func validateMarc(resource_id string, repo_id, session_id string, oclc_token str
   return fname, err
 }
 
-func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token string) (string, error){
+func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token string, fm oclc.FunMap) (string, error){
   fname := file.Filename()
   json, err := as.AcquireJson(session_id, repo_id, "resources/" + resource_id)
   if err != nil {

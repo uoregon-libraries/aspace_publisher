@@ -14,6 +14,7 @@ import(
   "aspace_publisher/connect"
 )
 
+type RequestFun func(string, string, string, string, string, string)(string, error)
 func Request(token string, method string, marc string, path string, id string, accept string) (string, error){
   base_url := os.Getenv("OCLC_URL")
   test := os.Getenv("TEST")
@@ -55,6 +56,7 @@ func assembleUrl(parts []string) string{
   return strings.Join(parts, "/")
 }
 
+type RecordFun func(string, string)(string, error)
 func Record(token string, id string)(string, error){
   base_url := os.Getenv("OCLC_URL")
   url := assembleUrl([]string{base_url,"manage/bibs", id})

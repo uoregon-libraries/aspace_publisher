@@ -38,12 +38,14 @@ func LauncherHandler(c echo.Context) error {
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = validateMarc(resource_id, repo_id, session_id, oclc_token)
+    fm := oclc.FunMap{AsCheckIsPublished: as.CheckIsPublished, AsAcquireMarc: as.AcquireMarc, AsGetOclcId: as.GetOclcId, OclcRequest: oclc.Request, OclcRecord: oclc.Record, AsPost: as.Post}
+    fname,err = validateMarc(resource_id, repo_id, session_id, oclc_token, fm)
   case "publish_marc":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = oclcCrup(resource_id,repo_id, session_id, oclc_token)
+    fm := oclc.FunMap{AsAcquireMarc: as.AcquireMarc, AsGetOclcId: as.GetOclcId, OclcRequest: oclc.Request, OclcRecord: oclc.Record, AsPost: as.Post}
+    fname,err = oclcCrup(resource_id,repo_id, session_id, oclc_token, fm)
   case "publish_alma":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)

@@ -7,6 +7,7 @@ import (
   "regexp"
 )
 
+type CheckIsPublishedFun func(string, string, string)(string, error)
 func CheckIsPublished(resource_id string, repo_id string, session_id string)(string, error){
   json, err := AcquireJson(session_id, repo_id, "resources/" + resource_id)
   if err != nil { return string(json), err }
@@ -21,6 +22,7 @@ func IsPublished(resource []byte)(string, error){
   return result.String(), nil
 }
 
+type GetOclcIdFun func(string, string, string)(string, error)
 func GetOclcId(resource_id string, repo_id string, session_id string)(string, error){
   json, err := AcquireJson(session_id, repo_id, "resources/" + resource_id)
   if err != nil { return string(json), err }

@@ -51,6 +51,8 @@ func BuildErrorMessage(message string) Message{
   _ = json.Unmarshal([]byte(e), &m)
   return m
 }
+
+type PostFun func(string, string, string, string, string) Response
 // NOTE the aspace api currently uses post for updates as well as creates
 func Post(sessionid string, identifier string, repo_id string, record_id string, json_record string ) Response {
 
