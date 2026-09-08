@@ -29,8 +29,8 @@ func TestCreateDigitalObjects(t *testing.T){
   if err != nil { fmt.Println(err) }
 
   responses := CreateDigitalObjects(string(jstr), "abcde_session_1234")
-  if responses.responses[0].id != "Ax078_b012_f009" { t.Fatalf("response id is not correct") }
-  if responses.responses[1].id != "archival_objects/26462" { t.Fatalf("response id is not correct") }
+  if responses.responses[0].Id != "Ax078_b012_f009" { t.Fatalf("response id is not correct") }
+  if responses.responses[1].Id != "archival_objects/26462" { t.Fatalf("response id is not correct") }
 }
 
 func TestExtractRefPath(t *testing.T){
