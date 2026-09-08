@@ -6,26 +6,25 @@ import(
   "net/http"
   "errors"
   "log/slog"
-  "fmt"
   "net/url"
   "strconv"
   "net/http/cookiejar"
-  "net/http/httputil"
   "aspace_publisher/utils"
+  "aspace_publisher/connect"
   "github.com/labstack/echo/v4"
 )
 
-func GetSession(c echo.Context, verbose string) (string, error){
+func GetSession(c echo.Context) (string, error){
   session_id, err := utils.FetchCookieVal(c, "aw_session")
   if session_id == "" || err != nil {
-    session_id, err = authenticate(verbose)
+    session_id, err = authenticate()
     if err != nil { return "", err }
     utils.WriteCookie(c, 60, "aw_session", session_id)
   }
   return session_id, nil
 }
 
-func authenticate(verbose string)(string, error){
+func authenticate()(string, error){
   authurl, _ := url.Parse(os.Getenv("AWEST_URL") + "login.php")
   data := url.Values{}
   data.Set("username", os.Getenv("AWEST_NAME"))
@@ -40,20 +39,11 @@ func authenticate(verbose string)(string, error){
   request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
   request.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 
-  if verbose == "true" {
-    reqdump, err := httputil.DumpRequest(request, true)
-    if err != nil { slog.Error(err.Error()) } else {
-    slog.Info(fmt.Sprintf("REQUEST:\n%s", string(reqdump))) }
-  }
+  connect.RequestDump(request, "DEBUG")
   if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to create login request") }
   response, err := client.Do(request)
+  connect.ResponseDump(response, "DEBUG")
   if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to complete login to awest") }
-
-  if verbose == "true" {
-    respdump, err := httputil.DumpResponse(response, true)
-    if err != nil { slog.Error(err.Error()) } else {
-    slog.Info(fmt.Sprintf("RESPONSE:\n%s", string(respdump))) }
-  }
   defer response.Body.Close()
 
   session, err := parse_session(jar, authurl)

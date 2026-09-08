@@ -26,7 +26,6 @@ func Post(_url string, params []string, data string, format string)([]byte, erro
 
 func push(method string, _url string, params []string, _data string, format string)([]byte, error){
   debug := os.Getenv("DEBUG")
-  verbose := os.Getenv("VERBOSE")
   param_str := strings.Join(params[:], "&")
   final_url := _url + "?" + param_str
   if debug == "true" {
@@ -38,12 +37,12 @@ func push(method string, _url string, params []string, _data string, format stri
   if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to create http request") }
   req.Header.Set("Content-Type", "application/" + format)
   req.Header.Set("accept", "application/" + format)
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
   client := &http.Client{
     Timeout: time.Second * 60,
   }
   response, err := client.Do(req)
-  connect.ResponseDump(verbose, response)
+  connect.ResponseDump(response)
   if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to complete http request") }
   defer response.Body.Close()
   body, err := io.ReadAll(response.Body)

@@ -53,7 +53,7 @@ func BuildErrorMessage(message string) Message{
 }
 // NOTE the aspace api currently uses post for updates as well as creates
 func Post(sessionid string, identifier string, repo_id string, record_id string, json_record string ) Response {
-  verbose := os.Getenv("VERBOSE")
+
   test := os.Getenv("TEST")
   base_url := os.Getenv("ASPACE_URL")
   url := base_url + fmt.Sprintf("repositories/%s/%s", repo_id, record_id)
@@ -66,7 +66,7 @@ if err != nil { slog.Error(err.Error()); return Response{identifier, BuildErrorM
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
   if test == "true" { return Response { identifier, BuildErrorMessage("test mode") } }
 
   client := &http.Client{
@@ -76,7 +76,7 @@ if err != nil { slog.Error(err.Error()); return Response{identifier, BuildErrorM
   if err != nil { slog.Error(err.Error()); return Response{ identifier, BuildErrorMessage("unable to make request to aspace") } }
   defer response.Body.Close()
 
-  connect.ResponseDump(verbose, response) //check response only after err check
+  connect.ResponseDump(response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
   if err != nil { slog.Error(err.Error()); return Response{ identifier, BuildErrorMessage("unable to read response") } }

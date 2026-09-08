@@ -20,9 +20,9 @@ func TestIsPublished(t *testing.T){
   if is_pub != "true" { t.Errorf("incorrect result") }
 }
 
-func TestGetOclcId(t *testing.T){
+func TestExtractOclcId(t *testing.T){
   resource := loadfile("9730.json")
-  oclc_id,_ := GetOclcId(resource)
+  oclc_id,_ := ExtractOclcId(resource)
   if oclc_id != "1535209600" { t.Errorf("incorrect result") }
 }
 

@@ -30,7 +30,6 @@ func UpdateUserDefined2(record []byte, mms_id string)([]byte, error){
 }
 
 func UpdateResource(sessionid string, repo_id string, resource_id string, json_record string )(string, error){
-  verbose := os.Getenv("VERBOSE")
   base_url := os.Getenv("ASPACE_URL")
   url := base_url + fmt.Sprintf("repositories/%s/resources/%s", repo_id, resource_id)
   data := strings.NewReader(json_record)
@@ -42,7 +41,7 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -51,7 +50,7 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
   if err != nil { return "", err }
   defer response.Body.Close()
 
-  connect.ResponseDump(verbose, response) //check response only after err check
+  connect.ResponseDump(response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response") }
@@ -64,7 +63,6 @@ func UpdateResource(sessionid string, repo_id string, resource_id string, json_r
 }
 
 func Update(sessionid string, _url string, json_record string)(string, error){
-  verbose := os.Getenv("VERBOSE")
   data := strings.NewReader(json_record)
   req, err := http.NewRequest("POST", _url, data)
   if err != nil { return "", errors.New("unable to create http request") }
@@ -74,7 +72,7 @@ func Update(sessionid string, _url string, json_record string)(string, error){
   req.Header.Set("Accept", "*/*")
   req.Header.Set("User-Agent", "curl/7.61.1")
 
-  connect.RequestDump(verbose, req)
+  connect.RequestDump(req)
 
   client := &http.Client{
     Timeout: time.Second * 60,
@@ -83,7 +81,7 @@ func Update(sessionid string, _url string, json_record string)(string, error){
   if err != nil { return "", err }
   defer response.Body.Close()
 
-  connect.ResponseDump(verbose, response) //check response only after err check
+  connect.ResponseDump(response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
   if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response") }

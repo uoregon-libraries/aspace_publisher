@@ -29,12 +29,12 @@ func TestAcquireJson(t *testing.T){
   str_rec3 := "resource/3456"
 
   response, err := AcquireJson(str_session, "2", str_rec1)
-  if err != nil { t.Errorf(err.Error()) }
+  if err != nil { t.Error(err.Error()) }
   if string(response) != "hello hello" { t.Errorf("wrong response") }
 
 
   response, err = AcquireJson(str_session, "2", str_rec3)
-  if err.Error() != "aspace error exporting record" { t.Errorf(err.Error()) }
+  if err.Error() != "aspace error exporting record" { t.Error(err.Error()) }
   if string(response) != "mayday" { t.Errorf("wrong response") }
 
   ts.Close() // force an error
@@ -69,11 +69,11 @@ func TestAcquireMarc(t *testing.T){
   str_rec3 := "3456"
 
   response, err := AcquireMarc(str_session, "2", str_rec1, "false")
-  if err != nil { t.Errorf(err.Error()) }
+  if err != nil { t.Error(err.Error()) }
   if string(response) != "hello hello" { t.Errorf("wrong response") }
 
   response, err = AcquireMarc(str_session, "2", str_rec3, "false")
-  if err.Error() != "aspace error exporting MARC" { t.Errorf(err.Error()) }
+  if err.Error() != "aspace error exporting MARC" { t.Error(err.Error()) }
   if string(response) != "mayday" { t.Errorf("wrong response") }
 
   ts.Close() //force an error

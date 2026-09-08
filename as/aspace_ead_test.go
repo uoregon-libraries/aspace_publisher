@@ -32,17 +32,17 @@ func TestAcquireEad(t *testing.T){
   str_rec2 := "2345"
   str_rec3 := "3456"
 
-  response, err := AcquireEad(str_session, "2", str_rec1, "true")
-  if err != nil { t.Errorf(err.Error()) }
+  response, err := AcquireEad(str_session, "2", str_rec1)
+  if err != nil { t.Error(err.Error()) }
   if string(response) != "hello hello" { t.Errorf("wrong response") }
 
-  response, err = AcquireEad(str_session, "2", str_rec3, "false")
-  if err.Error() != "problem retrieving ead" { t.Errorf(err.Error()) }
+  response, err = AcquireEad(str_session, "2", str_rec3)
+  if err.Error() != "problem retrieving ead" { t.Error(err.Error()) }
   if string(response) != "mayday" { t.Errorf("wrong response") }
 
   ts.Close()
 
-  response, err = AcquireEad(str_session, "2", str_rec2, "true")
+  response, err = AcquireEad(str_session, "2", str_rec2)
   if err == nil {
     t.Errorf("there should be an error") 
   } else if strings.Contains(err.Error(), "connect: connection refused") == false {

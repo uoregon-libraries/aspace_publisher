@@ -17,9 +17,9 @@ func TestTCList(t *testing.T){
     if r.URL.Path == path {
       if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
       if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
-      fmt.Fprintf(w, data)
+      fmt.Fprint(w, data)
     } else {
-      t.Errorf("incorrect request url: " + r.URL.Path)
+      t.Error("incorrect request url: " + r.URL.Path)
     }
   }))
   defer ts.Close()
@@ -65,12 +65,12 @@ func TestExtractTCData(t *testing.T){
     if r.URL.Path == listpath {
       if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
       if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
-      fmt.Fprintf(w, listdata)
+      fmt.Fprint(w, listdata)
     } else if r.URL.Path == tcpath1 { //Iterating through the tclist
       w.WriteHeader(http.StatusNotFound)
       fmt.Fprintf(w, "{\"error\": \"Not found\"}")
     } else if r.URL.Path == tcpath2 {
-      fmt.Fprintf(w, tcdata2)
+      fmt.Fprint(w, tcdata2)
     } else {
       t.Errorf("incorrect request url")
     }

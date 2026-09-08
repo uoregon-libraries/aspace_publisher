@@ -33,7 +33,7 @@ func As_basic(username, password string, c echo.Context) (bool, error){
 //Note: this will work on the server. Or from a local machine using VPN
 func AuthenticateAS(uname string, pass string) (string, error){
   var authresp AuthResp
-  debug := os.Getenv("DEBUG")
+
   authurl := os.Getenv("ASPACE_URL") + fmt.Sprintf("users/%s/login", uname)
   data := url.Values{}
   data.Set("password", pass)
@@ -43,7 +43,7 @@ func AuthenticateAS(uname string, pass string) (string, error){
   request.Header.Set("Accept", "*/*")
   request.Header.Set("User-Agent", "curl/7.61.1")
 
-  connect.RequestDump(debug, request)
+  connect.RequestDump(request, "DEBUG")
 
   if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to create login request") }
   client := http.Client{
@@ -51,7 +51,7 @@ func AuthenticateAS(uname string, pass string) (string, error){
   }
   response, err := client.Do(request)
 
-  connect.ResponseDump(debug, response)
+  connect.ResponseDump(response, "DEBUG")
 
   if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to complete login to aspace") }
   if response.StatusCode != 200 { slog.Warn("unable to log into Aspace"); return "", errors.New("Unable to complete login to aspace") }
