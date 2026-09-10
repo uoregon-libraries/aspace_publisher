@@ -54,6 +54,8 @@ services:
       - POSTGRES_PASSWORD=riverq
       - POSTGRES_DB=riverq
       - DATABASE_URL=database:5432
+      - ASPACE_URL=$ASPACE_URL
+      - OCLC_URL=$OCLC_URL
       - ALMA_URL=$ALMA_URL
       - ALMA_KEY=$ALMA_KEY
       - REPORT_DIR=/aspace_publisher/views/reports
