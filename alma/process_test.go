@@ -335,6 +335,6 @@ func TestBuildWorkerUrl( t *testing.T){
   os.Setenv("WORKER_URL", "http://riverservice.org")
   args := map[string]string{ "id": "banana", "value": "yellow" }
   expected := "http://riverservice.org/startJob?id=banana&value=yellow"
-  _url := BuildWorkerUrl(worker_path, args)
+  _url, _ := BuildWorkerUrl(worker_path, args)
   if _url != expected { t.Errorf("incorrect response") }
 }

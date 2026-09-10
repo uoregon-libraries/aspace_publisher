@@ -20,8 +20,8 @@ func AlmaCrupHandler(c echo.Context) error {
   if err != nil { return c.String(400, "Could not authenticate with OCLC") }
 
   fname := file.Filename()
-  alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": session_id, "token": oclc_token } )
-
+  err = alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": session_id, "token": oclc_token } )
+  if err != nil { return c.String(400, err.Error()) }
   base_url := os.Getenv("HOME_URL")
   return c.HTML(200, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
 }

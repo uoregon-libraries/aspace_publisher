@@ -7,7 +7,7 @@ import (
   "aspace_publisher/file"
 )
 
-func almaCrup(resource_id string, filename string, session_id string, oclc_token string){
+func AlmaCrup(resource_id string, filename string, session_id string, oclc_token string){
   var args alma.ProcessArgs
   args.Resource_id = resource_id
   args.Repo_id = "2"

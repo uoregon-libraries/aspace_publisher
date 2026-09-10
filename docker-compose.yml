@@ -2,28 +2,43 @@ version: '2'
 
 services:
   server:
-    image: uoregon-libraries/aspace_publisher:20240321
+    image: aspace_publisher:20260910
     ports: 
       - '3000:3000'
     environment:
       - SECRET=$SECRET
       - ASPACE_URL=$ASPACE_URL
       - PORT=:3000
-      - HOME_DIR=$HOME_DIR
+      - HOME_DIR=/aspace_publisher/
       - AWEST_NAME=$AWEST_NAME
       - AWEST_PASS=$AWEST_PASS
       - AWEST_URL=$AWEST_URL
+      - ARK_URL=$AWEST_URL
+      - OCLC_URL=$OCLC_URL
+      - OCLC_AUTH_URL=$OCLC_AUTH_URL
+      - OCLC_NAME=$OCLC_NAME
+      - OCLC_PASS=$OCLC_PASS
+      - ALMA_URL=$ALMA_URL
+      - ALMA_KEY=$ALMA_KEY
+      - REPORT_DIR=/aspace_publisher/views/reports
+      - JOB_WAIT_TIME=$JOB_WAIT_TIME
+      - JOB_MAX_TRIES=$JOB_MAX_TRIES
+      - LINK_TO_NETWORK_SET=$LINK_TO_NETWORK_SET
+      - LINK_TO_NETWORK_JOB=$LINK_TO_NETWORK_JOB
+      - LOGMODE=$LOGMODE
       - VERBOSE=true
-      - WORKERS_URL="workers:3200"
-
+      - WORKER_URL=http://workers:3200
     tty: true
     volumes:
-      - .:/usr/local/src/aspace_publisher
+      - ./logs:/aspace_publisher/logs
+      - ./views:/aspace_publisher/views
+      - ./version.txt:/aspace_publisher/version.txt
+      - ./aw:/aspace_publisher/aw
+    depends_on:
+      - workers
 
   database:
     image: 'postgres:latest'
-    ports:
-    - 5432:5432
     environment:
       POSTGRES_USER: riverq
       POSTGRES_PASSWORD: riverq
@@ -32,19 +47,28 @@ services:
       - ${PWD}/db-data/:/var/lib/postgresql
 
   workers:
-    image: river_worker:20260126
-    volumes:
-      - .:/usr/local/src/aspace_publisher
+    image: river_service:20260910
     tty: true
     environment:
-      POSTGRES_USER: riverq
-      POSTGRES_PASSWORD: riverq
-      POSTGRES_DB: riverq
-      DATABASE_URL: "database:5432"
+      - POSTGRES_USER=riverq
+      - POSTGRES_PASSWORD=riverq
+      - POSTGRES_DB=riverq
+      - DATABASE_URL=database:5432
+      - ALMA_URL=$ALMA_URL
+      - ALMA_KEY=$ALMA_KEY
+      - REPORT_DIR=/aspace_publisher/views/reports
+      - JOB_WAIT_TIME=$JOB_WAIT_TIME
+      - JOB_MAX_TRIES=$JOB_MAX_TRIES
+      - LINK_TO_NETWORK_SET=$LINK_TO_NETWORK_SET
+      - LINK_TO_NETWORK_JOB=$LINK_TO_NETWORK_JOB
+      - VERBOSE=true
     ports:
-    - 3200:3200
-
+      - 3200:3200
+    depends_on:
+      - database
+    volumes:
+      - ./views/reports:/aspace_publisher/views/reports
 volumes:
   database:
   server:
-  river_worker:
+  workers:
