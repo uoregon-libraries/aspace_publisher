@@ -22,8 +22,8 @@ func AlmaCrupHandler(c echo.Context) error {
   etoken, err := utils.Encrypt(oclc_token)
   if err != nil { return c.String(400, "Could not encrypt token")}
   fname := file.Filename()
-  alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": esession, "token": etoken } )
-
+  err = alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": esession, "token": etoken } )
+  if err != nil { return c.String(400, err.Error()) }
   base_url := os.Getenv("HOME_URL")
   return c.HTML(200, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
 }
