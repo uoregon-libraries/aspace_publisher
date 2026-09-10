@@ -7,8 +7,6 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download && go mod verify
 
-RUN apt-get install --no-install-recommends -y php php-dom
-
 COPY ./handlers /usr/local/src/aspace_publisher/handlers
 COPY ./views /usr/local/src/aspace_publisher/views
 COPY ./alma /usr/local/src/aspace_publisher/alma
@@ -26,6 +24,8 @@ RUN go build \
     -o /usr/local/src/aspace_publisher/server .
 
 FROM golang:1.25
+
+RUN apt-get install --no-install-recommends -y php php-dom
 
 ARG USER_UID=1000
 ARG USER_GID=1000
