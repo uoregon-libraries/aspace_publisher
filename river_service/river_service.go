@@ -11,9 +11,11 @@ import (
     "github.com/riverqueue/river"
     "github.com/riverqueue/river/riverdriver/riverpgxv5"
     "github.com/riverqueue/river/rivershared/util/slogutil"
+    "github.com/DeRuina/timberjack"
     "riverqueue.com/riverui"
     "aspace_publisher/river_worker"
     "net/http"
+    "io"
 )
 
 func main() {
@@ -30,14 +32,31 @@ func main() {
     }
     defer dbPool.Close()
     fmt.Println("have dbpool")
+
+    logmode := os.Getenv("LOGMODE")
+    path := os.Getenv("HOME_DIR")
+    var logr io.Writer
+    if logmode == "file" {
+      logr = &timberjack.Logger{
+      Filename:   path + "logs/river.log", // path of log file
+      MaxSize:    50, // file size in MB
+      MaxBackups: 7, // number of files to retain
+      MaxAge:     8, // how long (in days) to retain files
+      Compression: "gzip", // archive files?
+      LocalTime:  true, // re timestamps
+      RotateAt: []string{"00:00"},
+      }
+    } else { logr = os.Stdout }
+
     workers := river.NewWorkers()
     // add each type of workers here
     river.AddWorker(workers, &river_worker.LTNWorker{})
     river.AddWorker(workers, &river_worker.StatusWorker{})
     river.AddWorker(workers, &river_worker.AlmaCrupWorker{})
-
+    logger := slog.New(slog.NewTextHandler(logr, &slog.HandlerOptions{Level: slog.LevelInfo, ReplaceAttr: slogutil.NoLevelTime}))
+    slog.SetDefault(logger)
     riverClient, err := river.NewClient(riverpgxv5.New(dbPool), &river.Config{
-        Logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn, ReplaceAttr: slogutil.NoLevelTime})),
+        Logger: logger,
         Queues: map[string]river.QueueConfig{
             river.QueueDefault: {MaxWorkers: 100},
         },
@@ -54,7 +73,6 @@ func main() {
     defer riverClient.Stop(ctx)
 
     //add UI
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn, ReplaceAttr: slogutil.NoLevelTime}))
     endpoints := riverui.NewEndpoints(riverClient, nil)
     opts := &riverui.HandlerOpts{
         Endpoints: endpoints,

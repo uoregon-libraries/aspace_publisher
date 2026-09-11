@@ -2,7 +2,7 @@ package river_worker
 
 import (
     "context"
-    "log"
+    "log/slog"
 
     "github.com/jackc/pgx/v5/pgxpool"
     "github.com/jackc/pgx/v5"
@@ -22,8 +22,8 @@ type StatusWorker struct {
 }
 
 func (w *StatusWorker) Work(ctx context.Context, job *river.Job[ServiceStatus]) error {
-    log.Println("status: " + job.Args.Status)
-    log.Println("other: " + job.Args.Other)
+    slog.Info("status: " + job.Args.Status)
+    slog.Info("other: " + job.Args.Other)
     return nil
 }
 
@@ -47,5 +47,5 @@ func StartStatusJob(riverClient *river.Client[pgx.Tx], ctx context.Context, dbPo
 
 func HandlerPanic() {
   p := recover()
-  if p != nil { log.Println(p) }
+  if p != nil { slog.Warn("recovered from river panic") }
 }

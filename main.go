@@ -25,7 +25,7 @@ func main(){
     Compression: "gzip", // archive files?
     LocalTime:  true, // re timestamps
     RotateAt: []string{"00:00"},
-}
+    }
     logging = slog.New(slog.NewJSONHandler(logr, nil))
   } else { logging = slog.New(slog.NewJSONHandler(os.Stdout, nil)) }
   slog.SetDefault(logging)

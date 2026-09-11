@@ -1,5 +1,3 @@
-version: '2'
-
 services:
   server:
     image: aspace_publisher:20260910
@@ -58,11 +56,13 @@ services:
       - OCLC_URL=$OCLC_URL
       - ALMA_URL=$ALMA_URL
       - ALMA_KEY=$ALMA_KEY
+      - HOME_DIR=/aspace_publisher/
       - REPORT_DIR=/aspace_publisher/views/reports
       - JOB_WAIT_TIME=$JOB_WAIT_TIME
       - JOB_MAX_TRIES=$JOB_MAX_TRIES
       - LINK_TO_NETWORK_SET=$LINK_TO_NETWORK_SET
       - LINK_TO_NETWORK_JOB=$LINK_TO_NETWORK_JOB
+      - LOGMODE=$LOGMODE
       - VERBOSE=true
     ports:
       - 3200:3200
@@ -70,6 +70,7 @@ services:
       - database
     volumes:
       - ./views/reports:/aspace_publisher/views/reports
+      - ./logs:/aspace_publisher/logs
 volumes:
   database:
   server:

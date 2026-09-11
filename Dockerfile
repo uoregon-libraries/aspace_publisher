@@ -25,6 +25,7 @@ RUN go build \
 
 FROM golang:1.25
 
+RUN apt-get update
 RUN apt-get install --no-install-recommends -y php php-dom
 
 ARG USER_UID=1000
