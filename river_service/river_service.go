@@ -34,6 +34,7 @@ func main() {
     // add each type of workers here
     river.AddWorker(workers, &river_worker.LTNWorker{})
     river.AddWorker(workers, &river_worker.StatusWorker{})
+    river.AddWorker(workers, &river_worker.AlmaCrupWorker{})
 
     riverClient, err := river.NewClient(riverpgxv5.New(dbPool), &river.Config{
         Logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn, ReplaceAttr: slogutil.NoLevelTime})),
@@ -70,6 +71,7 @@ func main() {
     // add routes here
     http.HandleFunc("/startLTNJob", river_worker.StartLTNJob(riverClient, ctx, dbPool))
     http.HandleFunc("/startStatusJob", river_worker.StartStatusJob(riverClient, ctx, dbPool))
+    http.HandleFunc("/startAlmaCrupJob", river_worker.StartAlmaCrupJob(riverClient, ctx, dbPool))
     http.Handle("/riverui/", handler)
     http.ListenAndServe(":3200", nil)
 }

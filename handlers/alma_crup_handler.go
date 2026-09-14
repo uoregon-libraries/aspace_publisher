@@ -4,7 +4,8 @@ import (
   "github.com/labstack/echo/v4"
   "aspace_publisher/utils"
   "aspace_publisher/oclc"
-  "net/http"
+  "aspace_publisher/file"
+  "aspace_publisher/alma"
   "os"
   "fmt"
   "regexp"
@@ -18,11 +19,11 @@ func AlmaCrupHandler(c echo.Context) error {
   oclc_token, err := oclc.GetToken(c)
   if err != nil { return c.String(400, "Could not authenticate with OCLC") }
 
-  status := http.StatusOK
-  fname,err := almaCrup(c.Param("id"), validHolding(c), session_id, oclc_token)
-  if err != nil { status = http.StatusInternalServerError }
+  fname := file.Filename()
+  alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": session_id, "token": oclc_token } )
+
   base_url := os.Getenv("HOME_URL")
-  return c.HTML(status, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
+  return c.HTML(200, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
 }
 
 // hopefully unlikely case for this to be useful:

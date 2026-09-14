@@ -6,6 +6,8 @@ import(
   "aspace_publisher/utils"
   "aspace_publisher/oclc"
   "aspace_publisher/aw"
+  "aspace_publisher/file"
+  "aspace_publisher/alma"
   "net/http"
   "os"
   "fmt"
@@ -47,8 +49,10 @@ func LauncherHandler(c echo.Context) error {
   case "publish_alma":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
+    fname = file.Filename()
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = almaCrup(resource_id, validHolding(c), session_id, oclc_token)
+    alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": resource_id, "filename": fname, "session": session_id, "token": oclc_token } )
+
   default:
     return c.String(500, "No workflow submitted")
   }
