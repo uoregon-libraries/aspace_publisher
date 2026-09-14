@@ -34,6 +34,9 @@ ARG USER_GID=1000
 RUN groupadd --gid $USER_GID appuser && useradd --uid $USER_UID --gid appuser appuser
 
 COPY --from=build /usr/local/src/aspace_publisher/server /aspace_publisher/server
+COPY ./aw/*.php /aspace_publisher/aw/
+COPY ./views/*.html /aspace_publisher/views/
+COPY ./views/as/*.html /aspace_publisher/views/as/
 
 USER appuser
 

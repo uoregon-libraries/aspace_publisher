@@ -30,10 +30,9 @@ services:
       - ESECRET=$ESECRET
     tty: true
     volumes:
-      - ./logs:/aspace_publisher/logs
-      - ./views:/aspace_publisher/views
+      - shared:/aspace_publisher/logs
+      - shared:/aspace_publisher/views/reports
       - ./version.txt:/aspace_publisher/version.txt
-      - ./aw:/aspace_publisher/aw
     depends_on:
       - workers
 
@@ -73,9 +72,8 @@ services:
     depends_on:
       - database
     volumes:
-      - ./views/reports:/aspace_publisher/views/reports
-      - ./logs:/aspace_publisher/logs
+      - shared:/aspace_publisher/views/reports
+      - shared:/aspace_publisher/logs
 volumes:
   database:
-  server:
-  workers:
+  shared:
