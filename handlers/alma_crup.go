@@ -5,16 +5,22 @@ import (
   "aspace_publisher/oclc"
   "aspace_publisher/alma"
   "aspace_publisher/file"
+  "aspace_publisher/utils"
 )
 
-func almaCrup(resource_id string, filename string, session_id string, oclc_token string){
+func AlmaCrup(resource_id string, filename string, session_id string, oclc_token string){
   var args alma.ProcessArgs
   args.Resource_id = resource_id
   args.Repo_id = "2"
   args.Filename = filename
   var err error
-  args.Session_id = session_id
-  args.Oclc_token = oclc_token
+  d_session, err := utils.Decrypt(session_id)
+  if err != nil { file.WriteReport(args.Filename, []string{ "could not decrypt session" + err.Error() }); return }
+  args.Session_id = d_session
+  d_token, err := utils.Decrypt(oclc_token)
+  if err != nil { file.WriteReport(args.Filename, []string{ "could not decrypt token" + err.Error() }); return }
+
+  args.Oclc_token = d_token
 
   //acquire aspace resource
   rjson, err := as.AcquireJson(args.Session_id, args.Repo_id, "resources/" + args.Resource_id)

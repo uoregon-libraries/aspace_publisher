@@ -47,11 +47,15 @@ func LauncherHandler(c echo.Context) error {
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
     fname,err = oclcCrup(resource_id,repo_id, session_id, oclc_token)
   case "publish_alma":
+    e_session, err := utils.Encrypt(session_id)
+    if err != nil { return c.String(400, "") }
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
+    e_token, err := utils.Encrypt(oclc_token)
+    if err != nil { return c.String(400, "") }
     fname = file.Filename()
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": resource_id, "filename": fname, "session": session_id, "token": oclc_token } )
+    alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": resource_id, "filename": fname, "session": e_session, "token": e_token } )
 
   default:
     return c.String(500, "No workflow submitted")

@@ -8,6 +8,7 @@ import (
     "github.com/jackc/pgx/v5"
     "github.com/riverqueue/river"
 
+    "aspace_publisher/utils"
     "net/http"
 )
 type ServiceStatus struct {
@@ -22,8 +23,10 @@ type StatusWorker struct {
 }
 
 func (w *StatusWorker) Work(ctx context.Context, job *river.Job[ServiceStatus]) error {
+    d_other,err := utils.Decrypt(job.Args.Other)
+    if err != nil { panic(err) }
     log.Println("status: " + job.Args.Status)
-    log.Println("other: " + job.Args.Other)
+    log.Println("other: " + d_other)
     return nil
 }
 

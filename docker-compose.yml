@@ -14,7 +14,9 @@ services:
       - AWEST_PASS=$AWEST_PASS
       - AWEST_URL=$AWEST_URL
       - VERBOSE=true
-      - WORKERS_URL="workers:3200"
+      - WORKER_URL=http://workers:3200
+      - EBSTR=$EBSTR
+      - ESECRET=$ESECRET
 
     tty: true
     volumes:
@@ -41,6 +43,8 @@ services:
       POSTGRES_PASSWORD: riverq
       POSTGRES_DB: riverq
       DATABASE_URL: "database:5432"
+      EBSTR: $EBSTR
+      ESECRET: $ESECRET
     ports:
     - 3200:3200
 

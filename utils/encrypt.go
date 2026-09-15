@@ -5,7 +5,6 @@ import (
   "crypto/cipher"
   "encoding/base64"
   "os"
-  "slog"
 )
 
 func Encode(b []byte) string {
@@ -18,9 +17,10 @@ func Decode(s string) []byte {
   }
   return data
 }
-func Encrypt(text, MySecret string) (string, error) {
-  bytes := os.Getenv("BYTES")
-  secret := os.Getenv("SECRET")
+func Encrypt(text string) (string, error) {
+  ebstr := os.Getenv("EBSTR")
+  bytes := []byte(ebstr)
+  secret := os.Getenv("ESECRET")
   block, err := aes.NewCipher([]byte(secret))
   if err != nil {
     return "", err
@@ -32,9 +32,10 @@ func Encrypt(text, MySecret string) (string, error) {
   return Encode(cipherText), nil
 }
 
-func Decrypt(text, MySecret string) (string, error) {
-  bytes := os.Getenv("BYTES")
-  secret := os.Getenv("SECRET")
+func Decrypt(text string) (string, error) {
+  ebstr := os.Getenv("EBSTR")
+  bytes := []byte(ebstr)
+  secret := os.Getenv("ESECRET")
   block, err := aes.NewCipher([]byte(secret))
   if err != nil {
     return "", err
