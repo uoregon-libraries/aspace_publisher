@@ -14,13 +14,15 @@ import (
 func AlmaCrupHandler(c echo.Context) error {
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(500, "Cannot retrieve session, try redoing login.") }
-
+  esession, err := utils.Encrypt(session_id)
+  if err != nil { return c.String(400, "Could not encrypt session") }
   //authenticate with OCLC
   oclc_token, err := oclc.GetToken(c)
   if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-
+  etoken, err := utils.Encrypt(oclc_token)
+  if err != nil { return c.String(400, "Could not encrypt token")}
   fname := file.Filename()
-  alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": session_id, "token": oclc_token } )
+  alma.CallWorker("startAlmaCrupJob", map[string]string{ "id": c.Param("id"), "filename": fname, "session": esession, "token": etoken } )
 
   base_url := os.Getenv("HOME_URL")
   return c.HTML(200, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
