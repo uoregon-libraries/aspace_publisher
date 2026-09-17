@@ -17,21 +17,28 @@ import(
   "github.com/labstack/echo/v4"
 )
 type AuthResp struct {
-  Session string
+  Session string `json:"session"`
+  Agent Agent `json:"agent_record"`
+}
+
+type Agent struct {
+  Ref string `json:"ref"`
 }
 
 func As_basic(username, password string, c echo.Context) (bool, error){
+  var agent string
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if session_id == "" || err != nil {
-    session_id, err = AuthenticateAS(username, password)
+    session_id, agent, err = AuthenticateAS(username, password)
     if err != nil { return false, err }
     utils.WriteCookie(c, 120, "as_session", session_id)
+    utils.WriteCookie(c, 120, "as_agent", agent)
   }
   return true, nil
 }
 
 //Note: this will work on the server. Or from a local machine using VPN
-func AuthenticateAS(uname string, pass string) (string, error){
+func AuthenticateAS(uname string, pass string) (string, string, error){
   var authresp AuthResp
 
   authurl := os.Getenv("ASPACE_URL") + fmt.Sprintf("users/%s/login", uname)
@@ -45,7 +52,7 @@ func AuthenticateAS(uname string, pass string) (string, error){
 
   connect.RequestDump(request, "DEBUG")
 
-  if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to create login request") }
+  if err != nil { slog.Error(err.Error()); return "", "", errors.New("Unable to create login request") }
   client := http.Client{
 	 Timeout: 60 * time.Second,
   }
@@ -53,12 +60,12 @@ func AuthenticateAS(uname string, pass string) (string, error){
 
   connect.ResponseDump(response, "DEBUG")
 
-  if err != nil { slog.Error(err.Error()); return "", errors.New("Unable to complete login to aspace") }
-  if response.StatusCode != 200 { slog.Warn("unable to log into Aspace"); return "", errors.New("Unable to complete login to aspace") }
+  if err != nil { slog.Error(err.Error()); return "", "", errors.New("Unable to complete login to aspace") }
+  if response.StatusCode != 200 { slog.Warn("unable to log into Aspace"); return "", "", errors.New("Unable to complete login to aspace") }
   defer response.Body.Close()
   byteVal, _ := io.ReadAll(response.Body)
   err = json.Unmarshal(byteVal, &authresp)
-  if err != nil { return "", errors.New("Unable to extract session id") }
+  if err != nil { return "", "", errors.New("Unable to extract session id") }
 
-  return authresp.Session, nil
+  return authresp.Session, authresp.Agent.Ref, nil
 }
