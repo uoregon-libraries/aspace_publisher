@@ -1,31 +1,43 @@
-version: '2'
-
 services:
   server:
-    image: uoregon-libraries/aspace_publisher:20240321
+    image: aspace_publisher:20260910
     ports: 
       - '3000:3000'
     environment:
       - SECRET=$SECRET
       - ASPACE_URL=$ASPACE_URL
       - PORT=:3000
-      - HOME_DIR=$HOME_DIR
+      - HOME_DIR=/aspace_publisher/
       - AWEST_NAME=$AWEST_NAME
       - AWEST_PASS=$AWEST_PASS
       - AWEST_URL=$AWEST_URL
+      - ARK_URL=$AWEST_URL
+      - OCLC_URL=$OCLC_URL
+      - OCLC_AUTH_URL=$OCLC_AUTH_URL
+      - OCLC_NAME=$OCLC_NAME
+      - OCLC_PASS=$OCLC_PASS
+      - ALMA_URL=$ALMA_URL
+      - ALMA_KEY=$ALMA_KEY
+      - REPORT_DIR=/aspace_publisher/views/reports
+      - JOB_WAIT_TIME=$JOB_WAIT_TIME
+      - JOB_MAX_TRIES=$JOB_MAX_TRIES
+      - LINK_TO_NETWORK_SET=$LINK_TO_NETWORK_SET
+      - LINK_TO_NETWORK_JOB=$LINK_TO_NETWORK_JOB
+      - LOGMODE=$LOGMODE
       - VERBOSE=true
       - WORKER_URL=http://workers:3200
       - EBSTR=$EBSTR
       - ESECRET=$ESECRET
-
     tty: true
     volumes:
-      - .:/usr/local/src/aspace_publisher
+      - shared:/aspace_publisher/logs
+      - shared:/aspace_publisher/views/reports
+      - ./version.txt:/aspace_publisher/version.txt
+    depends_on:
+      - workers
 
   database:
     image: 'postgres:latest'
-    ports:
-    - 5432:5432
     environment:
       POSTGRES_USER: riverq
       POSTGRES_PASSWORD: riverq
@@ -34,21 +46,34 @@ services:
       - ${PWD}/db-data/:/var/lib/postgresql
 
   workers:
-    image: river_worker:20260126
-    volumes:
-      - .:/usr/local/src/aspace_publisher
+    image: river_service:20260910
     tty: true
     environment:
-      POSTGRES_USER: riverq
-      POSTGRES_PASSWORD: riverq
-      POSTGRES_DB: riverq
-      DATABASE_URL: "database:5432"
-      EBSTR: $EBSTR
-      ESECRET: $ESECRET
+      - POSTGRES_USER=riverq
+      - POSTGRES_PASSWORD=riverq
+      - POSTGRES_DB=riverq
+      - DATABASE_URL=database:5432
+      - ASPACE_URL=$ASPACE_URL
+      - OCLC_URL=$OCLC_URL
+      - ALMA_URL=$ALMA_URL
+      - ALMA_KEY=$ALMA_KEY
+      - HOME_DIR=/aspace_publisher/
+      - REPORT_DIR=/aspace_publisher/views/reports
+      - JOB_WAIT_TIME=$JOB_WAIT_TIME
+      - JOB_MAX_TRIES=$JOB_MAX_TRIES
+      - LINK_TO_NETWORK_SET=$LINK_TO_NETWORK_SET
+      - LINK_TO_NETWORK_JOB=$LINK_TO_NETWORK_JOB
+      - LOGMODE=$LOGMODE
+      - VERBOSE=true
+      - EBSTR=$EBSTR
+      - ESECRET=$ESECRET
     ports:
-    - 3200:3200
-
+      - 3200:3200
+    depends_on:
+      - database
+    volumes:
+      - shared:/aspace_publisher/views/reports
+      - shared:/aspace_publisher/logs
 volumes:
   database:
-  server:
-  river_worker:
+  shared:

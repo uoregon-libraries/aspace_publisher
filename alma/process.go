@@ -291,14 +291,16 @@ type CallWorkerFun func(string, map[string]string) error
 // worker_path eg startLTNJob
 // args must be passed as a query
 func CallWorker(worker_path string, args map[string]string) error{
-  _url := BuildWorkerUrl(worker_path, args)
-  _, err := http.Get(_url)
+  _url,err := BuildWorkerUrl(worker_path, args)
+  if err != nil { return err }
+  _, err = http.Get(_url)
   if err != nil { log.Println(err); return err }
   return nil
 }
 
-func BuildWorkerUrl(worker_path string, args map[string]string) string{
-  _url, _ := url.Parse(os.Getenv("WORKER_URL"))
+func BuildWorkerUrl(worker_path string, args map[string]string)(string, error){
+  _url, err := url.Parse(os.Getenv("WORKER_URL"))
+  if err != nil { log.Println(err); return "", err}
   _url = _url.JoinPath(worker_path)
   query := _url.Query()
   for k,v := range args{
@@ -307,7 +309,7 @@ func BuildWorkerUrl(worker_path string, args map[string]string) string{
   params := query.Encode()
   // url.QueryEscape(params) not needed
   _url.RawQuery = params
-  return _url.String()
+  return _url.String(), nil
 }
 
 func BaseUrl()string{

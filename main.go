@@ -14,17 +14,18 @@ import (
 func main(){
   e := echo.New()
   logmode := os.Getenv("LOGMODE")
+  path := os.Getenv("HOME_DIR")
   var logging *slog.Logger
   if logmode == "file" {
     logr := &timberjack.Logger{
-    Filename:   "logs/app.log", // path of log file
+    Filename:   path + "logs/app.log", // path of log file
     MaxSize:    50, // file size in MB
     MaxBackups: 7, // number of files to retain
     MaxAge:     8, // how long (in days) to retain files
     Compression: "gzip", // archive files?
     LocalTime:  true, // re timestamps
     RotateAt: []string{"00:00"},
-}
+    }
     logging = slog.New(slog.NewJSONHandler(logr, nil))
   } else { logging = slog.New(slog.NewJSONHandler(os.Stdout, nil)) }
   slog.SetDefault(logging)
@@ -32,7 +33,7 @@ func main(){
   e.Use(slogecho.New(logging))
   e.Use(middleware.Recover())
 
-  path := os.Getenv("HOME_DIR")
+
   e.GET("/version", handlers.VersionHandler)
   e.File("/as/login.html", path + "views/as/login.html") // as/login.html
   e.POST("login", handlers.AspaceLoginHandler)
