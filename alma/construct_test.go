@@ -80,6 +80,17 @@ func TestUpdateHolding(t *testing.T){
   if err.Error() != "skip update" { t.Errorf("error should be skip") }
 }
 
+func TestUpdateItem(t *testing.T){
+  var tc as.TopContainer
+  err := json.Unmarshal([]byte(as.Topcontainer_fixture4), &tc)
+  if err != nil { t.Errorf("error unmarshalling tc data") }
+
+  itemstr,err := UpdateItem("22329204430001852",itemstring_fixture4, tc.Mapify())
+  if err != nil { t.Errorf("fail") }
+  expected := itemstring_fixture6
+  if compareJSON(itemstr, expected) != true { t.Errorf("incorrect item rec") }
+}
+
 func TestConstructItem(t *testing.T){
   home := os.Getenv("HOME_DIR")
   tcdata, err := ioutil.ReadFile(home + "fixtures/top_container.json")
@@ -89,10 +100,7 @@ func TestConstructItem(t *testing.T){
   if err != nil { t.Errorf("error unmarshalling tc data") } 
   expected := itemstring_fixture1
   if err != nil { t.Errorf("error reading file") }
-  item := Item{}
-  result, _ := ConstructItem("98765432987",item, tc.Mapify())
-  itemstr, err := result.Stringify()
-  if err != nil { t.Errorf("error in stringify") }
+  itemstr, _ := ConstructItem("98765432987","", tc.Mapify())
   if compareJSON(itemstr, expected) != true { t.Errorf("incorrect item rec") }
 }
 

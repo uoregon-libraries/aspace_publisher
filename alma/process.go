@@ -10,7 +10,6 @@ import(
   "slices"
   "errors"
   "fmt"
-  "encoding/json"
   "aspace_publisher/file"
   "aspace_publisher/as"
   "aspace_publisher/oclc"
@@ -190,17 +189,17 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
   // iterate through the top containers
   // if an error occurs during the loop, report and continue
   for _,tc := range tcmap{
-    var item = Item{}
+    var itembyte []byte
+    var err error
     if tc["boundwith"] == "true" { continue } // skip boundwith containers
     if tc["ils_item"] != "" { //this is an update
       path := []string{"bibs", args.Mms_id, "holdings", tc["ils_holding"], "items", tc["ils_item"]}
       _url := BuildUrl(path)
       params := []string{ ApiKey() }
-      itemjson, err := Get(_url, params, "application/json")
+      itembyte, err = Get(_url, params, "application/json")
       if err != nil { msgs = append(msgs, "Unable to request Alma item: " + err.Error()); continue }
-      json.Unmarshal(itemjson, &item)
     }
-    item_id, err := fs.ItemPF(args, item, tc)
+    item_id, err := fs.ItemPF(args, string(itembyte), tc)
     if err != nil { msgs = append(msgs, "Unable to process Alma item: " + err.Error()); continue }
     itemlist = append(itemlist, item_id)
     if tc["ils_item"] == "" {
@@ -212,14 +211,15 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
   file.WriteReport(args.Filename, msgs)
 }
 
-type ProcessItemFun func(ProcessArgs, Item, map[string]string)(string, error)
+type ProcessItemFun func(ProcessArgs, string, map[string]string)(string, error)
 // does not log or write reports
-func ProcessItem(args ProcessArgs, item Item, tcmap map[string]string)(string, error){
+func ProcessItem(args ProcessArgs, itemjson string, tcmap map[string]string)(string, error){
   slog.Info(fmt.Sprintf("Starting item...args %+v, tcmap %+v", args, tcmap))
   //assemble item record
-  item, err := ConstructItem(args.Holding_id, item, tcmap)
-  if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
-  itemstr, err := item.Stringify()
+  itemstr := ""
+  var err error
+  if itemjson != "" { itemstr, err = UpdateItem(args.Holding_id, itemjson, tcmap)
+  } else { itemstr, err = ConstructItem(args.Holding_id, itemjson, tcmap) }
   if err != nil { return "", errors.New("Unable to construct item" + err.Error()) }
 
   path := []string{ "bibs", args.Mms_id, "holdings", args.Holding_id, "items", tcmap["ils_item"]}

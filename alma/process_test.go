@@ -9,7 +9,6 @@ import (
   "fmt"
   "strings"
   "reflect"
-  "encoding/json"
   "encoding/xml"
 )
 
@@ -154,6 +153,7 @@ func TestProcessHoldingB(t *testing.T){
   ProcessHoldingB(args2, string(marc2), tcmap2, fs)
 }
 
+// should only hit the testserver once, for the second call
 func TestProcessItems(t *testing.T){
   tcmap1 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "", "mms_id": "345634563456" } }
   tcmap2 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "98765432987", "ils_item": "456745674567", "mms_id": "345634563456" } }
@@ -204,11 +204,9 @@ func TestProcessItem(t *testing.T){
   defer ts.Close()
   os.Setenv("ALMA_URL", ts.URL + "/almaws/v1/")
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
-  item := Item{}
-  id,_ := ProcessItem(args1, item, tcmap1)
+  id,_ := ProcessItem(args1, "", tcmap1)
   if id != "456745674567" { t.Errorf("incorrect id returned") }
-  json.Unmarshal([]byte(itemstring_fixture5), &item)
-  id,_ = ProcessItem(args2, item, tcmap2)
+  id,_ = ProcessItem(args2, itemstring_fixture5, tcmap2)
   if id != "456745674567" { t.Errorf("incorrect id returned") }
 }
 
