@@ -21,7 +21,7 @@ func DummyHoldingBPF(args ProcessArgs, marc_string string, tcmap []map[string]st
   return
 }
 func DummyItemsPF(args ProcessArgs, tcmap []map[string]string, fs FunMap){ return }
-func DummyItemPF(args ProcessArgs, item Item, tcmap map[string]string)(string, error){
+func DummyItemPF(args ProcessArgs, itemjson string, tcmap map[string]string)(string, error){
   return "456745674567", nil
 }
 func DummyNZPF(list []string, filename string){ return }

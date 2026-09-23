@@ -3,6 +3,7 @@ package alma
 import (
   "aspace_publisher/marc"
   "github.com/beevik/etree"
+  "github.com/tidwall/sjson"
   "encoding/xml"
   "log/slog"
   "fmt"
@@ -88,20 +89,33 @@ func ConstructHolding(marc_string string, id_0 string)(Holding, error){
 }
 
 //expects holding_data, item_data
-func ConstructItem(holding_id string, item Item, tc_data map[string]string)(Item, error){
-  if item.Item_data.Item_pid == "" {
-    item.Holding_data.Holding_id = holding_id
-    item.Holding_data.Copy_id = "1"
-    item.Item_data.Library = Value{ Val: "SpecColl"}
-    item.Item_data.Location = Value{ Val: "spmanus"}
-    item.Item_data.Base_status = Value{ Val: "1" }
-    item.Item_data.Physical_material_type = Value{ Val: "MANUSCRIPT" }
-  }//note that the item pid SHOULD be left in the item_data
+//note that the item pid SHOULD be left in the item_data
+func ConstructItem(holding_id string, itemjson string, tc_data map[string]string)(string, error){
+  var item Item
+  item.Holding_data.Holding_id = holding_id
+  item.Holding_data.Copy_id = "1"
+  item.Item_data.Library = Value{ Val: "SpecColl"}
+  item.Item_data.Location = Value{ Val: "spmanus"}
+  item.Item_data.Base_status = Value{ Val: "1" }
+  item.Item_data.Physical_material_type = Value{ Val: "MANUSCRIPT" }
   item.Item_data.Barcode = tc_data["barcode"] //may change, eg falls off
   item.Item_data.Policy = Value{ Val: policy(tc_data["type"]) }
   item.Item_data.Description = fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"])
+  istring, err := item.Stringify()
+  if err != nil { return "", err}
+  return istring, nil
+}
 
-  return item, nil
+func UpdateItem(holding_id string, item_json string, tc_data map[string]string)(string, error){
+  i1, err := sjson.Set(item_json, "item_data.policy", Value{ Val: policy(tc_data["type"]) })
+  if err != nil { return "", err }
+  i2, err := sjson.Set(i1, "item_data.description", fmt.Sprintf("%s %s", tc_data["type"], tc_data["indicator"]))
+  i3, err := sjson.Set(i2, "item_data.barcode", tc_data["barcode"])
+  if err != nil { return "", err }
+  i4, err := sjson.Delete(i3, "item_data.modification_date")
+  if err != nil { return "", err }
+  i5, err := sjson.Delete(i4, "item_data.creation_date")
+  return i5, nil
 }
 
 func policy(_type string)string{
