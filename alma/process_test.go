@@ -255,53 +255,53 @@ func TestCheckTCMap(t *testing.T){
   if !reflect.DeepEqual(tcmapR3,tcmap) { t.Errorf("there should be no change in returned map") }
 }
 
-func TestGetBarcodes(t *testing.T){
+func TestPullItemIds(t *testing.T){
   tcdata0 := map[string]string{ "barcode":"ronco3000", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
-  tcdata1 := map[string]string{ "barcode":"ronco3001", "boundwith": "false", "ils_holding": "", "ils_item": "", "mms_id": "" }
-  tcdata2 := map[string]string{ "barcode":"ronco3002", "boundwith": "false", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcdata1 := map[string]string{ "barcode":"ronco3001", "boundwith": "false", "ils_holding": "", "ils_item": "123456789", "mms_id": "" }
+  tcdata2 := map[string]string{ "barcode":"ronco3002", "boundwith": "false", "ils_holding": "", "ils_item": "234567899", "mms_id": "" }
 
   tcmap := []map[string]string{tcdata0, tcdata1, tcdata2}
-  bc := GetBarcodes(tcmap)
-  if !reflect.DeepEqual(bc, []string{"ronco3001", "ronco3002"}) { t.Errorf("incorrect result") }
+  bc := PullItemIds(tcmap)
+  if !reflect.DeepEqual(bc, []string{"123456789", "234567899"}) { t.Errorf("incorrect result") }
 }
 
 func TestParseShortItem(t *testing.T){
-  item := `{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3000","description":"unarranged basket"}}`
+  item := `{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"123456789","barcode":"alma3000","description":"unarranged basket"}}`
   si := ParseShortItem(item)
-  expected := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  expected := ShortItem{Pid:"123456789", Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
   if !reflect.DeepEqual(si, expected) { t.Errorf("incorrect result") }
   fmt.Println(si)
   fmt.Println(expected)
 }
 
 func TestSIStringify(t *testing.T){
-  si := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
-  if si.Stringify() != "alma3000,Fruit1223,Rotten banana,unarranged basket" { t.Errorf("incorrect reponse") }
+  si := ShortItem{Pid:"123456789",Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  if si.Stringify() != "123456789,alma3000,Fruit1223,Rotten banana,unarranged basket" { t.Errorf("incorrect reponse") }
 }
 
 func TestBuildMessageFromMissing(t *testing.T){
-  si1 := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
-  si2 := ShortItem{Barcode:"alma3001", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten apple"}
+  si1 := ShortItem{Pid:"123456789", Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  si2 := ShortItem{Pid:"234567899", Barcode:"alma3001", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten apple"}
   items := []ShortItem{si1, si2}
   msg_arr := BuildMessageFromMissing(items)
-  expected := []string{"alma3000,Fruit1223,Rotten banana,unarranged basket","alma3001,Fruit1223,Rotten apple,unarranged basket"}
+  expected := []string{"123456789,alma3000,Fruit1223,Rotten banana,unarranged basket","234567899,alma3001,Fruit1223,Rotten apple,unarranged basket"}
   if !reflect.DeepEqual(msg_arr, expected) { t.Errorf("incorrect result") }
 }
 
 func TestCompileMissing(t *testing.T){
-  jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3001","description":"unarranged basket"}}]`
-  si1 := ShortItem{Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
-  si2 := ShortItem{Barcode:"alma3001", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten apple"}
+  jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"123456789","barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"234567899","barcode":"alma3001","description":"unarranged basket"}}]`
+  //si1 := ShortItem{Pid:"123456789", Barcode:"alma3000", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten banana"}
+  si2 := ShortItem{Pid:"234567899", Barcode:"alma3001", Description: "unarranged basket",  CallNumber: "Fruit1223", Title: "Rotten apple"}
 
-  barcodes := []string{"ronco3100", "ronco3101"}
-  expected := []ShortItem{si1, si2}
-  response := CompileMissing([]byte(jsonstr), barcodes)
+  pids := []string{"123456789"}
+  expected := []ShortItem{si2}
+  response := CompileMissing([]byte(jsonstr), pids)
   if !reflect.DeepEqual(response, expected) { t.Errorf("incorrect response") }
 }
 
 func TestCheckItemsForMissing(t *testing.T){
   path1 := "/almaws/v1/bibs/345634563456/holdings/98765432987/items"
-  jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"barcode":"alma3001","description":"unarranged basket"}}]`
+  jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"123456789","barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"234567899","barcode":"alma3001","description":"unarranged basket"}}]`
 
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != path1 { t.Errorf("incorrect request url") }
@@ -312,10 +312,10 @@ func TestCheckItemsForMissing(t *testing.T){
   os.Setenv("ALMA_KEY", "abcdeabcdeabcde")
 
   args := ProcessArgs{ Mms_id: "345634563456", Holding_id: "98765432987", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
-  tcdata0 := map[string]string{ "barcode":"ronco3100", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
+  tcdata0 := map[string]string{ "barcode":"ronco3100", "boundwith": "true", "ils_holding": "", "ils_item": "123456789", "mms_id": "" }
   tcdata1 := map[string]string{ "barcode":"ronco3101", "boundwith": "true", "ils_holding": "", "ils_item": "", "mms_id": "" }
   tcmap := []map[string]string{tcdata0, tcdata1}
-  CheckItemsForMissing(args, tcmap)
+  CheckItemsForMissing(args, tcmap) //writes a report, should contain 234567899
 }
 
 func TestCallWorker(t *testing.T){
