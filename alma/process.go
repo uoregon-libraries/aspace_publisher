@@ -316,12 +316,12 @@ func BaseUrl()string{
   return os.Getenv("ALMA_URL")
 }
 
-func CompileMissing(itemlist []byte, tc_barcodes []string) []ShortItem{
+func CompileMissing(itemlist []byte, tc_items []string) []ShortItem{
   items := gjson.GetBytes(itemlist, "item")
   result := []ShortItem{}
   for _, item :=  range items.Array(){
     p := ParseShortItem(item.String())
-    if InRange(p.Barcode, tc_barcodes) == false { result = append(result, p) }
+    if InRange(p.Pid, tc_items) == false { result = append(result, p) }
   }
   return result
 }
@@ -342,47 +342,49 @@ func BuildMessageFromMissing(missing []ShortItem) []string{
 }
 
 func (s ShortItem) Stringify() string{
-  return fmt.Sprintf("%s,%s,%s,%s", s.Barcode, s.CallNumber, s.Title, s.Description)
+  return fmt.Sprintf("%s,%s,%s,%s,%s", s.Pid, s.Barcode, s.CallNumber, s.Title, s.Description)
 }
 
 func ParseShortItem(item string) ShortItem{
+  p := gjson.Get(item, "item_data.pid").String()
   b := gjson.Get(item, "item_data.barcode").String()
   d := gjson.Get(item, "item_data.description").String()
   c := gjson.Get(item, "holding_data.call_number").String()
   t := gjson.Get(item, "bib_data.title").String()
-  return ShortItem{ Barcode: b, Description: d, CallNumber: c, Title: t }
+  return ShortItem{ Pid: p, Barcode: b, Description: d, CallNumber: c, Title: t }
 }
 
 type ShortItem struct{
+  Pid string
   Barcode string
   Description string
   CallNumber string
   Title string
 }
 
-// exclude barcdoes that are for boundwith items
-func GetBarcodes(tcmap []map[string]string) []string{
-  barcodes := []string{}
+// exclude  boundwith items
+func PullItemIds(tcmap []map[string]string) []string{
+  pids := []string{}
   for _,item := range tcmap{
     if item["boundwith"] == "true" { continue }
-    barcodes = append(barcodes, item["barcode"])
+    pids = append(pids, item["ils_item"])
   }
-  return barcodes
+  return pids
 }
 
 type CheckItemsForMissingFun func(ProcessArgs, []map[string]string)
 func CheckItemsForMissing(args ProcessArgs, tcmap []map[string]string){
-  tc_barcodes := GetBarcodes(tcmap)
+  tc_items := PullItemIds(tcmap)
   if args.Holding_id == "" { file.WriteReport(args.Filename, []string{"Skipping barcode comparison, no holding available for lookup."}); return }
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items"}
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   itemsjson, err := Get(_url, params, "application/json")
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to request Alma item: " + err.Error()}); return }
-  missing := CompileMissing(itemsjson, tc_barcodes)
+  missing := CompileMissing(itemsjson, tc_items)
   if len(missing) != 0 {
     export_name := fmt.Sprintf("Resource%s_ItemsForDelete.csv", args.Resource_id)
-    messages := []string{ "Barcode,CallNumber,Title,Description" }
+    messages := []string{ "Pid,Barcode,CallNumber,Title,Description" }
     messages = append(messages, BuildMessageFromMissing(missing)...)
     file.WriteReport(export_name, messages)
     base_url := os.Getenv("HOME_URL")
