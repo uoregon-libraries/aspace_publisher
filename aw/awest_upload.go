@@ -11,24 +11,20 @@ import(
   "os"
   "strings"
   "time"
+  "regexp"
   "github.com/PuerkitoBio/goquery"
+  "github.com/beevik/etree"
   "aspace_publisher/connect"
 )
 
 // an ark_url looks like https://archiveswest.orbiscascade.org/ark:80444/xv205342
-func MakeUploadMap(ark, filekey, filepath string)(map[string]string, error){
+func MakeUploadMap(ark string, exists bool, filepath string)(map[string]string){
   vals := make(map[string]string)
-  vals["filekey"] = filekey
+  vals["filekey"] = "ead"
   vals["filepath"] = filepath
-  if ark != "" {
-    vals["ark"] = ark
-    exists, err := TestArk(ark)
-    if err != nil { return nil, err }
-    if exists == true {
-      vals["replace"] = "1"
-    }
-  }
-  return vals, nil
+  vals["ark"] = ark
+  if exists { vals["replace"] = "1" }
+  return vals
 }
 
 func Request(sessionid string, boundary string, form *bytes.Buffer, operation string)(io.Reader, error){
@@ -39,7 +35,7 @@ func Request(sessionid string, boundary string, form *bytes.Buffer, operation st
     url = os.Getenv("AWEST_URL") + "validation-process.php"
   }
   req, err := http.NewRequest("POST", url, form)
-  if err != nil { return nil, errors.New("unable to create http request") }
+  if err != nil { slog.Error(err.Error()); return nil, errors.New("unable to create http request") }
 
   req.Header.Set("cookie", "PHPSESSID=" + sessionid)
   req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", boundary))
@@ -49,7 +45,7 @@ func Request(sessionid string, boundary string, form *bytes.Buffer, operation st
   client := &http.Client{
     Timeout: time.Second * 30,
   }
-  response, err := client.Do(req); if err != nil { return nil, err }
+  response, err := client.Do(req); if err != nil { slog.Error(err.Error()); return nil, err }
   defer response.Body.Close()
 
   connect.ResponseDump(response) //check response only after err check
@@ -58,20 +54,46 @@ func Request(sessionid string, boundary string, form *bytes.Buffer, operation st
 }
 
 func ark_url(ark string)(string){
-  url := fmt.Sprintf("https://archiveswest.orbiscascade.org/ark:%s", ark)
+  base_url := os.Getenv("ARK_URL_BASE")
+  url := fmt.Sprintf("%s%s", base_url, ark)
   return url
 }
 
+//80444/xv181026
+func ValidArk(arkId string)(bool){
+  re1 := regexp.MustCompile(`/*80444/xv[0-9]+`)
+  matched1 := re1.Find([]byte(arkId))
+  if string(matched1) == arkId { return true }
+  return false
+}
+
+func ExtractArk(ead string)(string,error){
+  et,err := ParseXML(ead)
+  if err != nil{ return "", err}
+  eadid := et.FindElement("//eadid")
+  ark := eadid.SelectAttrValue("identifier","")
+  return ark, nil
+}
+
+func ParseXML(xml_string string)(*etree.Document, error){
+  xml_doc := etree.NewDocument()
+  err := xml_doc.ReadFromString(xml_string)
+  if err != nil { slog.Error(err.Error()); return xml_doc, errors.New("Unable to read XML") }
+  return xml_doc, nil
+}
+
 // returns true if there a record published at the ark url
-func TestArk(ark string)(bool, error){
+func CheckArk(ark string)(bool, error){
   req, err := http.NewRequest("GET", ark_url(ark), nil)
   if err != nil { slog.Error(err.Error()); return false, errors.New("unable to create http request") }
   client := &http.Client{
     Timeout: time.Second * 30,
   }
-  response, err := client.Do(req); if err != nil { return false, err }
+  connect.RequestDump(req)
+  response, err := client.Do(req); if err != nil { slog.Error(err.Error()); return false, err }
   body, err := io.ReadAll(response.Body); if err != nil { slog.Error(err.Error()); return false, err }
   defer response.Body.Close()
+  connect.ResponseDump(response) //check response only after err check
   doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
   if err != nil { slog.Error(err.Error()); return false, errors.New("unable to read response") }
   tag := doc.Find("#toc")

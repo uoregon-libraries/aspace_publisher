@@ -5,7 +5,7 @@ import (
   "aspace_publisher/utils"
 )
 
-func ProcessEad(repo_id, resource_id, ead_orig string, aw_session string, operation string) (string, error) {
+func ProcessEad(repo_id, resource_id, ead_orig string, exists bool, aw_session string, operation string) (string, error) {
 
   ead_prepped, eadname, ark, err := PrepareEad(repo_id, resource_id, ead_orig)
   if err != nil{
@@ -32,10 +32,8 @@ func ProcessEad(repo_id, resource_id, ead_orig string, aw_session string, operat
     return "", err
   }
 
-   vals, err := MakeUploadMap(ark, "ead", f.Name())
-  if err != nil {
-    return "", err
-  }
+  vals := MakeUploadMap(ark, exists, f.Name())
+
   // create form
   form, boundary, err := utils.CreateMultipartFormData(vals)
   if err != nil {
