@@ -103,6 +103,7 @@ type ProcessBoundwithFun func(ProcessArgs, string, []map[string]string, FunMap)
 // if not boundwith, set the args.Holding_id to tc["ils_holding"]
 // will only call ProcessHolding if finds non-boundwith tc
 // if boundwith true and error occurs, write report and stop once loop is complete
+// use of args.Holding_id assumes there is only one holding per bib
 func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]string, fs FunMap){
   var process_holding = false
   slog.Info(fmt.Sprintf("Looking for boundwith to process %+v", args))
@@ -373,14 +374,15 @@ func PullItemIds(tcmap []map[string]string) []string{
 }
 
 type CheckItemsForMissingFun func(ProcessArgs, []map[string]string)
+//Note: the request used here assumes there is only one holding per bib.
 func CheckItemsForMissing(args ProcessArgs, tcmap []map[string]string){
   tc_items := PullItemIds(tcmap)
   if args.Holding_id == "" { file.WriteReport(args.Filename, []string{"Skipping barcode comparison, no holding available for lookup."}); return }
-  path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id, "items"}
+  path := []string{"bibs", args.Mms_id, "holdings", "ALL", "items"}
   _url := BuildUrl(path)
-  params := []string{ ApiKey() }
+  params := []string{ ApiKey(), "view=brief" }
   itemsjson, err := Get(_url, params, "application/json")
-  if err != nil { file.WriteReport(args.Filename, []string{"Unable to request Alma item: " + err.Error()}); return }
+  if err != nil { file.WriteReport(args.Filename, []string{"Unable to request Alma items: " + err.Error()}); return }
   missing := CompileMissing(itemsjson, tc_items)
   if len(missing) != 0 {
     export_name := fmt.Sprintf("Resource%s_ItemsForDelete.csv", args.Resource_id)
