@@ -15,12 +15,14 @@ func OclcCrupHandler(c echo.Context) error {
   //get session id
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(520, "Cannot retrieve session, try redoing login.") }
+  agent, err := utils.FetchCookieVal(c, "as_agent")
+  if err != nil { return echo.NewHTTPError(520, "Cannot retrieve agent, try redoing login.") }
 
   //authenticate with OCLC
   token, err := oclc.GetToken(c)
   if err != nil { return echo.NewHTTPError(520, err) }
 
-  fname, err := oclcCrup(id, repo_id, session_id, token)
+  fname, err := oclcCrup(id, repo_id, session_id, agent, token)
 
   //print response to user
   base_url := os.Getenv("HOME_URL")
