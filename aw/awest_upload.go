@@ -59,7 +59,6 @@ func ark_url(ark string)(string){
   return url
 }
 
-//80444/xv181026
 func ValidArk(arkId string)(bool){
   re1 := regexp.MustCompile(`/*80444/xv[0-9]+`)
   matched1 := re1.Find([]byte(arkId))
@@ -67,12 +66,14 @@ func ValidArk(arkId string)(bool){
   return false
 }
 
+//i.e. from the aspace ead
 func ExtractArk(ead string)(string,error){
   et,err := ParseXML(ead)
   if err != nil{ return "", err}
   eadid := et.FindElement("//eadid")
-  ark := eadid.SelectAttrValue("identifier","")
-  return ark, nil
+  arkurl := eadid.SelectAttrValue("url","")
+  arkid := strings.Split(arkurl, ":")[2]
+  return arkid, nil
 }
 
 func ParseXML(xml_string string)(*etree.Document, error){

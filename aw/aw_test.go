@@ -5,6 +5,9 @@ import (
   "os"
   "path/filepath"
   "strings"
+  "net/http"
+  "net/http/httptest"
+  "fmt"
 )
 
 func TestParseResult(t *testing.T) {
@@ -25,23 +28,23 @@ func TestParseResult(t *testing.T) {
 }
 
 func TestValidArk(t *testing.T){
-  if ValidArk("/80444/xv[fill in ark here]") { t.Error("invalid ark") }
+  if ValidArk("/80444/xv[fill in ARK here]") { t.Error("invalid ark") }
   if ValidArk("80444/xv123") != true { t.Error("incorrect result") }
   if ValidArk("/80444/xv345") != true { t.Error("incorrect result") }
 }
 
-func ExtractArk(t *testing.T){
-  ark, err := ExtractArk(ead)
+func TestExtractArk(t *testing.T){
+  ark, err := ExtractArk(ead_fixture1)
   if err != nil { t.Error(err) }
-  if ark != "80444/xv123" { t.Error("incorrect result") }
+  if ark != "/80444/xv123" { t.Error("incorrect result") }
 }
 
 func TestCheckArk(t *testing.T){
   home_dir := os.Getenv("HOME_DIR")
-  html_resp, err := os.ReadFile(filepath.Join(home_dir, "fixtures/resp1.html"))
+  html_resp, err := os.ReadFile(filepath.Join(home_dir, "fixtures/short_finding.html"))
   if err != nil { t.Error(err) }
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    if r.path != "/ark:80444/xv123" { t.Error("incorrect path") }
+    if r.URL.Path != "/ark:80444/xv123" { t.Error("incorrect path") }
     fmt.Fprint(w, string(html_resp))
   }))
   defer ts.Close()
