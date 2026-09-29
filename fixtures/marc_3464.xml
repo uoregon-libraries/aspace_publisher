@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns="http://www.loc.gov/MARC21/slim" xmlns:marc="http://www.loc.gov/MARC21/slim" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd">
+  <record>
+    <leader>00000npcaa2200000 i 4500</leader>
+    <controlfield tag="001">on1097882240</controlfield>
+    <controlfield tag="003">OCoLC</controlfield>
+    <controlfield tag="008">240910i19752006xxu                 eng d</controlfield>
+    <datafield ind1=" " ind2=" " tag="040">
+      <subfield code="a">ORU</subfield>
+      <subfield code="b">eng</subfield>
+      <subfield code="e">dacs</subfield>
+      <subfield code="c">ORU</subfield>
+    </datafield>
+    <datafield ind1="0" ind2=" " tag="041">
+      <subfield code="a">eng</subfield>
+    </datafield>
+    <datafield ind1=" " ind2=" " tag="099">
+      <subfield code="a">Coll 408</subfield>
+    </datafield>
+    <datafield ind1="2" ind2=" " tag="110">
+      <subfield code="a">1000 Friends of Oregon,</subfield>
+      <subfield code="e">creator.</subfield>
+    </datafield>
+    <datafield ind1="1" ind2="0" tag="245">
+      <subfield code="a">1000 Friends of Oregon records,</subfield>
+      <subfield code="f">not yet added.</subfield>
+    </datafield>
+    <datafield ind1=" " ind2=" " tag="300">
+      <subfield code="a">264</subfield>
+      <subfield code="f">linear feet (173 containers)</subfield>
+    </datafield>
+    <datafield ind1="3" ind2=" " tag="520">
+      <subfield code="a">1000 Friends of Oregon was founded in 1975 by Governor Tom McCall and attorney Henry Richmond as a nonprofit watchdog organization advocating for and ensuring adherence to Oregon's new land-use law - Senate Bill 100. The collection (1972-2006) contains records from 1000 Friends of Oregon state and local groups, as well as individual members, and material includes project, legal, legislative, and subject files, correspondence, reports, meeting minutes, and publications.</subfield>
+    </datafield>
+    <datafield ind1="2" ind2="0" tag="610">
+      <subfield code="a">1000 Friends of Oregon,</subfield>
+    </datafield>
+    <datafield ind1="4" ind2="2" tag="856">
+      <subfield code="z">Notice of Interest in Unprocessed Collections</subfield>
+      <subfield code="u">https://library.uoregon.edu/scua/unprocessed-collections?title=1000-Friends-of-Oregon-records&amp;callnumber=Coll-408</subfield>
+    </datafield>
+  </record>
+</collection>
