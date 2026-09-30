@@ -14,18 +14,21 @@ import (
 //  "encoding/json"
 //  "encoding/xml"
   "aspace_publisher/file"
+  "aspace_publisher/as"
 )
 
 type BWFunMap struct {
   BibPF ProcessBWBibFun
   HoldingPF ProcessBWHoldingFun
   ItemPF ProcessBWItemFun
+  Time TimeFun
+  UpdateTC as.UpdateTCFun
 }
 
 type ProcessBWBibFun func(ProcessArgs, map[string]string, BWFunMap)
 func ProcessBWBib(args ProcessArgs, tcmap map[string]string, fs BWFunMap){
   slog.Info(fmt.Sprintf("Creating bib %+v", args))
-  rec := ConstructBWMarc(tcmap)
+  rec := ConstructBWMarc(tcmap, fs.Time())
   bib := ConstructBWBib(rec)
   _url := BuildUrl([]string{"bibs"})
   params := []string{ ApiKey() }
@@ -44,10 +47,9 @@ func ConstructBWBib(rec Record) Bib {
   return bib
 }
 
-func ConstructBWMarc(tc_data map[string]string) Record{
-  date := time.Now()
-  date1 := date.Format("20060102150405")
-  date2 := date.Format("20060102")
+func ConstructBWMarc(tc_data map[string]string, t time.Time) Record{
+  date1 := t.Format("20060102150405")
+  date2 := t.Format("20060102")
 
   var rec = Record{}
   rec.Leader = "00000npcaa2200000 i 4500"
@@ -61,9 +63,15 @@ func ConstructBWMarc(tc_data map[string]string) Record{
   s962a := Subfield{ Code: "a", Value: "BoundwithRecord" }
   s9629 := Subfield{ Code: "9", Value: "local"}
   d962.Subfield = []Subfield{ s962a, s9629 }
-
+  rec.Datafield = []Datafield{ d245, d962 }
   return rec
 }
+
+type TimeFun func()time.Time
+func GetTime()time.Time{
+  return time.Now()
+}
+
 type ProcessBWHoldingFun func(ProcessArgs, Record, map[string]string, BWFunMap)
 func ProcessBWHolding(args ProcessArgs, rec Record, tcmap map[string]string, fs BWFunMap){
   slog.Info(fmt.Sprintf("Creating holding %+v", args))
@@ -84,7 +92,7 @@ func ProcessBWHolding(args ProcessArgs, rec Record, tcmap map[string]string, fs 
     result, err = Put(_url, params, holding, "xml") }
   if err != nil { file.WriteReport(args.Filename, []string{"Did not push to alma: " + err.Error()}); return }
   args.Holding_id = ExtractHoldingID(result)
-  fs.ItemPF(args, tcmap)
+  fs.ItemPF(args, tcmap, fs)
 }
 // update barcode if needed
 func UpdateBWHolding(hold string, tcmap map[string]string)(string, error){
@@ -117,9 +125,9 @@ func ConstructBWHolding(rec Record, tcmap map[string]string)(string, error){
   str, err := h.Stringify()
   return str, err
 }
-type ProcessBWItemFun func(ProcessArgs, map[string]string)
+type ProcessBWItemFun func(ProcessArgs, map[string]string, BWFunMap)
 //must wrap up at the end
-func ProcessBWItem(args ProcessArgs, tcmap map[string]string){
+func ProcessBWItem(args ProcessArgs, tcmap map[string]string, fs BWFunMap){
   slog.Info(fmt.Sprintf("Starting item...args %+v, tcmap %+v", args, tcmap))
   var itembyte []byte
   var err error
@@ -148,7 +156,10 @@ func ProcessBWItem(args ProcessArgs, tcmap map[string]string){
   if err != nil { file.WriteReport(args.Filename, []string{ "Error processing item: " + err.Error()}); return }
   var item_id string
   if tcmap["ils_item"] == "" {
-    item_id = ExtractItemID(result) } else {
+    item_id = ExtractItemID(result)
+    err = fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tcmap)
+    if err != nil { file.WriteReport(args.Filename, []string{ "error updating tc: " + err.Error() } ) }
+    } else {
     item_id = tcmap["ils_item"]
   }
   file.WriteReport(args.Filename, []string{ "item processed: " + item_id })
