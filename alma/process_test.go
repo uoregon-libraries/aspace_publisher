@@ -298,11 +298,12 @@ func TestCompileMissing(t *testing.T){
 }
 
 func TestCheckItemsForMissing(t *testing.T){
-  path1 := "/almaws/v1/bibs/345634563456/holdings/98765432987/items"
+  path1 := "/almaws/v1/bibs/345634563456/holdings/ALL/items"
   jsonstr := `{"item":[{"bib_data":{"title":"Rotten banana"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"123456789","barcode":"alma3000","description":"unarranged basket"}},{"bib_data":{"title":"Rotten apple"},"holding_data":{"call_number":"Fruit1223"},"item_data":{"pid":"234567899","barcode":"alma3001","description":"unarranged basket"}}]`
 
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != path1 { t.Errorf("incorrect request url") }
+    if v := r.URL.Query().Get("view"); v!= "brief" { t.Error("param missing") }
     fmt.Fprint(w, jsonstr)
   }))
   defer ts.Close()
