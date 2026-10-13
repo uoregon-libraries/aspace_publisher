@@ -53,6 +53,7 @@ func main() {
     river.AddWorker(workers, &river_worker.LTNWorker{})
     river.AddWorker(workers, &river_worker.StatusWorker{})
     river.AddWorker(workers, &river_worker.AlmaCrupWorker{})
+    river.AddWorker(workers, &river_worker.AlmaBWWorker{})
     logger := slog.New(slog.NewTextHandler(logr, &slog.HandlerOptions{Level: slog.LevelInfo, ReplaceAttr: slogutil.NoLevelTime}))
     slog.SetDefault(logger)
     riverClient, err := river.NewClient(riverpgxv5.New(dbPool), &river.Config{
@@ -90,6 +91,7 @@ func main() {
     http.HandleFunc("/startLTNJob", river_worker.StartLTNJob(riverClient, ctx, dbPool))
     http.HandleFunc("/startStatusJob", river_worker.StartStatusJob(riverClient, ctx, dbPool))
     http.HandleFunc("/startAlmaCrupJob", river_worker.StartAlmaCrupJob(riverClient, ctx, dbPool))
+    http.HandleFunc("/startAlmaBWJob", river_worker.StartAlmaBWJob(riverClient, ctx, dbPool))
     http.Handle("/riverui/", handler)
     http.ListenAndServe(":3200", nil)
 }

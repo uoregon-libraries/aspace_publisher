@@ -3,6 +3,9 @@ package as
 import (
   "testing"
   "os"
+  "net/http"
+  "net/http/httptest"
+  "fmt"
   "io/ioutil"
   "log"
 )
@@ -26,15 +29,33 @@ func TestExtractOclcId(t *testing.T){
   if oclc_id != "1535209600" { t.Errorf("incorrect result") }
 }
 
-func TestGetMmsId(t *testing.T){
+func TestExtractMmsId(t *testing.T){
   resource := loadfile("9730.json")
-  id,is_empty,_ := GetMmsId(resource)
+  id,is_empty,_ := ExtractMmsId(resource)
   if  id != "" { t.Errorf("incorrect result")}
   if is_empty != true { t.Errorf("incorrect result") }
   resource = loadfile("2023.json")
-  id, is_empty,_ = GetMmsId(resource)
+  id, is_empty,_ = ExtractMmsId(resource)
   if id != "99107164901852" { t.Errorf("incorrect result") }
   if is_empty != false { t.Errorf("incorrect result") }
+}
+func TestGetMmsId(t *testing.T){
+
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    path1 := "/api/repositories/2/resources/123"
+    if r.URL.Path == path1 {
+      fmt.Fprint(w, `{ "user_defined": { "string_2": "987654321" } }`)
+    } else {
+      fmt.Fprint(w, `<center><h1>404 Not Found</h1></center>`)
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/api/")
+  id, _, _ := GetMmsId("2", "123", "2345678901")
+  if id != "987654321" { t.Error("incorrect response") }
+  _, is_empty, _ := GetMmsId("2", "234", "2345678901")
+  if is_empty != true { t.Error("incorrect response to 404") }
+
 }
 
 func TestExtractID(t *testing.T){
