@@ -33,11 +33,25 @@ func ExtractOclcId(resource []byte)(string, error){
   return result.String(), err
 }
 
-func GetMmsId(resource []byte)(string,bool,error){
+// returns string ID, is-empty?, error
+func ExtractMmsId(resource []byte)(string,bool,error){
   result := gjson.GetBytes(resource, "user_defined.string_2")
   err := ValidID(result.String())
   return result.String(), result.String() == "", err
   }
+
+// returns string ID, is-empty?, error
+// special handling if 404
+func GetMmsId(repo_id, resource_id, session_id string)(string, bool, error){
+  json, err := AcquireJson(session_id, repo_id, "resources/" + resource_id)
+  if err != nil {
+    if strings.Contains(string(json), "404 Not Found") == true {
+      return "", true, nil } else {
+      return string(json), true, err
+    }
+  }
+  return ExtractMmsId(json)
+}
 
 func ExtractID(_url string)string{
   parts := strings.Split(_url, "/")

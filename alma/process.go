@@ -114,7 +114,7 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
       params := []string{ ApiKey() }
       bwbib_byte, err := Get(_url, params, "application/xml")
       if err != nil { msgs = append(msgs, err.Error()); continue }
-      bwbib, err := UpdateBoundwith(bwbib_byte, marc_string, args.Mms_id, tc)
+      bwbib, err := UpdateBoundwith(bwbib_byte, marc_string, args.Mms_id, args.Id_0, tc)
       if err != nil { msgs = append(msgs, err.Error()); continue }
       bwbib_str, err := bwbib.Stringify()
       if err != nil { msgs = append(msgs, err.Error()); continue }

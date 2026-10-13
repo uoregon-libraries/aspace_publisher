@@ -1,11 +1,12 @@
 module aspace_publisher
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/DeRuina/timberjack v1.4.6
 	github.com/PuerkitoBio/goquery v1.8.1
-	github.com/beevik/etree v1.4.0
+	github.com/beevik/etree v1.6.0
+	github.com/google/go-cmp v0.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/riverqueue/river v0.30.1
@@ -25,6 +26,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
+	github.com/imflog/xmlcompare v0.0.1 // indirect
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
