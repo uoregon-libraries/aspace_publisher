@@ -54,6 +54,8 @@ func main(){
   e.POST("/upload_do", handlers.UploadDigitalObjectsHandler)
   e.Static("/reports", "views/reports")
   e.POST("/alma/crup/:id", handlers.AlmaCrupHandler)
+  e.File("/bw_launch.html", path + "views/alma/boundwith.html")
+  e.POST("/alma/boundwith", handlers.AlmaBWHandler)
   e.GET("/test/status/:status", handlers.StatusHandler)
   e.GET("/reportlist", handlers.DisplayReportsHandler)
 

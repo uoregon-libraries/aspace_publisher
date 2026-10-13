@@ -33,8 +33,9 @@ func TestUpdateBoundwith(t *testing.T){
   expected := bibstring_fixture2
   bibmarc := bibstring_fixture3
   bibmmsid := "345634563456"
+  id_0 := "A 42"
   tcmap :=  map[string]string{ "mms_id": bwmmsid }
-  bib, err := UpdateBoundwith([]byte(bwmarc),bibmarc,bibmmsid,tcmap)
+  bib, err := UpdateBoundwith([]byte(bwmarc),bibmarc,bibmmsid, id_0, tcmap)
   bibstr, err := bib.Stringify()
   if err != nil { t.Errorf("error in stringify") }
   if compareBibs([]byte(bibstr), []byte(expected)) != true { t.Errorf("incorrect boundwith rec") }
@@ -47,8 +48,9 @@ func TestUpdateBoundwith2(t *testing.T){
   expected := bibstring_fixture2
   bibmarc := bibstring_fixture3
   bibmmsid := "345634563456"
+  id_0 := "A 42"
   tcmap :=  map[string]string{ "mms_id": bwmmsid }
-  bib, err := UpdateBoundwith([]byte(bwmarc),bibmarc,bibmmsid,tcmap)
+  bib, err := UpdateBoundwith([]byte(bwmarc),bibmarc,bibmmsid, id_0, tcmap)
   bibstr, err := bib.Stringify()
   if err != nil { t.Errorf("error in stringify") }
   if compareBibs([]byte(bibstr), []byte(expected)) != true { t.Errorf("incorrect boundwith rec") }

@@ -8,6 +8,8 @@ import (
   "errors"
   "regexp"
   "net/url"
+  "slices"
+  "fmt"
 )
 
 func ExtractBibID(data []byte)string{
@@ -49,12 +51,18 @@ func ParseHoldingItem(item []byte)(string,string){
   return holding_id.String(), item_id.String()
 }
 
+func FetchByHolding(holding_id string)([]byte, error){
+  path := []string{ "bibs" }
+  _url := BuildUrl(path)
+  params := []string{ ApiKey(), "holdings_id=" + holding_id }
+  bib,err := Get(_url, params, "application/xml")
+  return bib, err
+}
 func FetchByBarcode(barcode string)([]byte,error){
   path := []string{ "items" }
   _url := BuildUrl(path)
   params := []string{ ApiKey(), "item_barcode=" + barcode }
   item,err := Get(_url, params, "application/json")
-  if err != nil { slog.Error(err.Error()) }
   return item, err
 }
 func FetchByItemID(tc map[string]string)([]byte,error){
@@ -63,7 +71,6 @@ func FetchByItemID(tc map[string]string)([]byte,error){
   if !ValidUrl(_url) { return nil, errors.New("could not build url for item") }
   params := []string{ ApiKey() }
   item,err := Get(_url, params, "application/json")
-  if err != nil { slog.Error(err.Error()) }
   return item, err
 }
 
@@ -79,7 +86,7 @@ func GetHoldingId(mms_id string)string{
   _url := BuildUrl( []string{"bibs", mms_id, "holdings"} )
   params := []string { ApiKey() }
   body,err := Get(_url, params, "application/json")
-  if err != nil { slog.Error(err.Error()); return "" }
+  if err != nil { return "" }
   holding_id := gjson.GetBytes(body, "holding.0.holding_id")
   return holding_id.String()
 }
@@ -174,4 +181,58 @@ type Datafield struct{
 type Subfield struct{
   Code string `xml:"code,attr"`
   Value string `xml:",chardata"`
+}
+
+func (d Datafield)GetSubfieldVal(code string)string{
+  for _,s := range d.Subfield{
+    if s.Code == code { return s.Value }
+  }
+  return ""
+}
+
+
+func (d Datafield)Check774Id(mmsids []string)bool{
+  if d.Tag != "774" { return true }
+  mms_id := d.GetSubfieldVal("w")
+  return slices.Contains(mmsids, mms_id)
+}
+
+func Create774(tc_coll map[string]string)Datafield{
+  st := Subfield{ Code: "t", Value: fmt.Sprintf("%v %v", tc_coll["identifier"], tc_coll["display_string"]) }
+  sw := Subfield{ Code: "w", Value: tc_coll["mms_id"]}
+  return Datafield{ Ind1: "1", Ind2: " ", Tag: "774", Subfield: []Subfield{ st, sw } }
+}
+//this is for a new bwbib
+// if system error stop, if not existent, continue
+//requires tc_coll that has been extended to include mms_id
+func Create774s(rec Record, tc_colls []map[string]string)Record{
+  for _,coll := range tc_colls {
+    if coll["mms_id"] == "" { continue }
+    d := Create774(coll)
+    rec.Datafield = append(rec.Datafield, d)
+  }
+  return rec
+}
+// this is for updating a bwbib
+//requires tc_coll that has been extended to include mms_id
+func Add774s(rec Record, tc_colls []map[string]string)Record{
+  for _,coll := range tc_colls{
+    if coll["mms_id"] == "" { continue }
+    if slices.ContainsFunc(rec.Datafield, func(d Datafield)bool{
+      return d.GetSubfieldVal("w") == coll["mms_id"]
+    }) != true {
+      df := Create774(coll)
+      rec.Datafield = append(rec.Datafield, df)
+    }
+  }
+  return rec
+}
+// for updating bwbib
+func Remove774s(rec Record, mmsids []string)Record{
+  var newdf []Datafield
+  for _,df := range rec.Datafield {
+    if df.Check774Id(mmsids) == true { newdf = append(newdf, df) }
+  }
+  rec.Datafield = newdf
+  return rec
 }

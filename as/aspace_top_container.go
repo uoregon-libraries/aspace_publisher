@@ -21,6 +21,13 @@ type TopContainer struct{
   Ils_item string `json:"ils_item_id"`
   Boundwith bool
   UpdateRefs bool
+  Collection []Collection `json:"collection"`
+}
+
+type Collection struct{
+  Ref string `json:"ref"`
+  Identifier string `json:"identifier"`
+  Display string `json:"display_string"`
 }
 
 // helper to avoid including the as package in alma construct
@@ -35,6 +42,41 @@ func (t TopContainer)Mapify()map[string]string{
   tc_map["ils_item"] = t.Ils_item
   tc_map["update_refs"] = strconv.FormatBool(t.UpdateRefs)
   return tc_map
+}
+
+//want [{"ref":"",identifier:"","display_string":""}]
+func (t TopContainer)Colls()[]map[string]string{
+  var tc_colls []map[string]string
+  for _,v := range t.Collection {
+    tc_colls = append(tc_colls, map[string]string{ "ref": v.Ref, "identifier": v.Identifier, "display_string": v.Display })
+  }
+  return tc_colls
+}
+
+// possible errs include validation err
+func (t TopContainer)CollsWithMmsids(repo_id, session string)([]map[string]string, error){
+  colls := t.Colls()
+  for _,coll := range colls{
+    id := ExtractID(coll["ref"])
+    mmsid, _, err := GetMmsId(repo_id, id, session)
+    if err != nil { return colls, err }
+    coll["mms_id"] = mmsid
+  }
+  return colls, nil
+}
+
+// should return an error if it's a system error
+// but not if it's a non-exist
+func (t TopContainer)GetMmsIds(repo_id, session string)([]string, error){
+  var mmsids []string
+  for _,coll := range t.Colls(){
+    id := ExtractID(coll["ref"])
+    mmsid, empty, err := GetMmsId(repo_id, id, session)
+    if err != nil { return mmsids, err }
+    if empty == true { continue }
+    mmsids = append(mmsids, mmsid)
+  }
+  return mmsids, nil
 }
 
 //returns array of top container ids (paths)
@@ -96,6 +138,15 @@ func UpdateTC(repo_id, holding_id, item_id, session_id, tc_id string)(string, er
   if err != nil { return "", err }
   result,err := Update(session_id, _url, string(modified))
   return result, err
+}
+
+func GetTC(session, repo_id, tc_id string)(TopContainer, error){
+  var tc TopContainer
+  jsonTC, err := AcquireJson(session, repo_id, "top_containers/" + tc_id)
+  if err != nil{ return tc, err }
+  err = json.Unmarshal(jsonTC, &tc)
+  if err != nil{ slog.Error(err.Error()); return tc, err}
+  return tc, nil
 }
 
 // gets tcmaps for all tcs associated with a given resource

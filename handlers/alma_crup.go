@@ -30,7 +30,7 @@ func AlmaCrup(resource_id string, filename string, session_id string, oclc_token
   if err != nil { file.WriteReport(args.Filename, []string{ "Problem retrieving OCLC id: " + err.Error() }); return }
   if args.Oclc_id == "" { file.WriteReport(args.Filename, []string{ "Could not acquire OCLC id from resource" }); return }
   //try for mms_id and create based on presence in resource json
-  args.Mms_id, args.Create, err = as.GetMmsId(rjson)
+  args.Mms_id, args.Create, err = as.ExtractMmsId(rjson)
   if err != nil { file.WriteReport(args.Filename, []string{ "Problem retrieving mms id: " + err.Error() }); return }
   //needed for holding record, appears as 099 in the aspace MARC but not OCLC's
   args.Id_0 = as.ExtractID0(rjson)

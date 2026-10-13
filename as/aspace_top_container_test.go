@@ -8,6 +8,7 @@ import (
   "fmt"
   "log"
   "slices"
+  "encoding/json"
 )
 
 func TestTCList(t *testing.T){
@@ -104,4 +105,48 @@ func TestValidateTCData(t *testing.T){
 func TestValidateBarcode(t *testing.T){
   if validateBarcode("ronco3200") != true { t.Errorf("incorrect validation") }
   if validateBarcode("ronco 3200") != false { t.Errorf("incorrect validation") }
+}
+
+func TestColls(t *testing.T){
+  var tc TopContainer
+  err := json.Unmarshal([]byte(topcontainer_fixture1), &tc)
+  if err != nil { t.Error(err) }
+  colls := tc.Colls()
+  if colls[0]["ref"] != "/repositories/2/resources/3340" { t.Error("err making coll") }
+}
+
+func TestCollsWithMmsids(t *testing.T){
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == "/api/repositories/2/resources/3340" {
+     fmt.Fprint(w, `{"user_defined":{"string_2":"987654321"}}`)
+    } else { fmt.Fprintf(w, `{"user_defined":{"string_2":"876543219"}}`) }
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/api/")
+
+  var tc TopContainer
+  err := json.Unmarshal([]byte(topcontainer_fixture1), &tc)
+  if err != nil { t.Error(err) }
+  tccolls, err := tc.CollsWithMmsids("2", "123456789")
+  if err != nil { t.Error(err) }
+  if tccolls[0]["mms_id"] != "987654321" { t.Error("incorrect map built") }
+  if tccolls[1]["mms_id"] != "876543219" { t.Error("incorrect map built") }
+
+}
+
+func TestGetMmsIds(t *testing.T){
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == "/api/repositories/2/resources/3340" {
+     fmt.Fprint(w, `{"user_defined":{"string_2":"987654321"}}`)
+    } else { fmt.Fprintf(w, `{"user_defined":{"string_2":"876543219"}}`) }
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/api/")
+
+  var tc TopContainer
+  err := json.Unmarshal([]byte(topcontainer_fixture1), &tc)
+  if err != nil { t.Error(err) }
+  mmsids, err := tc.GetMmsIds("2", "123456789")
+  if err != nil { t.Error(err) }
+  if slices.Contains(mmsids, "987654321") != true { t.Error("error getting mmsids") }
 }
