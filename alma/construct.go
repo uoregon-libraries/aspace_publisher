@@ -23,7 +23,7 @@ func ConstructBib(mms_id string, marc_string string, suppress string)(Bib){
 }
 // only used in the regular bib workflow!
 // updates the boundwith when folders with mms_ids are added to the associated top container
-func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, tcmap map[string]string)(Bib, error){
+func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid string, id_0 string, tcmap map[string]string)(Bib, error){
   var bwbib = Bib{}
   xml.Unmarshal(boundwith_bib, &bwbib)
   if df774Exists(bwbib, resource_mmsid) { return bwbib, errors.New("skip bw update " + tcmap["uri"]) }
@@ -31,6 +31,7 @@ func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid 
   if err != nil { return bwbib, err }
   title, err := ExtractTitle(bib_xml)
   if err != nil { return bwbib, err }
+  title = fmt.Sprintf( "%s %s", id_0, title)
   sft := Subfield{Code: "t", Value: title}//title from the new coll/bib
   sfw := Subfield{Code: "w", Value: resource_mmsid }//mms_id of the new coll/bib
   d774 := Datafield{Ind1:"1", Ind2:" ", Tag:"774"}
@@ -44,7 +45,7 @@ func UpdateBoundwith(boundwith_bib []byte, resource_marc string, resource_mmsid 
 // note that this returns a string
 // using an etree to do the edits, does not easily convert to a Holding
 func UpdateHolding(marc_string string, hold string)(string, error){
-  holding, err := ParseXML(hold)
+  holding, err := ParseXML(hold, "holding")
   if err != nil { return "", err }
   sfz := holding.FindElement("//subfield[@code='z']")
   if strings.Contains(sfz.Text(), "CONNECT TO THE ONLINE") {
@@ -133,12 +134,14 @@ func ParseMarc(marc_string string)(*etree.Document, error){
   return marc_xml, nil
 }
 
-// This does not strip out <xml>, however holding xml doesn't appear to have xml tags
-func ParseXML(xml_string string)(*etree.Document, error){
+// replaces ParseMarc
+func ParseXML(xml_string string, elt string)(*etree.Document, error){
   xml_doc := etree.NewDocument()
   err := xml_doc.ReadFromString(xml_string)
   if err != nil { slog.Error(err.Error()); return xml_doc, errors.New("Unable to read XML") }
-  return xml_doc, nil
+  base := xml_doc.FindElement("//" + elt)
+  stripped := etree.NewDocumentWithRoot(base)
+  return stripped, nil
 }
 
 //856->866 which is not on the LOC reference

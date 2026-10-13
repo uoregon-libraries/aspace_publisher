@@ -76,7 +76,7 @@ func TestProcessBib(t *testing.T){
 
 // tests ConstructBoundwith, calls Get/Put
 func TestProcessBoundwith(t *testing.T){
-  args := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true }
+  args := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Id_0: "A 42", Create: true }
   tcmap := []map[string]string{
     map[string]string{ "mms_id": "561235612355", "boundwith": "true", "barcode":"123412341234", "ils_holding": "234567234567", "ils_item": "765476547654" },
     map[string]string{ "mms_id": "345634563456","boundwith": "false", "barcode":"234562345623", "ils_holding": "", "ils_item": ""},
