@@ -385,7 +385,9 @@ func CheckItemsForMissing(args ProcessArgs, tcmap []map[string]string){
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to request Alma items: " + err.Error()}); return }
   missing := CompileMissing(itemsjson, tc_items)
   if len(missing) != 0 {
-    export_name := fmt.Sprintf("Resource%s_ItemsForDelete.csv", args.Resource_id)
+    t := file.TimeNow()
+    tstring := t.Format("2006-01-02-15-04")
+    export_name := fmt.Sprintf("Resource%s_ItemsForDelete_%s.csv", args.Resource_id, tstring)
     messages := []string{ "Pid,Barcode,CallNumber,Title,Description" }
     messages = append(messages, BuildMessageFromMissing(missing)...)
     file.WriteReport(export_name, messages)

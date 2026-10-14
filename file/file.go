@@ -27,14 +27,11 @@ func Filename()string{
   nouns := buildFromFile(homedir + "/file/nouns.txt")
   mods := buildFromFile(homedir + "/file/modifiers.txt")
   t := TimeNow()
-  y := t.Format("2006")
-  m := t.Format("01")
-  d := t.Format("02")
-  h := t.Format("15")
-  mi := t.Format("04")
+  date1 := t.Format("2006-01-02-15-04")
+
   s1 := mods[rand.Intn(len(mods))]
   s2 := nouns[rand.Intn(len(nouns))]
-  return fmt.Sprintf("%s-%s-%s-%s:%s_%s-%s", y,m,d,h,mi,s1,s2)
+  return fmt.Sprintf("%s_%s-%s", date1, s1, s2)
 }
 
 func WriteReport(filename string, messages []string){
