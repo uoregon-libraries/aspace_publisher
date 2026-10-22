@@ -20,9 +20,9 @@ func ConstructEvent(agent, resource, event_type string) Event{
   var event Event
   event.ModelType = "event"
   event.Agents = []Rec{ Rec{ Ref: agent, Role: role(event_type) } }
-  event.Records = []Rec{ Rec{ Ref: resource, Role: "Source" } }
+  event.Records = []Rec{ Rec{ Ref: resource, Role: "source" } }
   event.Date = ConstructDate()
-  event.Outcome = "Pass"
+  event.Outcome = "pass"
   event.EventType = event_type
   return event
 }
@@ -35,8 +35,8 @@ func role(event_type string) string{
 func ConstructDate()Date{
   var date Date
   date.ModelType = "date"
-  date.DateType = "Single"
-  date.Label = "Agent Relation"
+  date.DateType = "single"
+  date.Label = "agent_relation"
   date.Begin = ConstructTime()
   return date
 }
