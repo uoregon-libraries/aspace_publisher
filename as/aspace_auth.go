@@ -18,7 +18,7 @@ import(
 )
 type AuthResp struct {
   Session string `json:"session"`
-  User string `json:"user"`
+  User User `json:"user"`
 }
 
 type User struct {
@@ -71,5 +71,5 @@ func AuthenticateAS(uname string, pass string) (string, string, error){
   err = json.Unmarshal(byteVal, &authresp)
   if err != nil { return "", "", errors.New("Unable to extract session id") }
 
-  return authresp.Session, authresp.Agent.Ref, nil
+  return authresp.Session, authresp.User.Agent.Ref, nil
 }
