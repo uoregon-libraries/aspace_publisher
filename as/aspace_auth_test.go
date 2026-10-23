@@ -9,7 +9,7 @@ import (
 )
 
 func TestAuthenticateAS(t *testing.T){
-  resp := `{"session":"abcdefghijk123456789", "agent_record":{"ref":"/agents/people/123"}}`
+  resp := `{"session":"abcdefghijk123456789", "user": { "agent_record":{"ref":"/agents/people/123"}}}`
   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.FormValue("password") != "green" { t.Errorf("pass incorrect") }
     if r.URL.Path != "/api/users/kermit/login" { t.Errorf("incorrect path: %v", r.URL.Path) }
