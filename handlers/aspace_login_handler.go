@@ -10,9 +10,10 @@ import(
 func AspaceLoginHandler(c echo.Context) error {
   name := c.FormValue("name")
   password := c.FormValue("password")
-  session_id, err := as.AuthenticateAS(name, password)
+  session_id, agent, err := as.AuthenticateAS(name, password)
   if err != nil { return echo.NewHTTPError(400, err.Error()) }
   utils.WriteCookie(c, 60, "as_session", session_id)
+  utils.WriteCookie(c, 60, "as_agent", agent)
   return c.String(http.StatusOK, "You have logged in.")
 }
 

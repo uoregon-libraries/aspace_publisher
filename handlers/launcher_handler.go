@@ -18,6 +18,8 @@ func LauncherHandler(c echo.Context) error {
   repo_id := "2"
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(500, "Cannot retrieve session, try redoing login.") }
+  agent, err := utils.FetchCookieVal(c, "as_agent")
+  if err != nil { return echo.NewHTTPError(500, "Cannot retrieve agent, try redoing login.") }
 
   status := http.StatusOK
 
@@ -30,12 +32,12 @@ func LauncherHandler(c echo.Context) error {
     //get session for aw
     aw_session, err := aw.GetSession(c)
     if err != nil { return c.String(400, "could not authenticate with AWest") }
-    fname,err = processEad(resource_id, session_id, repo_id, aw_session, "validate")
+    fname,err = processEad(resource_id, session_id, agent, repo_id, aw_session, "validate")
   case "upload_ead":
     //get session for aw
     aw_session, err := aw.GetSession(c)
     if err != nil { return c.String(400, "could not authenticate with AWest") }
-    fname,err = processEad(resource_id, session_id, repo_id, aw_session, "upload")
+    fname,err = processEad(resource_id, session_id, agent, repo_id, aw_session, "upload")
   case "validate_marc":
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
@@ -45,7 +47,7 @@ func LauncherHandler(c echo.Context) error {
     //authenticate with OCLC
     oclc_token, err := oclc.GetToken(c)
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
-    fname,err = oclcCrup(resource_id,repo_id, session_id, oclc_token)
+    fname,err = oclcCrup(resource_id,repo_id, session_id, agent, oclc_token)
   case "publish_alma":
     e_session, err := utils.Encrypt(session_id)
     if err != nil { return c.String(400, "") }

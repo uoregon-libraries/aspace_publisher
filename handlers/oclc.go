@@ -5,6 +5,7 @@ import (
   "aspace_publisher/file"
   "aspace_publisher/oclc"
   "aspace_publisher/marc"
+  "fmt"
 )
 
 func validateMarc(resource_id string, repo_id, session_id string, oclc_token string) (string, error){
@@ -29,7 +30,7 @@ func validateMarc(resource_id string, repo_id, session_id string, oclc_token str
   return fname, err
 }
 
-func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token string) (string, error){
+func oclcCrup(resource_id, repo_id, session_id, agent, oclc_token string) (string, error){
   fname := file.Filename()
   json, err := as.AcquireJson(session_id, repo_id, "resources/" + resource_id)
   if err != nil {
@@ -58,7 +59,7 @@ func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token 
   }
 
   //is it a new record?
-  oclc_id, err := as.GetOclcId(resource_id, repo_id, session_id)
+  oclc_id, err := as.ExtractOclcId(json)
   if err != nil { 
     file.WriteReport(fname, []string{ oclc_id, err.Error() })
     return fname, err
@@ -85,26 +86,29 @@ func oclcCrup(resource_id string, repo_id string, session_id string, oclc_token 
     file.WriteReport(fname, []string{ oclc_resp, err.Error() })
     return fname, err
   }
+  file.WriteReport(fname, []string{ oclc_resp })
+  var event_type string
 
-  //if updating, done
-  if oclc_id != "" {
-    file.WriteReport(fname, []string{ oclc_resp })
-    return fname, nil
+  if oclc_id != "" { event_type = "MARC revised" } else {
+    event_type = "MARC published"
+
+    oclc_id, err = marc.ExtractOclc(string(oclc_resp))
+    if err != nil {
+      file.WriteReport(fname, []string{ "Could not extract oclc id", err.Error() })
+      return fname, err
+    }
+    //insert oclc
+    modified, err := as.UpdateUserDefined1(json, oclc_id)
+    if err != nil {
+      file.WriteReport(fname, []string{ string(modified), err.Error() })
+      return fname, err
+    }
+    //post resource json back to aspace
+    as_resp := as.Post(session_id, resource_id, repo_id, "resources/" + resource_id, string(modified))
+    file.WriteReport(fname, []string{ as_resp.ResponseToString() })
   }
 
-  oclc_id, err = marc.ExtractOclc(string(oclc_resp))
-  if err != nil {
-    file.WriteReport(fname, []string{ "Could not extract oclc id", err.Error() })
-    return fname, err
-  }
-  //insert oclc
-  modified, err := as.UpdateUserDefined1(json, oclc_id)
-  if err != nil { 
-    file.WriteReport(fname, []string{ string(modified), err.Error() })
-    return fname, err
-  }
-  //post resource json back to aspace
-  as_resp := as.Post(session_id, resource_id, repo_id, "resources/" + resource_id, string(modified))
-  file.WriteReport(fname, []string{ as_resp.ResponseToString() })
+  response := as.ProcessEvent(session_id, agent, resource_id, repo_id, event_type)
+  file.WriteReport(fname, []string{ fmt.Sprintf("event posted: %v", response.ResponseToString()) })
   return fname, nil
 }
