@@ -18,6 +18,10 @@ import(
 )
 type AuthResp struct {
   Session string `json:"session"`
+  User string `json:"user"`
+}
+
+type User struct {
   Agent Agent `json:"agent_record"`
 }
 
