@@ -7,6 +7,7 @@ import(
   "net/http/httptest"
   "net/http"
   "os"
+  "fmt"
 )
 
 func TestAssembleUrl(t *testing.T){
@@ -27,7 +28,7 @@ func TestRequestCreate(t *testing.T){
   defer ts.Close()
   os.Setenv("OCLC_URL", ts.URL)
   marc := `<record></record>`
-  _,_ = Request("token", "POST", marc, "manage/bibs", "", "marcxml+xml")
+  _,_,_ = Request("token", "POST", marc, "manage/bibs", "", "marcxml+xml")
 }
 
 func TestRequestUpdate(t *testing.T){
@@ -43,7 +44,7 @@ func TestRequestUpdate(t *testing.T){
   defer ts.Close()
   os.Setenv("OCLC_URL", ts.URL)
   marc := `<record></record>`
-  _,_ = Request("token", "PUT", marc, "manage/bibs", "12345678", "marcxml+xml")
+  _,_,_ = Request("token", "PUT", marc, "manage/bibs", "12345678", "marcxml+xml")
 }
 
 func TestRequestValidate(t *testing.T){
@@ -55,5 +56,20 @@ func TestRequestValidate(t *testing.T){
   defer ts.Close()
   os.Setenv("OCLC_URL", ts.URL)
   marc := `<record></record>`
-  _,_ = Request("token", "POST", marc, "validate/validateFull", "", "json")
+  _,_,_ = Request("token", "POST", marc, "validate/validateFull", "", "json")
+}
+
+func TestRequestReturn(t *testing.T){
+   ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+      w.Header().Set("Content-Type", "application/json") //for errors
+      w.WriteHeader(http.StatusNotFound)
+      fmt.Fprint(w, `{ "error": "Item not found" }`)
+  }))
+  defer ts.Close()
+  os.Setenv("OCLC_URL", ts.URL)
+  marc := `<record></record>`
+  resp, contype, err := Request("token", "PUT", marc, "manage/bibs", "1234567890", "marcxml+xml")
+  if resp != `{ "error": "Item not found" }` { t.Error("incorrect body returned") }
+  if contype != "application/json" { t.Error("incorrect contype returned") }
+  if err.Error() != "oclc errors" { t.Error("incorrect error message") }
 }

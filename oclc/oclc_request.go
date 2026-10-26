@@ -14,13 +14,13 @@ import(
   "aspace_publisher/connect"
 )
 
-func Request(token string, method string, marc string, path string, id string, accept string) (string, error){
+func Request(token string, method string, marc string, path string, id string, accept string) (string, string, error){
   base_url := os.Getenv("OCLC_URL")
   test := os.Getenv("TEST")
   url := assembleUrl([]string{base_url,path,id})
   data := strings.NewReader(marc)
   req, err := http.NewRequest(method, url, data)
-  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to create http request") }
+  if err != nil { slog.Error(err.Error()); return "", "", errors.New("unable to create http request") }
   req.Header.Set("accept", "application/" + accept)
   if marc != "" {
     req.Header.Set("Content-Type", "application/marcxml+xml")
@@ -33,19 +33,21 @@ func Request(token string, method string, marc string, path string, id string, a
     Timeout: time.Second * 60,
   }
 
-  if test == "true" { return `<record></record>`, nil }
+  if test == "true" { return `<record></record>`, "application/marcxml+xml", nil }
 
   response, err := client.Do(req)
-  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to complete http request") }
+  if err != nil { slog.Error(err.Error()); return "", "", errors.New("unable to complete http request") }
   defer response.Body.Close()
 
   connect.ResponseDump(response) //check response only after err check
 
   body, err := io.ReadAll(response.Body)
-  if err != nil { slog.Error(err.Error()); return "", errors.New("unable to read response from oclc") }
-  if response.StatusCode != 200 { return string(body), errors.New("oclc errors") }
+  if err != nil { slog.Error(err.Error()); return "", "", errors.New("unable to read response from oclc") }
+  content_type := response.Header.Get("Content-Type")
 
-  return string(body), nil
+  if response.StatusCode != 200 { return string(body), content_type, errors.New("oclc errors") }
+
+  return string(body), content_type, nil
 
 }
 

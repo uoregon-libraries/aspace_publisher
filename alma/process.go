@@ -79,9 +79,9 @@ func ProcessBib(args ProcessArgs, marc_string string, rjson []byte, tcmap []map[
     if err != nil { file.WriteReport(args.Filename, []string{ err.Error() }) }
     //todo: switch to worker.
     fs.CallWorker("startLTNJob", map[string]string{ "id": args.Mms_id, "filename": args.Filename })
-    res,err := fs.SetHolding(args.Oclc_id, args.Oclc_token)
+    res,_,err := fs.SetHolding(args.Oclc_id, args.Oclc_token)
     if err != nil {
-      file.WriteReport(args.Filename, []string{ err.Error() }) } else {
+      file.WriteReport(args.Filename, []string{ res, err.Error() }) } else {
       file.WriteReport(args.Filename, []string{ res })
     }
   }
