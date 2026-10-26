@@ -19,10 +19,20 @@ func processEad(resource_id, session_id, agent, repo_id, aw_session, operation s
   }
 
   ark, err := aw.ExtractArk(ead_orig)
-  if err != nil { return "", err }
-  if aw.ValidArk(ark) != true { return "", errors.New("arkid not valid") }
+  if err != nil {
+    file.WriteReport(fname, []string{ "Could not extract arkid", err.Error() })
+    return fname, err
+  }
+  if aw.ValidArk(ark) != true {
+    file.WriteReport(fname, []string{ "arkid not valid" })
+    return fname, errors.New("arkid not valid")
+   }
+
   exists, err := aw.CheckArk(ark)
-  if err != nil { return "", errors.New(fmt.Sprintf("could not load arkid: %v", err.Error())) }
+  if err != nil {
+    file.WriteReport(fname, []string{ "could not load arkid", err.Error() })
+    return fname, err
+  }
 
   result,err := aw.ProcessEad(repo_id, resource_id, ead_orig, exists, aw_session, operation)
   if err != nil {
@@ -30,6 +40,7 @@ func processEad(resource_id, session_id, agent, repo_id, aw_session, operation s
     return fname, err
   }
   file.WriteReport(fname, []string{ result })
+  if operation == "validate" { return fname, nil }
 
   var event_type string
   if exists { event_type = "EAD revised" } else { event_type = "EAD published" }
