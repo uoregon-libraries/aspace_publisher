@@ -6,6 +6,7 @@ import (
   "aspace_publisher/oclc"
   "aspace_publisher/marc"
   "fmt"
+  "strings"
 )
 
 func validateMarc(resource_id string, repo_id, session_id string, oclc_token string) (string, error){
@@ -87,7 +88,7 @@ func oclcCrup(resource_id, repo_id, session_id, agent, oclc_token string) (strin
     file.WriteReport(fname, []string{ oclc_resp, err.Error() })
     return fname, err
   }
-  if ctype == "application/marcxml+xml" {
+  if strings.Contains(ctype, "xml") {
     resp_clean, err = marc.StripOuterTags(oclc_resp)
     if err != nil { file.WriteReport(fname, []string{ err.Error() }); return fname, err }
   } else {
