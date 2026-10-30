@@ -50,6 +50,9 @@ func main(){
 
   e.File("/launch.html", path + "views/launch.html")
   e.POST("/launcher", handlers.LauncherHandler)
+  e.File("/launch_tc.html", path + "views/launch_tc.html")
+  e.POST("/launcher_tc", handlers.LauncherTCHandler)
+
 
   log.Fatal(e.Start(os.Getenv("PORT")))
 
