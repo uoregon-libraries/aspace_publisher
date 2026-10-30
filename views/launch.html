@@ -5,11 +5,11 @@
     <title>Aspace Publisher Launcher</title>
 </head>
 <body>
-<h1></h1>
+<h3>Resource-based operations</h3>
 
 <form action="/launcher" method="post" enctype="multipart/form-data">
     <label for="resource_id">Resource ID:</label><br>
-    <input type="text" id="resource_id" name="resource_id"><br>
+    <input type="text" id="resource_id" name="resource_id" required><br>
     <p>Choose a workflow:</p>
 
     <input type="radio" id="validate_ead" name="workflow" value="validate_ead">
@@ -23,6 +23,9 @@
 
     <input type="radio" id="publish_marc" name="workflow" value="publish_marc">
     <label for="publish_marc">Create/update WorldCat bib</label><br>
+
+    <input type="radio" id="preflight_alma" name="workflow" value="preflight_alma">
+    <label for="publish_alma">Alma preflight process report</label><br>
 
     <input type="radio" id="publish_alma" name="workflow" value="publish_alma">
     <label for="publish_alma">Create/update Alma bib/holding/items</label><br>
