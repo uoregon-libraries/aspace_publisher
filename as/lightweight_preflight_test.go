@@ -47,12 +47,9 @@ func TestLightweightPreflight(t *testing.T){
   
   var p Preflight
   jstr,err := ioutil.ReadFile(filepath.Join(homedir, "views/reports/" + filename))
-  fmt.Println("REPORT ")
-  fmt.Println(string(jstr))
   if err != nil { t.Error(err) }
   err = json.Unmarshal(jstr, &p)
   if err != nil { t.Error(err) }
-  fmt.Println(p.CreateBib == false)
   if p.CreateBib { t.Error("incorrect bib val") }
   if p.CreateHolding { t.Error("incorrect hold val") }
   if !slices.Contains(p.BoundwithBarcodes, "35025041622635") { t.Error("incorrect boundwith val") }
