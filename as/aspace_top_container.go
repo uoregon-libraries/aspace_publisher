@@ -9,6 +9,7 @@ import (
   "strconv"
   "regexp"
   "fmt"
+  "errors"
 )
 
 type TopContainer struct{
@@ -98,24 +99,31 @@ func UpdateTC(repo_id string, holding_id string, item_id string, session_id stri
   return nil
 }
 
-func ExtractTCData(session string, repo_id string, resource_id string)([]map[string]string, []string){
+// gets tcmaps for all tcs associated with a given resource
+func ExtractTCData(session, repo_id, resource_id string)([]map[string]string, []string){
   msgs := []string{}
   tclist,err := TCList(session, repo_id, resource_id)
-  if err != nil { msgs = append(msgs, "Unable to acquire TC list: " + err.Error()); return nil, msgs}
+  if err != nil { msgs = append(msgs, "Unable to acquire TC list: " + err.Error()); return nil, msgs }
   var top_containers []map[string]string
   for _,tc_path := range tclist{
     tc_id := ExtractID(tc_path)
-    jsonTC, err := AcquireJson(session, repo_id, "top_containers/" + tc_id)
-    if err != nil { msgs = append(msgs, "Unable to acquire TC json " + err.Error()); continue }
-
-    var tc TopContainer
-    err = json.Unmarshal(jsonTC, &tc)
-    if err != nil { msgs = append(msgs, "Unable to process TC json: " + err.Error()); continue }
-    tc.Boundwith = IsBoundwith(jsonTC)
-    if ValidateTCData(tc) != true { msgs = append(msgs, "TopContainer contains invalid value: " + tc_id); continue }
+    tc,err := ExtractSingleTC(session, repo_id, tc_id)
+    if err != nil { msgs = append(msgs, fmt.Sprintf("Unable to acquire %s: %s",tc_id, err.Error())) }
     top_containers = append(top_containers, tc.Mapify())
   }
   return top_containers, msgs
+}
+
+// get tcmap for a given tc
+func ExtractSingleTC(session, repo_id, tc_id string)(TopContainer, error){
+  var tc TopContainer
+  jsonTC, err := AcquireJson(session, repo_id, "top_containers/" + tc_id)
+  if err != nil { return tc, err }
+  err = json.Unmarshal(jsonTC, &tc)
+  if err != nil { return tc, err }
+  tc.Boundwith = IsBoundwith(jsonTC)
+  if ValidateTCData(tc) != true { return tc, errors.New("TopContainer contains invalid value: " + tc_id) }
+  return tc, nil
 }
 
 func IsBoundwith(jsontc []byte)bool{
