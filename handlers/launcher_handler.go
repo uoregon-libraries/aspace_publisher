@@ -49,7 +49,7 @@ func LauncherHandler(c echo.Context) error {
     if err != nil { return c.String(400, "Could not authenticate with OCLC") }
     fname,err = oclcCrup(resource_id,repo_id, session_id, agent, oclc_token)
   case "preflight_alma":
-    fname,err := as.LightweightPreflight(session_id, resource_id, repo_id)
+    fname = as.LightweightPreflight(session_id, resource_id, repo_id)
   case "publish_alma":
     e_session, err := utils.Encrypt(session_id)
     if err != nil { return c.String(400, "") }

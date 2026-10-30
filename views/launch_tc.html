@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Aspace Publisher Launcher</title>
+</head>
+<body>
+<h3>Top Container-based operations</h3>
+
+<form action="/launcherTC" method="post" enctype="multipart/form-data">
+    <label for="top_container_id">Top Container ID:</label><br>
+    <input type="text" id="top_container_id" name="top_container_id" required><br>
+    <p>Choose a workflow:</p>
+
+    <input type="radio" id="update_single_tc" name="workflow" value="update_single_tc">
+    <label for="update_single_tc">Update a top container's ILS IDs</label><br>
+
+    <input type="radio" id="boundwith" name="workflow" value="boundwith">
+    <label for="boundwith">Create/update boundwith alma records</label><br>
+
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>
