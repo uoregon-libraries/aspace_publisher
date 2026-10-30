@@ -18,6 +18,6 @@ func TestSetHolding(t *testing.T){
   }))
   defer ts.Close()
   os.Setenv("OCLC_URL", ts.URL)
-  _, _ = SetHolding("123456789", "abcdabcdabcd12345")
+  _, _, _ = SetHolding("123456789", "abcdabcdabcd12345")
 }
 

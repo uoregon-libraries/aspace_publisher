@@ -6,6 +6,7 @@ import (
   "aspace_publisher/oclc"
   "aspace_publisher/marc"
   "fmt"
+  "strings"
 )
 
 func validateMarc(resource_id string, repo_id, session_id string, oclc_token string) (string, error){
@@ -24,7 +25,7 @@ func validateMarc(resource_id string, repo_id, session_id string, oclc_token str
     return fname, err
   }
   errstr := ""
-  oclc_resp, err := oclc.Request(oclc_token, "POST", marc_stripped, "manage/bibs/validate/validateFull", "","json")
+  oclc_resp, _, err := oclc.Request(oclc_token, "POST", marc_stripped, "manage/bibs/validate/validateFull", "","json")
   if err != nil { errstr = err.Error() }
   file.WriteReport(fname, []string{ oclc_resp, errstr })
   return fname, err
@@ -65,6 +66,8 @@ func oclcCrup(resource_id, repo_id, session_id, agent, oclc_token string) (strin
     return fname, err
   }
   var oclc_resp string
+  var resp_clean string
+  var ctype string
   //Update
   if oclc_id != "" {
     oclc_marc, err_ := oclc.Record(oclc_token, oclc_id)
@@ -77,21 +80,29 @@ func oclcCrup(resource_id, repo_id, session_id, agent, oclc_token string) (strin
       file.WriteReport(fname, []string{ edited_marc, err.Error() })
       return fname, err
     }
-
-    oclc_resp, err = oclc.Request(oclc_token, "PUT", edited_marc, "manage/bibs", oclc_id, "marcxml+xml")
+    oclc_resp, ctype, err = oclc.Request(oclc_token, "PUT", edited_marc, "manage/bibs", oclc_id, "marcxml+xml")
   } else {
-    oclc_resp, err = oclc.Request(oclc_token, "POST", marc_stripped, "manage/bibs", "", "marcxml+xml")
+    oclc_resp, ctype, err = oclc.Request(oclc_token, "POST", marc_stripped, "manage/bibs", "", "marcxml+xml")
   }
   if err != nil {
     file.WriteReport(fname, []string{ oclc_resp, err.Error() })
     return fname, err
   }
-  file.WriteReport(fname, []string{ oclc_resp })
-  var event_type string
+  if strings.Contains(ctype, "xml") {
+    resp_clean, err = marc.StripOuterTags(oclc_resp)
+    if err != nil { file.WriteReport(fname, []string{ err.Error() }); return fname, err }
+  } else {
+    resp_clean = oclc_resp
+  }
+  file.WriteReport(fname, []string{ resp_clean })
 
-  if oclc_id != "" { event_type = "MARC revised" } else {
+  var event_type string
+  if oclc_id != "" {
+    event_type = "MARC revised"
+  } else {
     event_type = "MARC published"
 
+    // new oclc -> update aspace
     oclc_id, err = marc.ExtractOclc(string(oclc_resp))
     if err != nil {
       file.WriteReport(fname, []string{ "Could not extract oclc id", err.Error() })
