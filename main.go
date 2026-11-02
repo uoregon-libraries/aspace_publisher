@@ -47,6 +47,7 @@ func main(){
   e.Static("/reports", "views/reports")
   e.POST("/alma/crup/:id", handlers.AlmaCrupHandler)
   e.GET("/test/status/:status", handlers.StatusHandler)
+  e.GET("/reportlist", handlers.DisplayReportsHandler)
 
   e.File("/launch.html", path + "views/launch.html")
   e.POST("/launcher", handlers.LauncherHandler)
