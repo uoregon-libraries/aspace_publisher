@@ -33,14 +33,14 @@ func DummyFetchBibID(barcode string)string{
   if barcode != "123412341234" { log.Fatal("incorrect barcode sent") }
   return "234523452345"
 }
-func DummyUpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
+func DummyUpdateTC(repo_id, holding_id, item_id, session_id, tc_id string)(string,error){
 
   if item_id != "456745674567" { log.Fatal("incorrect value sent to DummyUpdateTC") }
-  return nil
+  return "", nil
 }
-func DummyUpdateTC2(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
-  log.Println(fmt.Sprintf("From DummyUpdateTC2: %s, %s, %s", holding_id, item_id, tcmap["uri"]))
-  return nil
+func DummyUpdateTC2(repo_id, holding_id, item_id, session_id, tc_id string)(string,error){
+  log.Println(fmt.Sprintf("From DummyUpdateTC2: %s, %s, %s", holding_id, item_id, tc_id))
+  return "", nil
 }
 func DummySetHolding(oclc_id string, token string)(string, error){ return fmt.Sprintf("holding %s is set", oclc_id), nil }
 

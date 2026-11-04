@@ -204,8 +204,12 @@ func ProcessItems(args ProcessArgs, tcmap []map[string]string, fs FunMap){
     if err != nil { msgs = append(msgs, "Unable to process Alma item: " + err.Error()); continue }
     itemlist = append(itemlist, item_id)
     if tc["ils_item"] == "" {
-      err = fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc)
-      if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue }
+      tc_id := as.ExtractID(tc["uri"])
+      result, err := fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc_id)
+      if err != nil { msgs = append(msgs, "Unable to update TC in aspace: " + err.Error()); continue
+      } else {
+        msgs = append(msgs, result)
+      }
     }
   }
   msgs = append(msgs, "items processed: " + strings.Join(itemlist, ", "))

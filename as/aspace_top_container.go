@@ -9,6 +9,7 @@ import (
   "strconv"
   "regexp"
   "fmt"
+  "errors"
 )
 
 type TopContainer struct{
@@ -82,40 +83,46 @@ func UpdateIlsIds(record []byte, holding_id, item_id string)([]byte, error){
   return modified2, nil
 }
 
-type UpdateTCFun func(string, string, string, string, map[string]string)error
-// puts modified top container json to aspace
-func UpdateTC(repo_id string, holding_id string, item_id string, session_id string, tcmap map[string]string)error{
-  tc_id := ExtractID(tcmap["uri"])
+type UpdateTCFun func(string, string, string, string, string)(string, error)
+// adds ils ids to top container
+// requires the ids be passed in
+func UpdateTC(repo_id, holding_id, item_id, session_id, tc_id string)(string, error){
   jsonTC, err := AcquireJson(session_id, repo_id, "top_containers/" + tc_id)
-  if err != nil { return err }
+  if err != nil { return "", err }
   modified, err := UpdateIlsIds(jsonTC, holding_id, item_id)
-  if err != nil { return err }
+  if err != nil { return "", err }
   path := []string{ "repositories", repo_id, "top_containers", tc_id }
   _url, err := AssembleUrl(path)
-  if err != nil { return err }
-  _,err = Update(session_id, _url, string(modified))
-  if err != nil { return err }
-  return nil
+  if err != nil { return "", err }
+  result,err := Update(session_id, _url, string(modified))
+  return result, err
 }
 
-func ExtractTCData(session string, repo_id string, resource_id string)([]map[string]string, []string){
+// gets tcmaps for all tcs associated with a given resource
+func ExtractTCData(session, repo_id, resource_id string)([]map[string]string, []string){
   msgs := []string{}
   tclist,err := TCList(session, repo_id, resource_id)
-  if err != nil { msgs = append(msgs, "Unable to acquire TC list: " + err.Error()); return nil, msgs}
+  if err != nil { msgs = append(msgs, "Unable to acquire TC list: " + err.Error()); return nil, msgs }
   var top_containers []map[string]string
   for _,tc_path := range tclist{
     tc_id := ExtractID(tc_path)
-    jsonTC, err := AcquireJson(session, repo_id, "top_containers/" + tc_id)
-    if err != nil { msgs = append(msgs, "Unable to acquire TC json " + err.Error()); continue }
-
-    var tc TopContainer
-    err = json.Unmarshal(jsonTC, &tc)
-    if err != nil { msgs = append(msgs, "Unable to process TC json: " + err.Error()); continue }
-    tc.Boundwith = IsBoundwith(jsonTC)
-    if ValidateTCData(tc) != true { msgs = append(msgs, "TopContainer contains invalid value: " + tc_id); continue }
+    tc,err := ExtractSingleTC(session, repo_id, tc_id)
+    if err != nil { msgs = append(msgs, fmt.Sprintf("Unable to acquire %s: %s",tc_id, err.Error())) }
     top_containers = append(top_containers, tc.Mapify())
   }
   return top_containers, msgs
+}
+
+// get tc for a given tc_id
+func ExtractSingleTC(session, repo_id, tc_id string)(TopContainer, error){
+  var tc TopContainer
+  jsonTC, err := AcquireJson(session, repo_id, "top_containers/" + tc_id)
+  if err != nil { return tc, err }
+  err = json.Unmarshal(jsonTC, &tc)
+  if err != nil { return tc, err }
+  tc.Boundwith = IsBoundwith(jsonTC)
+  if ValidateTCData(tc) != true { return tc, errors.New("TopContainer contains invalid value: " + tc_id) }
+  return tc, nil
 }
 
 func IsBoundwith(jsontc []byte)bool{
