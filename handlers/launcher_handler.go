@@ -13,11 +13,20 @@ import(
   "fmt"
 )
 
-func LauncherHandler(c echo.Context) error {
+func LauncherHandler1(c echo.Context) error {
   resource_id := c.FormValue("resource_id")
   repo_id := "2"
   session_id, err := utils.FetchCookieVal(c, "as_session")
   if err != nil { return echo.NewHTTPError(500, "Cannot retrieve session, try redoing login.") }
+  data, err := as.GetResourceShort(resource_id, repo_id, session_id)
+  if err != nil { return c.String(400, "Could not acquire resource metadata: " + err.Error()) }
+  return c.Render(http.StatusOK, "resource_ops.html", map[string]string{"rid": data["id"], "rtitle": data["title"], "ridentifier": data["identifier"], "session":session_id})
+}
+
+func LauncherHandler2(c echo.Context) error {
+  resource_id := c.FormValue("resource_id")
+  repo_id := "2"
+  session_id := c.FormValue("session")
   agent, err := utils.FetchCookieVal(c, "as_agent")
   if err != nil { return echo.NewHTTPError(500, "Cannot retrieve agent, try redoing login.") }
 
