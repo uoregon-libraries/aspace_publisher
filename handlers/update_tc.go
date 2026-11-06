@@ -35,7 +35,7 @@ func UpdateTopContainerSA(tc_id, session_id, repo_id string)string{
 func UpdateTopContainer(tcmap map[string]string, session_id, repo_id string)(string,error){
   item, err := alma.FetchByBarcode(tcmap["barcode"])
   if err != nil { return "",err }
-  item_id, holding_id := alma.ParseHoldingItem(item)
+  holding_id, item_id := alma.ParseHoldingItem(item)
   tc_id := as.ExtractID(tcmap["uri"])
   response, err := as.UpdateTC(repo_id,holding_id, item_id, session_id, tc_id)
   return response, err
