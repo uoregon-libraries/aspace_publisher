@@ -9,6 +9,9 @@ import (
   "os"
   "log"
   "log/slog"
+  "html/template"
+  "io"
+  "errors"
 )
 
 func main(){
@@ -33,6 +36,11 @@ func main(){
   e.Use(slogecho.New(logging))
   e.Use(middleware.Recover())
 
+  templates := make(map[string]*template.Template)
+  templates["resource_ops.html"] = template.Must(template.ParseFiles("views/resource_ops.html"))
+  e.Renderer = &TemplateRegistry{
+    templates: templates,
+  }
 
   e.GET("/version", handlers.VersionHandler)
   e.File("/as/login.html", path + "views/as/login.html") // as/login.html
@@ -50,12 +58,26 @@ func main(){
   e.GET("/reportlist", handlers.DisplayReportsHandler)
 
   e.File("/launch.html", path + "views/launch.html")
-  e.POST("/launcher", handlers.LauncherHandler)
+  e.POST("/launcher1", handlers.LauncherHandler1)
+  e.POST("/launcher2", handlers.LauncherHandler2)
   e.File("/launch_tc.html", path + "views/launch_tc.html")
   e.POST("/launcher_tc", handlers.LauncherTCHandler)
-
 
   log.Fatal(e.Start(os.Getenv("PORT")))
 
 }
 
+// Define the template registry struct
+type TemplateRegistry struct {
+  templates map[string]*template.Template
+}
+
+// Implement e.Renderer interface
+func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+  tmpl, ok := t.templates[name]
+  if !ok {
+    err := errors.New("Template not found -> " + name)
+    return err
+  }
+  return tmpl.ExecuteTemplate(w, name, data)
+}

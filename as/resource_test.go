@@ -2,9 +2,12 @@ package as
 
 import (
   "testing"
+  "net/http"
+  "net/http/httptest"
   "os"
   "io/ioutil"
   "log"
+  "fmt"
 )
 
 func loadfile(filename string)[]byte{
@@ -53,4 +56,27 @@ func TestValidID(t *testing.T){
   if ValidID(" 12345") == nil { t.Errorf("incorrect validation") }
   if ValidID("on12345") == nil { t.Errorf("incorrect validation") }
   if ValidID("12345") != nil { t.Errorf("incorrect validation") }
+}
+
+func TestGetResourceShort(t *testing.T){
+
+  data := `{"results":[{"id":"/repositories/2/resources/2023","title":"Kurt Werth papers","identifier":"Coll 100","uri":"/repositories/2/resources/2023","jsonmodel_type":null}]}`
+  path := "/api/repositories/2/search"
+  //note that r.URL.Query().Get() returns the unencoded q? so testing to match
+  ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == path {
+      if val := r.URL.Query().Get("q"); val != `id:"/repositories/2/resources/2023"` { t.Errorf("params wrong") }
+      fmt.Fprint(w, data)
+    } else {
+      t.Error("incorrect request url: " + r.URL.Path)
+    }
+  }))
+  defer ts.Close()
+  os.Setenv("ASPACE_URL", ts.URL + "/api/")
+
+  result, err := GetResourceShort("2023", "2", "abcde123456789")
+  if err != nil { t.Error( err.Error()) }
+  if result["id"] != "2023" { t.Error("incorrect id returned") }
+  if result["identifier"] != "Coll 100" { t.Error("incorrect identifier returned") }
+  if result["title"] != "Kurt Werth papers" { t.Error ("incorrect title returned") }
 }

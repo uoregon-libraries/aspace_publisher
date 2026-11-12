@@ -5,6 +5,10 @@ import (
   "errors"
   "strings"
   "regexp"
+  "fmt"
+  "net/url"
+  "encoding/json"
+
 )
 
 func CheckIsPublished(resource_id string, repo_id string, session_id string)(string, error){
@@ -55,4 +59,34 @@ func ValidID(id string) error {
   matched1 := re1.Find([]byte(id))
   if string(matched1) == id { return nil }
   return errors.New("not a valid ID")
+}
+
+// for the initial launch confirmation step
+type QueryResponse struct {
+  Results []ShortResource `json:"results"`
+}
+
+type ShortResource struct{
+  Id string `json:"id"`
+  Title string `json:"title"`
+  Identifier string `json:"identifier"`
+}
+
+func (sr ShortResource) Mapify() map[string]string{
+  return map[string]string{ "id": sr.Id, "title": sr.Title, "identifier": sr.Identifier }
+}
+
+func GetResourceShort(resource_id, repo_id, session_id string)(map[string]string, error){
+  query := fmt.Sprintf(`id:"/repositories/%s/resources/%s"`, repo_id, resource_id)
+  escaped := url.QueryEscape(query)
+  search_string := fmt.Sprintf(`search?type[]=resource&q=%s&fields[]=id,identifier,title&page=1&page_size=1`, escaped)
+  json_list, err := AcquireJson(session_id, repo_id, search_string)
+  var srmap map[string]string
+  if err != nil { return srmap, err }
+  var qr QueryResponse
+  err = json.Unmarshal(json_list, &qr)
+  if err != nil { return srmap, err }
+  qr.Results[0].Id = ExtractID(qr.Results[0].Id) //just want the end bits
+  if qr.Results[0].Id != resource_id { return srmap, errors.New("Incorrect response for resource lookup") }
+  return qr.Results[0].Mapify(), nil
 }
