@@ -79,7 +79,7 @@ func TestExtractTCData(t *testing.T){
   defer ts.Close()
   os.Setenv("ASPACE_URL", ts.URL + "/api/")
   tcmap,msgs := ExtractTCData("123456789", "2", "987")
-  if msgs[0] != "Unable to acquire TC json aspace error exporting record" {
+  if msgs[0] != "Unable to acquire 12345: aspace error exporting record" {
     t.Errorf("incorrect response to error")
   }
   if tcmap[0]["barcode"] != "35025042622635" {

@@ -158,8 +158,10 @@ func ExtractTCData(session, repo_id, resource_id string)([]map[string]string, []
   for _,tc_path := range tclist{
     tc_id := ExtractID(tc_path)
     tc,err := ExtractSingleTC(session, repo_id, tc_id)
-    if err != nil { msgs = append(msgs, fmt.Sprintf("Unable to acquire %s: %s",tc_id, err.Error())) }
-    top_containers = append(top_containers, tc.Mapify())
+    if err != nil { msgs = append(msgs, fmt.Sprintf("Unable to acquire %s: %s",tc_id, err.Error()))
+    } else {
+      top_containers = append(top_containers, tc.Mapify())
+    }
   }
   return top_containers, msgs
 }
