@@ -42,6 +42,7 @@ func DummyUpdateTC2(repo_id, holding_id, item_id, session_id, tc_id string)(stri
   log.Println(fmt.Sprintf("From DummyUpdateTC2: %s, %s, %s", holding_id, item_id, tc_id))
   return "", nil
 }
+
 func DummySetHolding(oclc_id string, token string)(string, string, error){ return fmt.Sprintf(`{"message":"holding %s is set"}`, oclc_id), "application/json", nil }
 
 func DummyCheckForMissing(args ProcessArgs, tcmap []map[string]string){}

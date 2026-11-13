@@ -18,7 +18,7 @@ func LightweightPreflight(session_id string, resource_id string, repo_id string)
   fname := file.Filename()
   rjson, err := AcquireJson(session_id, repo_id, "resources/" + resource_id)
   if err != nil { file.WriteReport(fname, []string{ "Could not aquire JSON from aspace: " + err.Error() }); return fname }
-  _, create, err := GetMmsId(rjson)
+  _, create, err := ExtractMmsId(rjson)
   if err != nil { file.WriteReport(fname, []string{ "Problem retrieving mms id: " + err.Error() }); return fname }
   tcmap, errmsgs := ExtractTCData(session_id, repo_id, resource_id)
   if len(errmsgs) != 0 { file.WriteReport(fname, errmsgs); return fname }

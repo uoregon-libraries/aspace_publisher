@@ -5,12 +5,9 @@ import (
   "net/http"
   "net/http/httptest"
   "os"
-  "net/http"
-  "net/http/httptest"
   "fmt"
   "io/ioutil"
   "log"
-  "fmt"
 )
 
 func loadfile(filename string)[]byte{

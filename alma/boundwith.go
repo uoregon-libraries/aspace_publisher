@@ -183,14 +183,20 @@ func ProcessBWItem(args ProcessArgs, tcmap map[string]string, fs BWFunMap){
   }
   if err != nil { file.WriteReport(args.Filename, []string{ "Error processing item: " + err.Error()}); return }
   var item_id string
+  var msgs []string
   if tcmap["ils_item"] == "" {
     item_id = ExtractItemID(result)
-    err = fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tcmap)
-    if err != nil { file.WriteReport(args.Filename, []string{ "error updating tc: " + err.Error() } ) }
+    tc_id := as.ExtractID(tcmap["uri"])
+    resp, err := fs.UpdateTC(args.Repo_id, args.Holding_id, item_id, args.Session_id, tc_id)
+    if err != nil { msgs = append(msgs, "error updating tc: " + err.Error())
     } else {
+      msgs = append(msgs, resp)
+    }
+  } else {
     item_id = tcmap["ils_item"]
   }
-  file.WriteReport(args.Filename, []string{ "item processed: " + item_id })
+  msgs = append(msgs, "item processed: " + item_id)
+  file.WriteReport(args.Filename, msgs)
 }
 
 // no policy
