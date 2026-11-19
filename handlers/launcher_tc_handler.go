@@ -25,13 +25,14 @@ func LauncherTCHandler(c echo.Context) error {
   case "update_single_tc":
     fname = UpdateTopContainerSA(top_container_id, session_id, repo_id)
   case "boundwith":
-    //do nothing for now
-    return c.String(status, "This process not yet enabled")
+    e_session, err := utils.Encrypt(session_id)
+    if err != nil { return c.String(400, "Could not encrypt session") }
+    fname = file.Filename()
+    err = alma.CallWorker("startAlmaBWJob", map[string]string{ "id": top_container_id, "filename": fname, "session": e_session } )
+    if err != nil { return c.String(400, err.Error()) }
   default:
     return c.String(500, "No workflow submitted")
   }
-  //if error has been documented in the user report, return the filename
-  if err != nil { status = http.StatusInternalServerError }
   base_url := os.Getenv("HOME_URL")
   return c.HTML(status, fmt.Sprintf("<p>Relevant updates will be written to <a href=\"%s/reports/%s\">%s</a></p>", base_url, fname, fname))
 }
