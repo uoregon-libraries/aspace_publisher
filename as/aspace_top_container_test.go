@@ -32,10 +32,17 @@ func TestTCList(t *testing.T){
 }
 
 func TestCalculateRuns(t *testing.T){
-  data := `{"page_size":250,"total_hits":383,"results":[{"id":"/repositories/2/top_containers/70040","uri":"/repositories/2/top_containers/70040","jsonmodel_type":null}]}`
+  data := `{"page_size":250,"total_hits":33,"results":[{"id":"/repositories/2/top_containers/70040","uri":"/repositories/2/top_containers/70040","jsonmodel_type":null}]}`
   result, err := calculateRuns([]byte(data))
   if err != nil { t.Error(err) }
+  if result != 0 { t.Error("incorrect num runs") }
+  data2 := `{"page_size":250,"total_hits":383,"results":[{"id":"/repositories/2/top_containers/70040","uri":"/repositories/2/top_containers/70040","jsonmodel_type":null}]}`
+  result, err = calculateRuns([]byte(data2))
+  if err != nil { t.Error(err) }
   if result != 1 { t.Error("incorrect num runs") }
+  data3 := `{"error":"we don't understand what you're asking for here"}`
+  result, err = calculateRuns([]byte(data3))
+  if err == nil { t.Error("there should be an error") }
 }
 
 func TestProcessList(t *testing.T){
