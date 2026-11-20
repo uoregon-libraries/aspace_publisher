@@ -11,12 +11,13 @@ import (
 )
 
 func TestTCList(t *testing.T){
-  data := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345", "collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/444","collection_uri_u_sstr":["/repositories/2/resources/986"]}]}}`
-  path := "/api/repositories/2/top_containers/search"
+  data := `{"page_size":250,"total_hits":2,"results":[{"id":"/repositories/2/top_containers/70040","uri":"/repositories/2/top_containers/70040","jsonmodel_type":null},{"id":"/repositories/2/top_containers/70041","uri":"/repositories/2/top_containers/70041","jsonmodel_type":null}`
+  path := "/api/repositories/2/search"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path == path {
-      if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
-      if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
+      if v1 := r.URL.Query().Get("type[]"); v1 != "top_container" { t.Errorf("params wrong") }
+      if v2 := r.URL.Query().Get("q"); v2 != `collection_uri_u_sstr:"/repositories/2/resources/1234"` { t.Errorf("params wrong") }
+      if v3 := r.URL.Query().Get("page"); v3 != "1" { t.Error("wrong page val") }
       fmt.Fprint(w, data)
     } else {
       t.Error("incorrect request url: " + r.URL.Path)
@@ -24,12 +25,29 @@ func TestTCList(t *testing.T){
   }))
   defer ts.Close()
   os.Setenv("ASPACE_URL", ts.URL + "/api/")
-  list, err := TCList("432143214321", "2", "987")
+  list, err := TCList("432143214321", "2", "1234")
   if err != nil { log.Println(err) }
-  if slices.Contains(list, "/repositories/2/top_containers/12345") != true { t.Errorf("incorrect top container list") }
-  if slices.Contains(list, "/repositories/2/top_containers/67890") != true { t.Errorf("incorrect top container list") }
-  if slices.Contains(list, "/repositories/2/top_containers/444") == true { t.Errorf("incorrect top container list") }
-  fmt.Println(list)
+  if slices.Contains(list, "/repositories/2/top_containers/70040") != true { t.Errorf("incorrect top container list") }
+  if slices.Contains(list, "/repositories/2/top_containers/70041") != true { t.Errorf("incorrect top container list") }
+}
+
+func TestCalculateRuns(t *testing.T){
+  data := `{"page_size":250,"total_hits":383,"results":[{"id":"/repositories/2/top_containers/70040","uri":"/repositories/2/top_containers/70040","jsonmodel_type":null}]}`
+  result, err := calculateRuns([]byte(data))
+  if err != nil { t.Error(err) }
+  if result != 1 { t.Error("incorrect num runs") }
+}
+
+func TestProcessList(t *testing.T){
+  data := `{"page_size":250,"total_hits":383,"results":[{"id":"/repositories/2/top_containers/70040","uri":"/repositories/2/top_containers/70040","jsonmodel_type":null},{"id":"/repositories/2/top_containers/70041","uri":"/repositories/2/top_containers/70041","jsonmodel_type":null}`
+  list := processList([]byte(data))
+  if slices.Contains(list, "/repositories/2/top_containers/70040") != true { t.Error("incorrect parse of list") }
+  if slices.Contains(list, "/repositories/2/top_containers/70041") != true { t.Error("incorrect parse of list") }
+}
+func TestSearchString(t *testing.T){
+  sstring := search_string("2", "1234", "1")
+  expected := `search?type[]=top_container&q=collection_uri_u_sstr%3A%22%2Frepositories%2F2%2Fresources%2F1234%22&fields[]=id&page=1&page_size=250`
+  if sstring != expected { t.Error("incorrect search string returned") }
 }
 
 func TestGetTCRefs(t *testing.T){
@@ -55,16 +73,16 @@ func TestMapify(t *testing.T){
 }
 
 func TestExtractTCData(t *testing.T){
-  listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/12345","collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/67890","collection_uri_u_sstr":["/repositories/2/resources/987"]}]}}`
-  listpath := "/api/repositories/2/top_containers/search"
+  listdata := `{"page_size":250,"total_hits":2,"results":[{"id":"/repositories/2/top_containers/12345","uri":"/repositories/2/top_containers/12345","jsonmodel_type":null},{"id":"/repositories/2/top_containers/67890","uri":"/repositories/2/top_containers/67890","jsonmodel_type":null}]}`
+  listpath := "/api/repositories/2/search"
   tcdata2 := topcontainer_fixture1
   tcpath1 := "/api/repositories/2/top_containers/12345"
   tcpath2 := "/api/repositories/2/top_containers/67890"
    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     //If TCList is the requester
     if r.URL.Path == listpath {
-      if v1 := r.URL.Query().Get("type[]"); v1 != "resource" { t.Errorf("params wrong") }
-      if v2 := r.URL.Query().Get("q"); v2 != "/resources/987" { t.Errorf("params wrong") }
+      if v1 := r.URL.Query().Get("type[]"); v1 != "top_container" { t.Errorf("params wrong") }
+      if v2 := r.URL.Query().Get("q"); v2 != `collection_uri_u_sstr:"/repositories/2/resources/987"` { t.Errorf("params wrong") }
       fmt.Fprint(w, listdata)
     } else if r.URL.Path == tcpath1 { //Iterating through the tclist
       w.WriteHeader(http.StatusNotFound)
@@ -78,7 +96,7 @@ func TestExtractTCData(t *testing.T){
   defer ts.Close()
   os.Setenv("ASPACE_URL", ts.URL + "/api/")
   tcmap,msgs := ExtractTCData("123456789", "2", "987")
-  if msgs[0] != "Unable to acquire TC json aspace error exporting record" {
+  if msgs[0] != "Unable to acquire 12345: aspace error exporting record" {
     t.Errorf("incorrect response to error")
   }
   if tcmap[0]["barcode"] != "35025042622635" {

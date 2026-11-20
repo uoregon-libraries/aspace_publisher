@@ -16,8 +16,8 @@ func TestLightweightPreflight(t *testing.T){
 
   rpath := "/api/repositories/2/resources/987"
   resource := `{ "user_defined": { "string_1": "123123123", "string_2":"987987987" }`
-  listpath := "/api/repositories/2/top_containers/search"
-  listdata := `{"response":{"docs":[{"id":"/repositories/2/top_containers/123", "collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/456", "collection_uri_u_sstr":["/repositories/2/resources/987"]},{"id":"/repositories/2/top_containers/789", "collection_uri_u_sstr":["/repositories/2/resources/987"]}]}}`
+  listpath := "/api/repositories/2/search"
+  listdata := `{"page_size":250,"total_hits":3,"results":[{"id":"/repositories/2/top_containers/123","uri":"/repositories/2/top_containers/123","jsonmodel_type":null},{"id":"/repositories/2/top_containers/456","uri":"/repositories/2/top_containers/456","jsonmodel_type":null},{"id":"/repositories/2/top_containers/789","uri":"/repositories/2/top_containers/789","jsonmodel_type":null}]}`
   tcpath123 := "/api/repositories/2/top_containers/123"
   tcpath456 := "/api/repositories/2/top_containers/456"
   tcpath789 := "/api/repositories/2/top_containers/789"

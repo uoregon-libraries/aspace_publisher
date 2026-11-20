@@ -13,7 +13,7 @@ import (
 func loadfile(filename string)[]byte{
   home := os.Getenv("HOME_DIR")
   f, err := ioutil.ReadFile(home + "fixtures/" + filename)
-  if err != nil { log.Println("error reading file") }
+  if err != nil { log.Println("error reading file: " + err.Error()) }
   return f
 }
 
