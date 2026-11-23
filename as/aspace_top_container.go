@@ -60,8 +60,8 @@ func TCList(session_id, repo_id, resource_id string)([]string, error){
   num_runs, err := calculateRuns(response)
   if err != nil { return list, err }
   list = processList(response)
-  for i := 1; i < num_runs; i++ {
-    page := strconv.Itoa(i + 1)
+  for i := 2; i <= num_runs; i++ {
+    page := strconv.Itoa(i)
     response, err := AcquireJson(session_id, repo_id, search_string(repo_id, resource_id, page))
     if err != nil { return list, err }
     list = slices.Concat(list, processList(response))
@@ -85,10 +85,13 @@ func processList(json []byte)([]string){
 }
 
 func calculateRuns(json []byte) (int, error){
+  //250 is aspace's max page results for the search request, not documented
   total_hits := gjson.GetBytes(json, "total_hits")
   thi, err := strconv.Atoi(total_hits.String())
   if err != nil { return -1, err }
   num_runs := thi/250
+  rem := thi%250
+  if rem > 0 { num_runs++ }
   return num_runs, nil
 }
 

@@ -7,6 +7,7 @@ import(
   "fmt"
   "os"
   "log"
+  "strconv"
 
 )
 
@@ -19,12 +20,31 @@ func LargeTCMap()[]map[string]string{
   return tcmap
 }
 
+func recurse(tcmap []map[string]string, counter int, tot int)[]map[string]string{
+  tcmap[0]["indicator"] = strconv.Itoa(counter)
+  if counter == tot { return tcmap } else {
+    counter++
+    tcmap = recurse( tcmap, counter, tot)
+  }
+  return tcmap
+}
+
 func BenchmarkLargeTCMap(b *testing.B){
   var tcmap []map[string]string
   for i := 0; i < b.N; i++ {
     tcmap = LargeTCMap()
   }
   fmt.Printf("************************************* %d", len(tcmap))
+}
+
+// in the alma workflow the process methods call the next process method
+func BenchmarkLargeTCMap2(b *testing.B){
+  var tcmap []map[string]string
+  for i := 0; i < b.N; i++ {
+    tcmap = LargeTCMap()
+    tcmap = recurse(tcmap, 0, 3)
+  }
+  fmt.Printf("************************************* %s", tcmap[0]["indicator"])
 }
 
 func TestTCListLarge(t * testing.T){

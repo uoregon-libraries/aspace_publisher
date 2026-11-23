@@ -133,17 +133,19 @@ func ProcessBoundwith(args ProcessArgs,marc_string string, tcmap []map[string]st
 
   if !process_holding { msgs = append(msgs, "no items to update") }
   if len(msgs) != 0 { file.WriteReport(args.Filename, msgs) }
-  if process_holding { fs.HoldingAPF(args, marc_string, tcmap, fs) }
+  if process_holding {
+    if args.Holding_id == "" {
+      fs.HoldingAPF(args, marc_string, tcmap, fs)
+    } else {
+      fs.HoldingBPF(args, marc_string, tcmap, fs)
+    }
+  }
 }
 
 type ProcessHoldingAFun func(ProcessArgs, string, []map[string]string, FunMap)
 // does not use tcmap, passes it to items processing which does
 // "A" method handles creates
 func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]string, fs FunMap){
-  if args.Holding_id != "" {
-    fs.HoldingBPF(args, marc_string, tcmap, fs)
-    return
-  }
   slog.Info(fmt.Sprintf("Creating holding %+v", args))
   path := []string{"bibs", args.Mms_id, "holdings", args.Holding_id}
   _url := BuildUrl(path)
