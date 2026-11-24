@@ -4,6 +4,8 @@ import(
   "github.com/labstack/echo/v4"
   "aspace_publisher/as"
   "aspace_publisher/utils"
+  "aspace_publisher/file"
+  "aspace_publisher/alma"
   "net/http"
   "os"
   "fmt"
