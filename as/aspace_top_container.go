@@ -10,6 +10,7 @@ import (
   "regexp"
   "fmt"
   "errors"
+  "net/url"
 )
 
 type TopContainer struct{
@@ -52,19 +53,46 @@ func TCListPublished(session_id, repo_id, id string)([]string, error){
   return idlist, nil
 }
 
-func TCList(session_id, repo_id, id string)([]string, error){
-  json_list, err := AcquireJson(session_id, repo_id, "top_containers/search?type[]=resource&q=/resources/" + id)
-  if err != nil { return nil, err }
-  r_uri := fmt.Sprintf("/repositories/%s/resources/%s", repo_id, id)
-  tclist := gjson.GetBytes(json_list, fmt.Sprintf("response.docs.#(collection_uri_u_sstr.#(== %s))#.id", r_uri))
-  cleanlist := []string{}
-  // ensure list content unique
-  for _, tc := range tclist.Array() {
-    if slices.Contains(cleanlist, tc.String()) == false {
-      cleanlist = append(cleanlist, tc.String())
-    }
+func TCList(session_id, repo_id, resource_id string)([]string, error){
+  var list []string
+  response, err := AcquireJson(session_id, repo_id, search_string(repo_id, resource_id, "1"))
+  if err != nil { return list, err }
+  num_runs, err := calculateRuns(response)
+  if err != nil { return list, err }
+  list = processList(response)
+  for i := 2; i <= num_runs; i++ {
+    page := strconv.Itoa(i)
+    response, err := AcquireJson(session_id, repo_id, search_string(repo_id, resource_id, page))
+    if err != nil { return list, err }
+    list = slices.Concat(list, processList(response))
   }
-  return cleanlist, nil
+  return list, nil
+}
+
+func search_string(repo_id, resource_id, page string)string{
+  query := fmt.Sprintf(`collection_uri_u_sstr:"/repositories/%s/resources/%s"`, repo_id, resource_id)
+  escaped := url.QueryEscape(query)
+  return fmt.Sprintf(`search?type[]=top_container&q=%s&fields[]=id&page=%s&page_size=250`, escaped, page)
+}
+
+func processList(json []byte)([]string){
+  var tclist []string
+  list := gjson.GetBytes(json, "results.#.id")
+  for _,val := range list.Array() {
+    tclist = append(tclist, val.String())
+  }
+  return tclist
+}
+
+func calculateRuns(json []byte) (int, error){
+  //250 is aspace's max page results for the search request, not documented
+  total_hits := gjson.GetBytes(json, "total_hits")
+  thi, err := strconv.Atoi(total_hits.String())
+  if err != nil { return -1, err }
+  num_runs := thi/250
+  rem := thi%250
+  if rem > 0 { num_runs++ }
+  return num_runs, nil
 }
 
 //pulls ils ids out of top container json
@@ -107,8 +135,11 @@ func ExtractTCData(session, repo_id, resource_id string)([]map[string]string, []
   for _,tc_path := range tclist{
     tc_id := ExtractID(tc_path)
     tc,err := ExtractSingleTC(session, repo_id, tc_id)
-    if err != nil { msgs = append(msgs, fmt.Sprintf("Unable to acquire %s: %s",tc_id, err.Error())) }
-    top_containers = append(top_containers, tc.Mapify())
+    if err != nil {
+      msgs = append(msgs, fmt.Sprintf("Unable to acquire %s: %s",tc_id, err.Error()))
+    } else {
+      top_containers = append(top_containers, tc.Mapify())
+    }
   }
   return top_containers, msgs
 }
