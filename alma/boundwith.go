@@ -49,7 +49,10 @@ func ProcessBWBib(args ProcessArgs, tcmap map[string]string, tccolls []map[strin
     result, err = Post(_url, params, strbib, "xml")
   } else { result, err = Put(_url, params, strbib, "xml") }
   if err != nil { file.WriteReport(args.Filename, []string{ err.Error() }); return }
-  if args.Mms_id == "" { args.Mms_id = ExtractBibID(result) }
+  if args.Mms_id == "" {
+    args.Mms_id = ExtractBibID(result)
+    file.WriteReport(args.Filename, []string{ "Bib created: " + args.Mms_id } )
+  }
   fs.HoldingPF(args, rec, tcmap, fs)
 }
 
@@ -61,7 +64,7 @@ func ConstructBWBib(rec Record) Bib {
 
 func ConstructBWMarc(tc_data map[string]string, t time.Time) Record{
   date1 := t.Format("20060102150405")
-  date2 := t.Format("20060102")
+  date2 := t.Format("060102")
 
   var rec = Record{}
   rec.Leader = "00000npcaa2200000 i 4500"
@@ -138,7 +141,8 @@ func UpdateBWHolding(hold string, tcmap map[string]string)(string, error){
   return str, err
 }
 
-// keeps leader and controlfield, overwrites datafield
+// leader and cf008 using holding defs
+// no cf005 on new holding
 func ConstructBWHolding(tcmap map[string]string, t time.Time)(string, error){
   var h = Holding{}
   h.Suppress = false
