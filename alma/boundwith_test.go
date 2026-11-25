@@ -162,16 +162,15 @@ func TestConstructBWBib(t *testing.T){
 }
 
 func TestConstructBWHolding(t *testing.T){
-  tcmap := map[string]string{ "barcode":"123456789"}
-  r := ConstructBWMarc(tcmap, dummyTime())
-  h, err := ConstructBWHolding(r, tcmap)
+  tcmap := map[string]string{ "barcode":"3502501231242352345214"}
+  h, err := ConstructBWHolding(tcmap, dummyTime())
   if err != nil { t.Error(err) }
-  if compareHolds([]byte(h), []byte(bwholdfixture1)) != true { t.Error("construct hold failed") }
+  if compareHolds([]byte(h), []byte(bwholdfixture)) != true { t.Error("construct hold failed") }
 }
 
 func TestUpdateBWHolding(t *testing.T){
-  tcdata := map[string]string{ "barcode":"345678912"}
-  holdingxml, err := UpdateBWHolding(bwholdfixture1a, tcdata)
+  tcdata := map[string]string{ "barcode":"123456789"}
+  holdingxml, err := UpdateBWHolding(bwholdfixturea, tcdata)
   if err != nil { t.Error(err) }
 /*
   eq, err := xmlcmp.Equal(holdingxml, bwholdfixture2)
@@ -179,7 +178,7 @@ func TestUpdateBWHolding(t *testing.T){
   if eq != false { t.Error("output does not equal expected") }
   if compareHolds([]byte(holdingxml), []byte(bwholdfixture2)) { t.Error("incorrect holding update") }
 */
-  if diff := cmp.Diff(holdingxml, bwholdfixture2); diff != "" { t.Error("second try failed") }
+  if diff := cmp.Diff(holdingxml, bwholdfixture1); diff != "" { t.Error("second try failed") }
 }
 
 func TestConstructBWItem(t *testing.T){
@@ -219,14 +218,14 @@ var bwbibfixture3 = `<?xml version="1.0" encoding="UTF-8"?><bib><suppress_from_p
 //has lawrence and james
 var bwbibfixture4 = `<bib><suppress_from_publishing>true</suppress_from_publishing><suppress_from_external_search>true</suppress_from_external_search><record><leader>00000npcaa2200000 i 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">20070515i19001920oru                 eng d</controlfield><datafield tag="245" ind1="0" ind2="0"><subfield code="a">Multiple archival collections in a shared box with barcode 123456789</subfield></datafield><datafield ind1="1" ind2=" " tag="774"><subfield code="t">A 044 Lawrence Hall commonplace book</subfield><subfield code="w">99198735901852</subfield></datafield><datafield ind1="1" ind2=" " tag="774"><subfield code="t">A 045 James Watson Hamilton diary</subfield><subfield code="w">99900407345201852</subfield></datafield><datafield tag="962" ind1=" " ind2=" "><subfield code="a">BoundwithRecord</subfield><subfield code="9">local</subfield></datafield></record></bib>`
 
-var bwholdfixture = `<holding><suppress_from_publishing>false</suppress_from_publishing><record><leader>00000npcaa2200000 i 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">20070515i19001920oru                 eng d</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[3502501231242352345214]</subfield></datafield></record></holding>`
+//expected post
+var bwholdfixture = `<holding><suppress_from_publishing>false</suppress_from_publishing><record><leader>00373nx  a22000501n 4500</leader><controlfield tag="008">0705152u    8   4001uueng0000000</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[3502501231242352345214]</subfield></datafield></record></holding>`
 
-var bwholdfixturea = `<?xml version="1.0" encoding="UTF-8"?><holding><holding_id>234567891</holding_id><suppress_from_publishing>false</suppress_from_publishing><record><leader>00000npcaa2200000 i 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">20070515i19001920oru                 eng d</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[3502501231242352345214]</subfield></datafield></record></holding>`
-var bwholdfixture1 = `<holding><suppress_from_publishing>false</suppress_from_publishing><record><leader>00000npcaa2200000 i 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">20070515i19001920oru                 eng d</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[123456789]</subfield></datafield></record></holding>`
+//for get
+var bwholdfixturea = `<?xml version="1.0" encoding="UTF-8"?><holding><holding_id>234567891</holding_id><suppress_from_publishing>false</suppress_from_publishing><record><leader>00373nx  a22000501n 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">0705152u    8   4001uueng0000000</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[3502501231242352345214]</subfield></datafield></record></holding>`
 
-var bwholdfixture1a = `<holding><holding_id>234567891</holding_id><suppress_from_publishing>false</suppress_from_publishing><record><leader>00000npcaa2200000 i 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">20070515i19001920oru                 eng d</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[123456789]</subfield></datafield></record></holding>`
-
-var bwholdfixture2 = `<holding><suppress_from_publishing>false</suppress_from_publishing><record><leader>00000npcaa2200000 i 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">20070515i19001920oru                 eng d</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[345678912]</subfield></datafield></record></holding>`
+//expected put
+var bwholdfixture1 = `<holding><suppress_from_publishing>false</suppress_from_publishing><record><leader>00373nx  a22000501n 4500</leader><controlfield tag="005">20070515123442.0</controlfield><controlfield tag="008">0705152u    8   4001uueng0000000</controlfield><datafield tag="852" ind1="8" ind2=" "><subfield code="b">SpecColl</subfield><subfield code="c">spmanus</subfield><subfield code="h">[123456789]</subfield></datafield></record></holding>`
 
 var bwitemfixture1 = `{"holding_data":{"holding_id":"234567891","copy_id":"1"},"item_data":{"barcode":"123456789","policy":{"value":""},"description":"Multiple Collection Box [123456789]","base_status":{"value":"1"},"library":{"value":"SpecColl"},"location":{"value":"spmanus"},"physical_material_type":{"value":"MANUSCRIPT"}}}`
 var bwitemfixture1a = `{"holding_data":{"holding_id":"234567891","copy_id":"1"},"item_data":{"pid":"345678912","barcode":"123456789","policy":{"value":""},"description":"Multiple Collection Box [123456789]","base_status":{"value":"1"},"library":{"value":"SpecColl"},"location":{"value":"spmanus"},"physical_material_type":{"value":"MANUSCRIPT"},"creation_date": "2026-04-06Z","modification_date": "2026-04-06Z"}}`

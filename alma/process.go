@@ -55,6 +55,7 @@ type FunMap struct {
   UpdateTC as.UpdateTCFun
   SetHolding oclc.SetHoldingFun
   CheckForMissingPF CheckItemsForMissingFun
+  Time TimeFun
 }
 
 // only run creates
@@ -151,7 +152,7 @@ func ProcessHoldingA(args ProcessArgs, marc_string string, tcmap []map[string]st
   _url := BuildUrl(path)
   params := []string{ ApiKey() }
   var result []byte
-  holding, err := ConstructHolding(marc_string, args.Id_0)
+  holding, err := ConstructHolding(marc_string, args.Id_0, fs.Time())
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }
   holdingstr, err := holding.Stringify()
   if err != nil { file.WriteReport(args.Filename, []string{"Unable to construct holding: " + err.Error()}); return }

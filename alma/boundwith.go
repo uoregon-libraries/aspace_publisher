@@ -111,7 +111,7 @@ func ProcessBWHolding(args ProcessArgs, rec Record, tcmap map[string]string, fs 
     holdxml, err := Get(_url, params, "application/xml")
     if err != nil { file.WriteReport(args.Filename, []string{"Unable to obtain current holding: " + err.Error()}); return }
     holding, err = UpdateBWHolding(string(holdxml), tcmap) } else {
-    holding, err = ConstructBWHolding(rec, tcmap ) }
+    holding, err = ConstructBWHolding(tcmap, fs.Time()) }
   if err != nil { file.WriteReport(args.Filename, []string{"Did not construct holding: " + err.Error()}); return }
   var result []byte
   if args.Create {
@@ -139,11 +139,12 @@ func UpdateBWHolding(hold string, tcmap map[string]string)(string, error){
 }
 
 // keeps leader and controlfield, overwrites datafield
-func ConstructBWHolding(rec Record, tcmap map[string]string)(string, error){
+func ConstructBWHolding(tcmap map[string]string, t time.Time)(string, error){
   var h = Holding{}
   h.Suppress = false
-  h.Rec.Leader = rec.Leader
-  h.Rec.Controlfield = rec.Controlfield
+  c008 := Controlfield{ Tag:"008", Value: Hold_cf008(t) }
+  h.Rec.Leader = Hold_leader("")
+  h.Rec.Controlfield = []Controlfield{ c008 }
   sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
   sfh := Subfield{Code:"h", Value: fmt.Sprintf("[%s]", tcmap["barcode"])}

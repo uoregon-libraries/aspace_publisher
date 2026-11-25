@@ -62,7 +62,7 @@ func TestConstructHolding(t *testing.T){
   if err != nil { t.Errorf("error reading file") }
   expected := holdingstring_fixture1
   if err != nil { t.Errorf("error reading file") }
-  result, _ := ConstructHolding(string(hold), "Coll 408")
+  result, _ := ConstructHolding(string(hold), "Coll 408", dummyTime())
   holdstr, err := result.Stringify()
   if err != nil { t.Errorf("stringify error") }
   if compareHolds([]byte(holdstr), []byte(expected)) != true { t.Errorf("incorrect holding rec") }

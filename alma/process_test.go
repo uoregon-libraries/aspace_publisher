@@ -107,7 +107,7 @@ func TestProcessBoundwith(t *testing.T){
 func TestProcessHoldingA(t *testing.T){
   path1 := "/almaws/v1/bibs/345634563456/holdings"
   args1 := ProcessArgs{ Mms_id: "345634563456", Filename: "test", Session_id: "123123123", Repo_id: "2", Resource_id: "1234", Create: true, Id_0: "Coll 408"}
-  fs := FunMap{ HoldingBPF: DummyHoldingBPF, ItemsPF: DummyItemsPF }
+  fs := FunMap{ HoldingBPF: DummyHoldingBPF, ItemsPF: DummyItemsPF, Time: dummyTime }
   tcmap1 := []map[string]string{ map[string]string{ "boundwith": "false", "ils_holding": "", "ils_item": "" } }
   home := os.Getenv("HOME_DIR")
   marc1, err := ioutil.ReadFile(home + "fixtures/marc_3464.xml")

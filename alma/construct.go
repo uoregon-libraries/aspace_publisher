@@ -9,6 +9,7 @@ import (
   "fmt"
   "errors"
   "strings"
+  "time"
 )
 // create should include the bib.suppress fields
 // no updates
@@ -64,18 +65,17 @@ func UpdateHolding(marc_string string, hold string)(string, error){
   return str, err
 }
 // create and update should both only include suppress_from_publishing and record fields
-func ConstructHolding(marc_string string, id_0 string)(Holding, error){
+func ConstructHolding(marc_string string, id_0 string, t time.Time)(Holding, error){
   var h = Holding{}
   marc_xml, err := ParseMarc(marc_string)
   if err != nil { return h, err }
   link, err := BuildFindingLink(marc_xml)
   if err != nil { return h, err }
-  fixed, err := ExtractFixed(marc_xml)
-  if err != nil { return h, err }
+  cf008 := Hold_cf008(t)
   h.Suppress = false
-  h.Rec.Leader, err = ExtractLeader(marc_xml)
+  h.Rec.Leader = Hold_leader("")
   if err != nil { return h, err }
-  h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: fixed} }
+  h.Rec.Controlfield = []Controlfield{ Controlfield{Tag:"008", Value: cf008} }
   sfb := Subfield{Code:"b", Value:"SpecColl"}
   sfc := Subfield{Code:"c", Value: "spmanus"}
   sfh := Subfield{Code:"h", Value: id_0}
@@ -195,4 +195,14 @@ func df774Exists(bw Bib, mms_id string) bool {
     }
   }
   return false
+}
+
+func Hold_cf008(t time.Time)string{
+  return fmt.Sprintf(`%s2u    8   4001uueng0000000`, t.Format("060102"))
+}
+
+func Hold_leader(hold_id string)string{
+  var c_code string
+  if hold_id == "" { c_code = "n" } else { c_code = "c" }
+  return fmt.Sprintf(`00373%sx  a22000501n 4500`, c_code)
 }
